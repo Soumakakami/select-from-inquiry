@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ログは嘘をつかない</title>
+<meta name="description" content="ゲーム会社のサーバーエンジニアになって、ユーザーからの問い合わせをSQLとログで調査するゲーム">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Sans+JP:wght@400;600&family=M+PLUS+1+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* 夜の運用デスク：青みのスレート地に、問い合わせ票だけが紙。強い色は朱印だけ。
+     layout: 左に問い合わせ票、中央にSQLコンソール、右にテーブル定義 */
+  --bg: #11151c;
+  --panel: #171d26;
+  --raise: #1e2531;
+  --line: #2a3340;
+  --ink: #dbe1ea;
+  --muted: #8995a7;
+  --paper: #eef1f4;
+  --paper-ink: #1b2330;
+  --paper-line: #c5ccd6;
+  --amber: #efa63a;
+  --amber-ink: #241705;
+  --shu: #d4361f;
+  --ok: #3fb67f;
+  --font-display: 'DotGothic16', 'Osaka-Mono', 'MS Gothic', monospace;
+  --font-body: 'IBM Plex Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif;
+  --font-code: 'M PLUS 1 Code', 'Menlo', 'Consolas', 'Osaka-Mono', monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+
+/* ---------- HUD ---------- */
+.hud {
+  display: flex; align-items: center; gap: 20px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  min-width: 0;
+}
+.brand { display: flex; flex-direction: column; line-height: 1.15; flex: none; }
+.brand b { font-family: var(--font-display); font-weight: 400; font-size: 20px; letter-spacing: .04em; }
+.brand small { color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+.queue { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; padding: 2px; }
+.chip {
+  flex: none; display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 8px; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--raise);
+  font-size: 12px; color: var(--muted); white-space: nowrap;
+}
+.chip .no { font-family: var(--font-display); font-size: 13px; color: var(--ink); }
+.chip .lamp { width: 8px; height: 8px; border-radius: 50%; background: #3a4555; flex: none; }
+.chip.is-current { border-color: var(--amber); color: var(--ink); }
+.chip.is-current .lamp { background: var(--amber); box-shadow: 0 0 0 3px rgba(239,166,58,.18); animation: pager 1.6s ease-in-out infinite; }
+.chip.is-solved .lamp { background: var(--ok); }
+.chip.is-gaveup .lamp { background: var(--muted); }
+.chip:disabled { cursor: default; opacity: .55; }
+.stats { display: flex; gap: 18px; align-items: center; flex: none; font-family: var(--font-display); }
+.stat { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.stat span { font-size: 10px; color: var(--muted); font-family: var(--font-body); letter-spacing: .1em; }
+.stat b { font-weight: 400; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat.warn b { color: var(--shu); }
+@keyframes pager { 50% { box-shadow: 0 0 0 6px rgba(239,166,58,0); } }
+
+/* ---------- desk ---------- */
+.desk {
+  display: grid;
+  grid-template-columns: minmax(330px, 380px) minmax(0, 1fr) minmax(250px, 290px);
+  min-height: 0;
+}
+.pane { min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.pane + .pane { border-left: 1px solid var(--line); }
+.pane-ticket { background: #141922; }
+.ticket-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- ticket (paper) ---------- */
+.ticket {
+  position: relative;
+  background: var(--paper); color: var(--paper-ink);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.35);
+  padding: 14px 16px 16px;
+}
+.ticket-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--paper-ink); padding-bottom: 6px; margin-bottom: 10px; }
+.ticket-head h2 { margin: 0; font-size: 15px; letter-spacing: .3em; font-weight: 600; }
+.ticket-head .tno { font-family: var(--font-code); font-size: 11px; color: #4b5666; }
+.ticket-grid { display: grid; grid-template-columns: auto 1fr; border: 1px solid var(--paper-line); font-size: 12.5px; margin: 0; }
+.ticket-grid dt, .ticket-grid dd { margin: 0; padding: 4px 8px; border-bottom: 1px solid var(--paper-line); }
+.ticket-grid dt { background: #e1e6ec; color: #4b5666; border-right: 1px solid var(--paper-line); white-space: nowrap; }
+.ticket-grid dd { font-family: var(--font-code); }
+.ticket-grid dt:nth-last-of-type(1), .ticket-grid dd:nth-last-of-type(1) { border-bottom: 0; }
+.ticket-body { margin: 12px 0 0; font-size: 14px; line-height: 1.85; white-space: pre-wrap; }
+.ticket-note { margin: 12px 0 0; padding: 8px 10px; border-left: 3px solid #9aa5b4; background: #e4e8ed; font-size: 12.5px; color: #3c4655; }
+.ticket-note b { font-weight: 600; }
+
+.stamp {
+  position: absolute; right: 14px; top: 56px;
+  width: 92px; height: 92px; border-radius: 50%;
+  border: 3px solid var(--shu); color: var(--shu);
+  display: grid; place-items: center; text-align: center;
+  font-family: var(--font-body); font-weight: 600; line-height: 1;
+  transform: rotate(-14deg);
+  mix-blend-mode: multiply; opacity: .9; pointer-events: none;
+}
+.stamp::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--shu); border-radius: 50%; }
+.stamp .s-main { font-size: 26px; letter-spacing: .1em; }
+.stamp .s-sub { display: block; font-size: 10px; margin-top: 4px; font-family: var(--font-code); letter-spacing: .05em; }
+.stamp.is-reject { border-radius: 4px; width: 104px; height: 54px; top: 72px; }
+.stamp.is-reject::before { border-radius: 2px; }
+.stamp.is-reject .s-main { font-size: 22px; }
+.stamp.is-gaveup { border-color: #6b7686; color: #6b7686; }
+.stamp.is-gaveup::before { border-color: #6b7686; }
+.stamp.slam { animation: slam .42s cubic-bezier(.2,1.6,.4,1) both; }
+.stamp.fade { animation: slam .42s cubic-bezier(.2,1.6,.4,1) both, fadeout .5s ease 1.4s forwards; }
+@keyframes slam { 0% { transform: rotate(-14deg) scale(2.4); opacity: 0; } 60% { opacity: .95; } 100% { transform: rotate(-14deg) scale(1); opacity: .9; } }
+@keyframes fadeout { to { opacity: 0; } }
+.ticket.shake { animation: shake .3s ease; }
+@keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+/* ---------- answer ---------- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
+.card h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+.opts { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; padding: 0; border: 0; }
+.opt { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--raise); cursor: pointer; font-size: 13px; line-height: 1.5; }
+.opt input { margin: 3px 0 0; accent-color: var(--amber); }
+.opt:has(input:checked) { border-color: var(--amber); background: #2a2519; }
+.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.field input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: #0e1218; font-family: var(--font-code); font-size: 13px; }
+.field input:focus { border-color: var(--amber); outline: none; }
+.btn { border: 1px solid var(--line); background: var(--raise); padding: 7px 12px; border-radius: 4px; font-size: 13px; }
+.btn:hover { border-color: #3d4858; background: #252d3a; }
+.btn-primary { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-weight: 600; }
+.btn-primary:hover { background: #f7b450; border-color: #f7b450; }
+.btn-ghost { background: transparent; color: var(--muted); }
+.btn-danger { color: #ff8b78; border-color: #5a2a24; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.btn-row .btn-primary { flex: 1; }
+.feedback { margin: 12px 0 0; font-size: 13px; padding: 8px 10px; border-radius: 4px; background: #2a1c1a; border: 1px solid #5a2a24; color: #ffc2b7; }
+.feedback.is-info { background: var(--raise); border-color: var(--line); color: var(--ink); }
+.hints { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.hints li { font-size: 12.5px; padding: 8px 10px; background: #1b2230; border: 1px dashed #3a4658; border-radius: 4px; }
+.hints li b { color: var(--amber); font-weight: 600; margin-right: 6px; font-family: var(--font-display); font-weight: 400; }
+.hints code, .resolution code, .notes code { font-family: var(--font-code); font-size: .92em; background: rgba(255,255,255,.06); padding: 0 4px; border-radius: 3px; }
+
+.resolution { display: flex; flex-direction: column; gap: 14px; }
+.reply { margin: 0; padding: 12px 14px; background: var(--paper); color: var(--paper-ink); border-radius: 3px; font-size: 13px; line-height: 1.8; }
+.reaction { margin: 0; font-size: 13px; color: var(--ink); padding-left: 10px; border-left: 3px solid var(--ok); }
+.explain { margin: 0; font-size: 13px; line-height: 1.8; }
+.model { margin: 0; padding: 10px 12px; background: #0d1117; border: 1px solid var(--line); border-radius: 4px; font-family: var(--font-code); font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+.points { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); }
+.points b { font-size: 30px; font-weight: 400; color: var(--amber); }
+.points span { color: var(--muted); font-family: var(--font-body); font-size: 12px; }
+
+/* ---------- console ---------- */
+.pane-console { background: #0f1319; }
+.console-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+.conn { display: flex; align-items: center; gap: 8px; font-family: var(--font-code); font-size: 12px; color: var(--muted); }
+.conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.conn.is-ready .dot { background: var(--ok); }
+.conn.is-error .dot { background: var(--shu); }
+.conn .ro { border: 1px solid var(--line); padding: 0 6px; border-radius: 3px; font-size: 11px; }
+.bar-actions { display: flex; gap: 8px; align-items: center; }
+kbd { font-family: var(--font-code); font-size: 10.5px; padding: 0 4px; border: 1px solid rgba(0,0,0,.25); border-radius: 3px; background: rgba(0,0,0,.12); }
+.btn-run { display: flex; align-items: center; gap: 6px; }
+.btn-run:disabled { opacity: .5; cursor: wait; }
+
+.editor { position: relative; height: clamp(150px, 30vh, 300px); flex: none; border-bottom: 1px solid var(--line); background: #0d1117; }
+.editor pre, .editor textarea {
+  position: absolute; inset: 0; margin: 0; border: 0;
+  padding: 12px 14px;
+  font-family: var(--font-code); font-size: 13.5px; line-height: 1.65; letter-spacing: 0; tab-size: 2;
+  white-space: pre; overflow-wrap: normal; word-break: normal;
+}
+.editor pre { overflow: hidden; pointer-events: none; color: var(--ink); }
+.editor textarea { resize: none; background: transparent; color: transparent; caret-color: var(--amber); overflow: auto; outline: none; }
+.editor textarea::selection { background: rgba(239,166,58,.28); }
+.t-kw { color: #efa63a; }
+.t-fn { color: #d6b2ff; }
+.t-str { color: #93d4a8; }
+.t-num { color: #8db7ff; }
+.t-com { color: #687386; font-style: italic; }
+.t-id { color: #c6d0dd; }
+
+.results { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
+.results-empty { margin: auto; text-align: center; color: var(--muted); font-size: 13px; max-width: 34em; }
+.results-empty b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
+.rblock { display: flex; flex-direction: column; min-height: 0; }
+.rmeta { display: flex; gap: 10px; align-items: baseline; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: var(--font-code); }
+.rmeta .rsql { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; color: #6d7889; }
+.rmeta b { color: var(--ink); font-weight: 600; }
+.twrap { overflow: auto; max-height: 420px; border: 1px solid var(--line); border-radius: 4px; }
+.rblock:only-child { flex: 0 1 auto; min-height: 0; }
+.rblock:only-child .twrap { max-height: none; flex: 0 1 auto; min-height: 0; }
+table.grid { border-collapse: collapse; font-family: var(--font-code); font-size: 12.5px; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; }
+.grid th, .grid td { padding: 4px 10px; border-bottom: 1px solid #222a35; border-right: 1px solid #1d242e; text-align: left; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+.grid th { position: sticky; top: 0; background: var(--raise); color: var(--muted); font-weight: 600; z-index: 1; }
+.grid td.num { text-align: right; }
+.grid td.null { color: #555f6e; font-style: italic; }
+.grid tbody tr:hover td { background: #18202b; }
+.grid td.picked { background: #3a2e17 !important; }
+.grid .rn { color: #4d5767; text-align: right; user-select: none; }
+.rerr { padding: 10px 12px; border: 1px solid #5a2a24; background: #22161a; border-radius: 4px; font-family: var(--font-code); font-size: 12.5px; color: #ffb4a6; white-space: pre-wrap; }
+.rerr small { display: block; color: #d8c3bf; font-family: var(--font-body); margin-top: 4px; }
+.rnote { font-size: 12px; color: var(--muted); }
+
+/* ---------- reference ---------- */
+.pane-ref { background: var(--panel); }
+.tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
+.tabs button { flex: 1; border: 0; background: transparent; padding: 9px 6px; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--amber); }
+.tab-panel { overflow-y: auto; padding: 12px; flex: 1; min-height: 0; }
+.notes { margin: 0 0 14px; padding: 10px 12px; border: 1px solid #4a3a1c; background: #1f1a10; border-radius: 4px; font-size: 12px; line-height: 1.7; }
+.notes h4 { margin: 0 0 4px; font-size: 11px; letter-spacing: .14em; color: var(--amber); }
+.notes ul { margin: 0; padding-left: 1.1em; }
+.tbl { border-top: 1px solid var(--line); padding: 8px 0; }
+.tbl summary { cursor: pointer; display: flex; align-items: baseline; gap: 8px; list-style: none; }
+.tbl summary::-webkit-details-marker { display: none; }
+.tbl summary::before { content: "▸"; color: var(--muted); font-size: 10px; width: 10px; }
+.tbl[open] summary::before { content: "▾"; }
+.tbl-name { font-family: var(--font-code); font-size: 13px; color: var(--ink); }
+.tbl-count { margin-left: auto; font-family: var(--font-code); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tbl-desc { font-size: 11.5px; color: var(--muted); margin: 4px 0 6px 18px; }
+.cols { list-style: none; margin: 0 0 4px 18px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.cols li { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; font-size: 11.5px; }
+.cols button { border: 0; background: none; padding: 0; font-family: var(--font-code); color: #c6d0dd; font-size: 12px; text-align: left; }
+.cols button:hover, .tbl-insert:hover { color: var(--amber); }
+.cols .cmt { color: var(--muted); }
+.cols .cmt em { font-style: normal; color: #f3c27a; }
+.tbl-insert { border: 0; background: none; padding: 0; font-size: 11px; color: var(--muted); margin-left: 18px; text-decoration: underline; text-underline-offset: 2px; }
+.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hist button { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--raise); border-radius: 4px; padding: 6px 8px; font-family: var(--font-code); font-size: 11.5px; white-space: pre-wrap; max-height: 5.4em; overflow: hidden; }
+.hist button:hover { border-color: #3d4858; }
+.hist .hmeta { display: block; color: var(--muted); font-family: var(--font-body); font-size: 10.5px; margin-bottom: 2px; }
+.hist .is-err .hmeta { color: #ff8b78; }
+
+/* ---------- overlay / modal ---------- */
+.overlay { position: fixed; inset: 0; background: rgba(8,10,14,.72); backdrop-filter: blur(3px); display: grid; place-items: center; padding: 16px; z-index: 20; overflow-y: auto; }
+.modal { width: min(640px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 28px 28px 24px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.modal .eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--muted); margin: 0 0 6px; }
+.modal h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 46px); line-height: 1.15; margin: 0 0 4px; letter-spacing: .04em; text-wrap: balance; }
+.modal h1 .cursor { display: inline-block; width: .5em; height: .9em; background: var(--amber); vertical-align: -0.08em; margin-left: .1em; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.modal .lead { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+.modal p { margin: 0 0 12px; max-width: 60ch; }
+.rules { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 16px 0 20px; padding: 14px 16px; background: var(--raise); border-radius: 6px; font-size: 13px; }
+.rules dt { color: var(--amber); font-family: var(--font-display); }
+.rules dd { margin: 0; }
+.modal .btn-row .btn { padding: 10px 18px; font-size: 14px; }
+.final-score { display: flex; align-items: baseline; gap: 14px; margin: 10px 0 4px; font-family: var(--font-display); }
+.final-score b { font-size: 56px; font-weight: 400; color: var(--amber); line-height: 1; }
+.final-title { font-size: 20px; margin: 0 0 16px; }
+.final-title span { color: var(--muted); font-size: 12px; display: block; letter-spacing: .14em; }
+table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.summary th, .summary td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.summary th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.summary td.r, .summary th.r { text-align: right; }
+.summary .ok { color: var(--ok); }
+.summary .ng { color: var(--muted); }
+
+.toasts { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 30; width: min(560px, calc(100% - 32px)); pointer-events: none; }
+.toast { background: #252d3a; border: 1px solid #3a4658; border-left: 4px solid var(--amber); padding: 10px 14px; border-radius: 4px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: rise .25s ease both; }
+.toast.is-bad { border-left-color: var(--shu); }
+.toast b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 15px; }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+
+.loading { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--amber); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1180px) {
+  .desk { grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 34%); }
+  .pane-ticket { grid-row: 1 / span 2; }
+  .pane-ref { grid-column: 2; border-left: 1px solid var(--line); border-top: 1px solid var(--line); }
+}
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  .app { height: auto; display: block; }
+  .hud { flex-wrap: wrap; gap: 10px; }
+  .brand b { font-size: 18px; }
+  .stat b { font-size: 17px; }
+  .queue { order: 3; flex-basis: 100%; }
+  .stats { margin-left: auto; }
+  .desk { display: flex; flex-direction: column; }
+  .pane + .pane { border-left: 0; border-top: 1px solid var(--line); }
+  .ticket-scroll { overflow: visible; }
+  .editor { height: 180px; }
+  .results { max-height: 70vh; }
+  .tab-panel { max-height: 60vh; }
+  .modal { padding: 22px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="brand"><b>ログは嘘をつかない</b><small>クロノリア・オンライン 運用チーム</small></div>
+    <nav class="queue" id="queue" aria-label="調査依頼チケット"></nav>
+    <div class="stats">
+      <div class="stat"><span>JST</span><b id="clock">11/13 10:00</b></div>
+      <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat" id="stat-shimatsu"><span>始末書</span><b id="shimatsu">0</b></div>
+    </div>
+  </header>
+
+  <main class="desk">
+    <section class="pane pane-ticket" aria-label="問い合わせチケット">
+      <div class="ticket-scroll" id="ticket-scroll">
+        <article class="ticket" id="ticket"></article>
+        <div id="answer-area"></div>
+      </div>
+    </section>
+
+    <section class="pane pane-console" aria-label="SQLコンソール">
+      <div class="console-bar">
+        <span class="conn" id="conn"><i class="dot"></i><span id="conn-label">prod-replica-01 に接続中…</span><span class="ro">READ ONLY</span></span>
+        <div class="bar-actions">
+          <button class="btn btn-ghost" id="btn-clear" type="button">クリア</button>
+          <button class="btn btn-primary btn-run" id="run" type="button" disabled>実行 <kbd>Ctrl</kbd><kbd>Enter</kbd></button>
+        </div>
+      </div>
+      <div class="editor">
+        <pre aria-hidden="true"><code id="hl"></code></pre>
+        <textarea id="sql" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQLエディタ"></textarea>
+      </div>
+      <div class="results" id="results" aria-live="polite"></div>
+    </section>
+
+    <aside class="pane pane-ref" aria-label="資料">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-btn-schema" aria-selected="true" aria-controls="tab-schema" type="button">テーブル定義</button>
+        <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="tab-history" type="button">実行履歴</button>
+      </div>
+      <div class="tab-panel" id="tab-schema" role="tabpanel" aria-labelledby="tab-btn-schema"></div>
+      <div class="tab-panel" id="tab-history" role="tabpanel" aria-labelledby="tab-btn-history" hidden></div>
+    </aside>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="sql-wasm.js"></script>
+<script>
+/*
+ * ログは嘘をつかない — 本番DB（ダミー）生成
+ * 乱数シード固定なので、誰が遊んでも同じデータになる。
+ * 日時はすべて UTC の 'YYYY-MM-DD HH:MM:SS' 文字列。
+ */
+(function (root) {
+  'use strict';
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const toT = (s) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +s.slice(11, 13), +s.slice(14, 16), +s.slice(17, 19)) / 1000;
+  const fmt = (t) => new Date(t * 1000).toISOString().slice(0, 19).replace('T', ' ');
+
+  const WSTART = '2026-10-20 00:00:00';
+  const WEND = '2026-11-13 01:00:00'; // JST 11/13 10:00 = ゲーム内の「今」
+
+  const SCHEMA = `
+CREATE TABLE worlds (
+  world_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL
+);
+CREATE TABLE users (
+  user_id INTEGER PRIMARY KEY,
+  public_id TEXT NOT NULL UNIQUE,
+  platform TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE characters (
+  character_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  world_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  job TEXT NOT NULL,
+  level INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  deleted_at TEXT
+);
+CREATE TABLE m_items (
+  item_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  rarity TEXT NOT NULL,
+  tradable INTEGER NOT NULL
+);
+CREATE TABLE m_products (
+  product_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  price_jpy INTEGER NOT NULL,
+  gem INTEGER NOT NULL
+);
+CREATE TABLE login_logs (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  result TEXT NOT NULL,
+  ip_address TEXT NOT NULL,
+  country TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE character_logs (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  detail TEXT,
+  ip_address TEXT,
+  device_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE item_logs (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  item_id INTEGER NOT NULL,
+  item_uid TEXT,
+  action TEXT NOT NULL,
+  quantity INTEGER NOT NULL,
+  target_user_id INTEGER,
+  detail TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE currency_logs (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  currency TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  balance_after INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  ref_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE payment_logs (
+  payment_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  product_id TEXT NOT NULL,
+  price_jpy INTEGER NOT NULL,
+  store TEXT NOT NULL,
+  transaction_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE error_logs (
+  log_id INTEGER PRIMARY KEY,
+  level TEXT NOT NULL,
+  service TEXT NOT NULL,
+  message TEXT NOT NULL,
+  user_id INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX idx_chars_user ON characters(user_id);
+CREATE INDEX idx_login_user ON login_logs(user_id, created_at);
+CREATE INDEX idx_charlog_user ON character_logs(user_id, created_at);
+CREATE INDEX idx_item_user ON item_logs(user_id, created_at);
+CREATE INDEX idx_cur_user ON currency_logs(user_id, created_at);
+CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
+`;
+
+  const ITEMS = [
+    [1001, 'ポーション', '消耗品', 'N', 1], [1002, 'ハイポーション', '消耗品', 'R', 1], [1003, 'エーテル', '消耗品', 'R', 1],
+    [1004, 'エリクサー', '消耗品', 'SR', 1], [1101, '強化石', '素材', 'N', 1], [1102, '上級強化石', '素材', 'R', 1],
+    [1103, '保護の巻物', '消耗品', 'SR', 0], [1201, 'ワールド移動チケット', '消耗品', 'SR', 0], [1202, '名前変更チケット', '消耗品', 'SR', 0],
+    [1301, '魔獣の牙', '素材', 'N', 1], [1302, '精霊の羽', '素材', 'R', 1], [1303, '古代のコア', '素材', 'SR', 1],
+    [2001, '鉄の剣', '武器', 'N', 1], [2002, 'ミスリルソード', '武器', 'R', 1], [2003, '樫の杖', '武器', 'N', 1],
+    [2004, '賢者の杖', '武器', 'SR', 1], [2005, '狩人の弓', '武器', 'R', 1], [2006, '双月の短剣', '武器', 'SR', 1],
+    [2101, '革の鎧', '防具', 'N', 1], [2102, '騎士の鎧', '防具', 'R', 1], [2103, '聖衣ルミナ', '防具', 'SSR', 1],
+    [2201, '守りの指輪', 'アクセサリ', 'R', 1], [2202, '疾風のブーツ', '防具', 'SR', 1],
+    [3001, '白馬（30日）', 'マウント', 'SR', 0], [3002, '魔導バイク（7日）', 'マウント', 'SSR', 0],
+    [5001, '深淵の指輪', 'アクセサリ', 'SSR', 1], [5002, '蒼炎の杖', '武器', 'SSR', 1],
+    [5012, '煌星の大剣', '武器', 'UR', 0], [5020, '天穹の弓', '武器', 'UR', 1], [5031, '竜鱗の外套', '防具', 'SSR', 1],
+    [5040, '星詠みの耳飾り', 'アクセサリ', 'SSR', 1],
+  ];
+  const PRODUCTS = [
+    ['gem_pack_120', 'ジェム 60個', 120, 60], ['gem_pack_610', 'ジェム 330個', 610, 330], ['gem_pack_980', 'ジェム 560個', 980, 560],
+    ['gem_pack_3000', 'ジェム 1,800個', 3000, 1800], ['gem_pack_5000', 'ジェム 3,100個', 5000, 3100], ['gem_pack_10000', 'ジェム 6,500個', 10000, 6500],
+  ];
+
+  const RESERVED = new Set(['シルフィ', 'グラン', 'ヴォルフ', 'ハヤテ', '漆黒の堕天使', 'ノワール', 'ミナト', 'ルナマリア', 'ミルク', 'みるく', '影狼', 'ポポロン']);
+  const NAME_BASE = ['アリス', 'レオン', 'クロウ', 'ルナ', 'セツナ', 'カイト', 'ユキ', 'リリィ', 'ジーク', 'ノア', 'ミア', 'ラグナ', 'ソラ', 'ヒカリ',
+    'シオン', 'アスカ', 'ゼロ', 'リン', 'ツバサ', 'カグヤ', 'アオイ', 'ハル', 'フレイ', 'ティア', 'マオ', 'ガイ', 'エル', 'ナギ', 'イリス',
+    'もち', 'たまご', 'こむぎ', 'さくら', 'ぽてと', '月影', '紅蓮', '蒼天', '白夜', '雷電', '桜花', '朧', '黒猫', '豆腐', 'ねこまる',
+    'Kaito', 'Yuki', 'Shadow', 'Nova', 'Raven', 'Ash'];
+  const NAME_SUFFIX = ['', '', '', '★', 'さん', 'ちゃん', '_jp', '777', 'Ω', '改', '二世', '00', 'α'];
+  const JOBS = ['剣士', '魔法使い', '弓使い', '僧侶', '盗賊'];
+
+  function generate(seed) {
+    const rnd = mulberry32(seed || 20261113);
+    const int = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+    const pick = (a) => a[Math.floor(rnd() * a.length)];
+    const chance = (p) => rnd() < p;
+    const T0 = toT(WSTART), T1 = toT(WEND);
+    const itemById = Object.fromEntries(ITEMS.map((i) => [i[0], i]));
+    const productById = Object.fromEntries(PRODUCTS.map((p) => [p[0], p]));
+
+    // ---------------- users ----------------
+    const usedPub = new Set();
+    const usedIp = new Set(['126.204.33.17', '219.110.5.88', '153.240.17.62', '180.17.230.4', '49.106.11.200', '111.239.160.33',
+      '60.112.45.201', '185.220.101.47', '114.150.82.9', '49.98.140.77', '221.118.40.12']);
+    const randIp = (country) => {
+      let ip;
+      const firsts = { JP: [60, 61, 114, 118, 119, 122, 124, 126, 133, 153, 175, 180, 202, 210, 219, 220, 221, 49], TW: [1, 36, 114, 220], KR: [58, 112, 121, 175], US: [24, 47, 67, 73, 98] }[country];
+      do { ip = `${pick(firsts)}.${int(1, 254)}.${int(0, 254)}.${int(1, 254)}`; } while (usedIp.has(ip));
+      usedIp.add(ip); return ip;
+    };
+    const devModels = { iOS: ['iPhone13,2', 'iPhone14,5', 'iPhone15,2', 'iPhone15,4', 'iPhone16,1'], Android: ['SM-S918', 'SO-51D', 'Pixel7', 'Pixel8', 'SH-M26', 'A301SH'], PC: ['PC-WIN', 'PC-WIN', 'PC-MAC'] };
+    const hex4 = () => int(0, 0xffff).toString(16).toUpperCase().padStart(4, '0');
+    const randDevice = (platform) => `${pick(devModels[platform])}-${hex4()}`;
+
+    const users = [];
+    function mkUser(o) {
+      const u = Object.assign({ status: 'ACTIVE', country: 'JP', activity: 0.6, chars: [], blackout: [], scriptedOnly: false, noPayments: false, noTrades: false, noBigGold: false, activeFrom: null, activeUntil: null, gold0: null }, o);
+      if (!u.pub) { let p; do { p = 'U-' + int(10000, 99999); } while (usedPub.has(p)); u.pub = p; }
+      usedPub.add(u.pub);
+      u.createdT = toT(u.created);
+      users.push(u); return u;
+    }
+    // noise users
+    for (let i = 0; i < 150; i++) {
+      const platform = pick(['iOS', 'iOS', 'Android', 'Android', 'PC']);
+      const country = chance(0.92) ? 'JP' : pick(['TW', 'KR', 'US']);
+      const createdT = chance(0.12) ? int(toT('2026-09-01 00:00:00'), toT('2026-11-06 00:00:00')) : int(toT('2024-04-01 00:00:00'), toT('2026-09-01 00:00:00'));
+      const nIp = int(1, 3);
+      const u = mkUser({
+        platform, country, created: fmt(createdT),
+        devices: [randDevice(platform)].concat(chance(0.15) ? [randDevice(platform)] : []),
+        ips: Array.from({ length: nIp }, () => randIp(country)),
+        activity: 0.15 + rnd() * 0.8,
+        status: chance(0.03) ? 'BANNED' : 'ACTIVE',
+      });
+      u.noise = true;
+    }
+    const noiseUsers = users.slice();
+    const S = {}; // scripted users
+    S.c1 = mkUser({ pub: 'U-38127', platform: 'iOS', created: '2025-11-02 09:12:44', devices: ['iPhone15,2-7F3A'], ips: ['126.204.33.17'], activity: 0.8, blackout: [['2026-11-03 10:00:00', '2026-11-03 15:00:00']] });
+    S.c2 = mkUser({ pub: 'U-52904', platform: 'PC', created: '2024-09-18 13:40:00', devices: ['PC-WIN-4D10'], ips: ['219.110.5.88'], activity: 0.85, blackout: [['2026-11-11 11:00:00', '2026-11-11 15:00:00']] });
+    S.c3 = mkUser({ pub: 'U-27730', platform: 'Android', created: '2025-03-21 11:05:19', devices: ['SH-M26-91B4'], ips: ['153.240.17.62'], activity: 0.8, noBigGold: true, gold0: 4950000, blackout: [['2026-11-07 18:00:00', '2026-11-08 13:00:00']] });
+    S.c4 = mkUser({ pub: 'U-44590', platform: 'iOS', created: '2025-01-08 12:30:41', devices: ['iPhone14,5-0C2E'], ips: ['180.17.230.4', '49.106.11.200'], activity: 0.7, blackout: [['2026-11-09 09:30:00', '2026-11-09 11:00:00']] });
+    S.c5 = mkUser({ pub: 'U-73315', platform: 'Android', created: '2026-05-02 10:44:03', devices: ['Pixel8-5E21'], ips: ['111.239.160.33'], activity: 0.75, noPayments: true, blackout: [['2026-11-10 10:30:00', '2026-11-10 12:30:00'], ['2026-11-05 09:30:00', '2026-11-05 10:30:00']] });
+    S.c6 = mkUser({ pub: 'U-61458', platform: 'Android', created: '2024-12-24 13:00:12', devices: ['SM-S918-2B71'], ips: ['60.112.45.201'], activity: 0.9, noTrades: true, blackout: [['2026-11-08 11:30:00', '2026-11-08 13:30:00']], activeUntil: '2026-11-11 15:00:00' });
+    S.c6x = mkUser({ pub: 'U-90417', platform: 'PC', created: '2026-11-10 16:44:02', devices: ['PC-WIN-9C4E'], ips: ['185.220.101.47'], country: 'NL', scriptedOnly: true });
+    S.c7 = mkUser({ pub: 'U-15562', platform: 'iOS', created: '2026-11-12 11:02:37', devices: ['iPhone16,1-A9D0'], ips: ['114.150.82.9'], scriptedOnly: true });
+    S.c7old = mkUser({ pub: 'U-31846', platform: 'Android', created: '2025-06-03 08:20:15', devices: ['SO-51D-33E8'], ips: ['114.150.82.9', '114.150.82.9', '114.150.82.9', '49.98.140.77'], activity: 0.85, activeUntil: '2026-11-11 22:00:00' });
+    // friend of c6 (legit trade partner)
+    S.c6f = mkUser({ platform: 'Android', created: '2025-02-11 12:00:00', devices: ['A301SH-6C02'], ips: ['221.118.40.12'], activity: 0.7 });
+    S.c6f.noise = true; noiseUsers.push(S.c6f);
+
+    // user_id は作成順
+    users.sort((a, b) => a.createdT - b.createdT || (a.pub < b.pub ? -1 : 1));
+    users.forEach((u, i) => { u.id = i + 1; });
+
+    // ---------------- characters ----------------
+    const chars = [];
+    const liveNames = { 1: new Set(), 2: new Set(), 3: new Set() };
+    function mkChar(u, o) {
+      const c = Object.assign({ user: u, level: int(1, 99), job: pick(JOBS) }, o);
+      c.createdT = toT(c.created);
+      c.deletedT = c.deleted ? toT(c.deleted) : null;
+      if (!c.deleted) liveNames[c.world].add(c.name);
+      u.chars.push(c); chars.push(c); return c;
+    }
+    function freshName(world) {
+      for (;;) {
+        const n = pick(NAME_BASE) + pick(NAME_SUFFIX);
+        if (!RESERVED.has(n) && !liveNames[world].has(n)) return n;
+      }
+    }
+    // scripted chars
+    const K = {}; // scripted objects
+    K.sylphy = mkChar(S.c1, { world: 1, name: 'シルフィ', job: '魔法使い', level: 87, created: '2026-02-14 11:20:05', deleted: '2026-11-03 12:42:18' });
+    K.gran = mkChar(S.c1, { world: 1, name: 'グラン', job: '剣士', level: 45, created: '2026-06-30 12:01:40' });
+    K.wolf = mkChar(S.c2, { world: 2, name: 'ヴォルフ', job: '剣士', level: 92, created: '2024-09-18 13:45:02' });
+    K.hayate = mkChar(S.c3, { world: 1, name: 'ハヤテ', job: '盗賊', level: 70, created: '2025-03-21 11:10:44' });
+    K.shikkoku = mkChar(S.c4, { world: 3, createdWorld: 1, name: '漆黒の堕天使', job: '魔法使い', level: 66, created: '2025-01-08 12:35:10' });
+    K.noir = mkChar(S.c4, { world: 1, name: 'ノワール', job: '盗賊', level: 31, created: '2025-08-19 13:02:55' });
+    K.minato = mkChar(S.c5, { world: 2, name: 'ミナト', job: '僧侶', level: 58, created: '2026-05-02 10:50:31' });
+    K.luna = mkChar(S.c6, { world: 2, name: 'ルナマリア', job: '弓使い', level: 95, created: '2024-12-24 13:05:40' });
+    K.kageroh = mkChar(S.c6x, { world: 2, name: '影狼', job: '盗賊', level: 12, created: '2026-11-10 16:50:13' });
+    K.popolon = mkChar(S.c6f, { world: 2, name: 'ポポロン', job: '僧侶', level: 74, created: '2025-02-11 12:10:00' });
+    K.milkNew = mkChar(S.c7, { world: 1, name: 'みるく', job: '僧侶', level: 4, created: '2026-11-12 11:10:05' });
+    K.milk = mkChar(S.c7old, { world: 1, name: 'ミルク', job: '魔法使い', level: 78, created: '2025-06-03 08:31:22' });
+
+    // decoys on noise users
+    const nu = (i) => noiseUsers[i];
+    const pickNoiseUser = (pred) => { for (;;) { const u = pick(noiseUsers); if (u !== S.c6f && u.status === 'ACTIVE' && (!pred || pred(u))) return u; } };
+    const oldUser = (u) => u.createdT < toT('2025-06-01 00:00:00');
+    K.sylphyW2 = mkChar(pickNoiseUser(oldUser), { world: 2, name: 'シルフィ', job: '弓使い', level: 63, created: '2025-07-07 12:07:07' });
+    K.sylphyNew = mkChar(pickNoiseUser(oldUser), { world: 1, name: 'シルフィ', job: '魔法使い', level: 9, created: '2026-11-05 03:15:10' });
+    K.shikkokuW2 = mkChar(pickNoiseUser(oldUser), { world: 2, name: '漆黒の堕天使', job: '剣士', level: 81, created: '2025-04-01 00:00:44' });
+    K.milkW2 = mkChar(pickNoiseUser(oldUser), { world: 2, name: 'ミルク', job: '僧侶', level: 52, created: '2025-05-20 10:11:12' });
+    K.milkW3 = mkChar(pickNoiseUser(oldUser), { world: 3, name: 'ミルク', job: '弓使い', level: 88, created: '2025-03-03 13:33:00' });
+    K.milkOldDel = mkChar(pickNoiseUser(oldUser), { world: 1, name: 'ミルク', job: '剣士', level: 20, created: '2024-08-10 12:00:00', deleted: '2025-02-14 14:20:00' });
+    K.kiraOwner = pickNoiseUser(oldUser);
+
+    // noise chars
+    for (const u of noiseUsers) {
+      if (u === S.c6f) continue;
+      const n = int(1, 3);
+      for (let i = 0; i < n; i++) {
+        const world = int(1, 3);
+        const createdT = int(u.createdT + 300, Math.max(u.createdT + 600, Math.min(T1 - 86400 * 3, u.createdT + 86400 * 200)));
+        const del = chance(0.06);
+        const deletedT = del ? int(Math.max(createdT + 86400, T0 - 86400 * 60), T1 - 3600) : null;
+        mkChar(u, { world, name: freshName(world), created: fmt(createdT), deleted: deletedT && deletedT > createdT ? fmt(deletedT) : null });
+      }
+    }
+    chars.sort((a, b) => a.createdT - b.createdT);
+    chars.forEach((c, i) => { c.id = i + 1; });
+
+    // ---------------- logs ----------------
+    const L = { login: [], charlog: [], item: [], cur: [], pay: [], err: [] };
+    let seq = 0;
+    const push = (tbl, t, row, key) => { const r = Object.assign({ _t: t, _s: seq++ }, row); if (key) r._key = key; L[tbl].push(r); return r; };
+    const ipOf = (u) => pick(u.ips);
+    const devOf = (u) => u.devices.length > 1 && chance(0.3) ? u.devices[1] : u.devices[0];
+    const login = (u, t, result = 'SUCCESS', ip, dev, country, key) => push('login', t, { user_id: u.id, result, ip_address: ip || ipOf(u), country: country || u.country, device_id: dev || devOf(u) }, key);
+    const charlog = (c, t, action, detail, ip, dev, key) => push('charlog', t, { user_id: c.user.id, character_id: c.id, action, detail: detail ? JSON.stringify(detail) : null, ip_address: ip || c.user.ips[0], device_id: dev || c.user.devices[0] }, key);
+    const itemlog = (u, c, t, itemId, action, qty, o, key) => push('item', t, Object.assign({ user_id: u.id, character_id: c ? c.id : null, item_id: itemId, item_uid: null, action, quantity: qty, target_user_id: null, detail: null }, o || {}), key);
+    const cur = (u, t, currency, amount, reason, ref, key) => push('cur', t, { user_id: u.id, currency, amount, reason, ref_id: ref || null }, key);
+    const err = (t, level, service, message, userId, key) => push('err', t, { level, service, message, user_id: userId || null }, key);
+
+    const usedUid = new Set(['EQ-7781-3302']);
+    const newUid = () => { let s; do { s = `EQ-${int(1000, 9999)}-${int(1000, 9999)}`; } while (usedUid.has(s)); usedUid.add(s); return s; };
+    const usedTx = new Set();
+    const newTx = (store) => {
+      let s;
+      do {
+        if (store === 'GooglePlay') s = `GPA.${int(3300, 3399)}-${String(int(0, 9999)).padStart(4, '0')}-${String(int(0, 9999)).padStart(4, '0')}-${String(int(0, 99999)).padStart(5, '0')}`;
+        else if (store === 'AppStore') s = `2000000${int(100000000, 999999999)}`;
+        else s = `WS-${hex4()}${hex4()}${hex4()}`.slice(0, 15);
+      } while (usedTx.has(s));
+      usedTx.add(s); return s;
+    };
+    const storeOf = (u) => ({ iOS: 'AppStore', Android: 'GooglePlay', PC: 'WebShop' }[u.platform]);
+
+    // CREATE / DELETE logs for every character
+    for (const c of chars) {
+      c.createRow = charlog(c, c.createdT, 'CREATE', { name: c.name, world_id: c.createdWorld || c.world, job: c.job });
+      if (c.deletedT && c !== K.sylphy) charlog(c, c.deletedT, 'DELETE', { name: c.name, level: c.level, confirm: 'name_input' });
+    }
+    // a few noise renames / transfers / delete+restore
+    const noiseChars = chars.filter((c) => c.user.noise && !c.deletedT && c.createdT < T0 && !RESERVED.has(c.name));
+    for (let i = 0; i < 6; i++) {
+      const c = pick(noiseChars); const t = int(T0, T1 - 7200);
+      const from = freshName(c.world);
+      charlog(c, t, 'RENAME', { from, to: c.name }, ipOf(c.user), devOf(c.user));
+      c.createRow.detail = JSON.stringify(Object.assign(JSON.parse(c.createRow.detail), { name: from }));
+      itemlog(c.user, c, t - 2, 1202, 'USE', 1);
+    }
+    for (let i = 0; i < 3; i++) {
+      const c = pick(noiseChars); const t = int(T0, T1 - 7200);
+      const fromW = c.world === 1 ? 2 : 1;
+      charlog(c, t, 'WORLD_TRANSFER', { from_world: fromW, to_world: c.world }, ipOf(c.user), devOf(c.user));
+      c.createRow.detail = JSON.stringify(Object.assign(JSON.parse(c.createRow.detail), { world_id: fromW }));
+      itemlog(c.user, c, t - 2, 1201, 'USE', 1);
+    }
+    for (let i = 0; i < 3; i++) {
+      const c = pick(noiseChars); const t = int(T0, T1 - 86400 * 2);
+      charlog(c, t, 'DELETE', { name: c.name, level: c.level, confirm: 'name_input' }, ipOf(c.user), devOf(c.user));
+      charlog(c, t + int(3600 * 5, 86400 * 2), 'RESTORE', { name: c.name, by: 'cs_ticket' }, null, null);
+    }
+
+    // per-user inventory of equipment
+    const EQUIPS = ITEMS.filter((i) => ['武器', '防具', 'アクセサリ'].includes(i[2]) && i[0] < 5000).map((i) => i[0]);
+    const inv = new Map();
+    for (const u of noiseUsers) inv.set(u, Array.from({ length: int(2, 4) }, () => ({ uid: newUid(), item: pick(EQUIPS), lvl: int(0, 6) })));
+    for (const k of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7old']) inv.set(S[k], Array.from({ length: 3 }, () => ({ uid: newUid(), item: pick(EQUIPS), lvl: int(0, 5) })));
+
+    const blocked = (u, t) => u.blackout.some(([a, b]) => t >= toT(a) && t <= toT(b));
+    const liveCharAt = (u, t) => { const cs = u.chars.filter((c) => c.createdT < t && (!c.deletedT || c.deletedT > t)); return cs.length ? pick(cs) : null; };
+    const CONSUMABLE = [1001, 1001, 1002, 1003, 1004, 1101, 1101, 1102];
+    const MATERIAL = [1301, 1302, 1303, 1101];
+    const HOURS = [22, 23, 23, 3, 4, 10, 11, 11, 12, 12, 13, 13, 14, 15];
+
+    function noiseSession(u, start) {
+      const c = liveCharAt(u, start); if (!c) return;
+      const ip = ipOf(u), dev = devOf(u);
+      if (chance(0.03)) login(u, start - int(20, 90), 'FAILED', ip, dev);
+      login(u, start, 'SUCCESS', ip, dev);
+      const n = int(1, 7);
+      let t = start + int(30, 300);
+      const myInv = inv.get(u) || [];
+      for (let i = 0; i < n; i++) {
+        t += int(40, 900);
+        if (t > T1) break;
+        const r = rnd();
+        if (r < 0.22) {
+          const it = chance(0.6) ? pick(MATERIAL) : pick(CONSUMABLE);
+          itemlog(u, c, t, it, 'GET', int(1, 8), { detail: JSON.stringify({ source: pick(['クエスト報酬', 'モンスタードロップ', 'ログインボーナス', 'デイリーミッション']) }) });
+          cur(u, t + 1, 'GOLD', int(5, 80) * 1000, 'QUEST_REWARD', null);
+        } else if (r < 0.36) {
+          itemlog(u, c, t, pick(CONSUMABLE), 'USE', int(1, 3));
+        } else if (r < 0.46) {
+          cur(u, t, 'GOLD', -int(1, 50) * 1000, 'SHOP_BUY', `shop:${int(1, 12)}`);
+          itemlog(u, c, t, pick(CONSUMABLE), 'GET', int(1, 10), { detail: JSON.stringify({ source: 'NPCショップ' }) });
+        } else if (r < 0.56 && myInv.length) {
+          const e = pick(myInv);
+          const protect = e.lvl >= 6 && chance(0.6);
+          if (protect) itemlog(u, c, t - 2, 1103, 'USE', 1);
+          const rr = rnd();
+          cur(u, t + 1, 'GOLD', -(e.lvl + 1) * 20000, 'ENHANCE_COST', e.uid);
+          if (rr < 0.68) { itemlog(u, c, t, e.item, 'ENHANCE_SUCCESS', 1, { item_uid: e.uid, detail: JSON.stringify({ from: e.lvl, to: e.lvl + 1, protect }) }); e.lvl++; }
+          else if (rr < 0.95 || protect || e.lvl < 7) itemlog(u, c, t, e.item, 'ENHANCE_FAIL', 1, { item_uid: e.uid, detail: JSON.stringify({ from: e.lvl, to: e.lvl, protect }) });
+          else { itemlog(u, c, t, e.item, 'ENHANCE_DESTROY', 1, { item_uid: e.uid, detail: JSON.stringify({ from: e.lvl, to: null, protect }) }); myInv.splice(myInv.indexOf(e), 1); }
+        } else if (r < 0.63 && myInv.length > 1) {
+          const e = myInv.splice(int(0, myInv.length - 1), 1)[0];
+          itemlog(u, c, t, e.item, 'SELL', 1, { item_uid: e.uid });
+          cur(u, t + 1, 'GOLD', int(2, 40) * 1000, 'SELL_ITEM', e.uid);
+        } else if (r < 0.68) {
+          const e = { uid: newUid(), item: pick(EQUIPS), lvl: 0 }; myInv.push(e);
+          itemlog(u, c, t, e.item, 'GET', 1, { item_uid: e.uid, detail: JSON.stringify({ source: pick(['ダンジョン宝箱', 'モンスタードロップ', 'クラフト']) }) });
+        } else if (r < 0.74 && myInv.length) {
+          const e = pick(myInv);
+          itemlog(u, c, t, e.item, 'STORAGE_IN', 1, { item_uid: e.uid });
+          if (chance(0.5) && t + 600 < T1 - 60) itemlog(u, c, Math.min(t + int(600, 86400), T1 - 60), e.item, 'STORAGE_OUT', 1, { item_uid: e.uid });
+        } else if (r < 0.79 && !u.noTrades) {
+          const v = pickNoiseUser((x) => x !== u && !x.noTrades && x.chars.some((cc) => !cc.deletedT));
+          const vc = liveCharAt(v, t); if (!vc) continue;
+          const it = pick([1002, 1003, 1004, 1301, 1302, 1303]);
+          const q = int(1, 20);
+          itemlog(u, c, t, it, 'TRADE_OUT', q, { target_user_id: v.id, detail: JSON.stringify({ to_character_id: vc.id }) });
+          itemlog(v, vc, t, it, 'TRADE_IN', q, { target_user_id: u.id, detail: JSON.stringify({ from_character_id: c.id }) });
+        } else if (r < 0.88) {
+          cur(u, t, 'GEM', -pick([150, 300, 300, 3000]), 'GACHA', `gacha:${pick(['2026_autumn', 'standard', 'halloween'])}`);
+        } else if (r < 0.95) {
+          const amt = u.noBigGold ? int(1, 5) * 10000 : int(1, 10) * 10000;
+          cur(u, t, 'GOLD', -amt, 'GUILD_DONATE', `guild:${int(100, 140)}`);
+        } else {
+          if (u.noBigGold) continue;
+          if (chance(0.5)) cur(u, t, 'GOLD', -int(10, 150) * 10000, 'AUCTION_BUY', `auction:${int(80000, 99999)}`);
+          else cur(u, t, 'GOLD', int(10, 120) * 10000, 'AUCTION_SELL', `auction:${int(80000, 99999)}`);
+        }
+      }
+      // mount expiry (rare)
+      if (chance(0.01)) itemlog(u, c, start + int(10, 50000), pick([3001, 3002]), 'EXPIRE', 1);
+    }
+
+    function purchase(u, t, productId, status, txFixed, opts) {
+      const p = productById[productId];
+      const store = storeOf(u);
+      const tx = txFixed || newTx(store);
+      if (txFixed) usedTx.add(txFixed);
+      const pay = push('pay', t, { user_id: u.id, product_id: productId, price_jpy: p[2], store, transaction_id: tx, status }, opts && opts.key);
+      if (status === 'SUCCESS' && !(opts && opts.noGrant)) {
+        cur(u, t + int(1, 2), 'GEM', p[3], 'PURCHASE', tx, opts && opts.grantKey);
+        if (chance(0.06)) err(t + 1, 'WARN', 'GemGrantService', () => `grant retry (attempt 2/3) payment_id=${pay.id}`, u.id);
+      }
+      return pay;
+    }
+
+    // noise activity
+    for (const u of users) {
+      if (u.scriptedOnly) continue;
+      const from = Math.max(T0, u.createdT + 600, u.activeFrom ? toT(u.activeFrom) : 0);
+      const until = Math.min(T1, u.activeUntil ? toT(u.activeUntil) : T1);
+      for (let day = Math.floor(from / 86400) * 86400; day < until; day += 86400) {
+        if (!chance(u.activity)) continue;
+        const sessions = chance(0.35) ? 2 : 1;
+        for (let s = 0; s < sessions; s++) {
+          const h = pick(HOURS);
+          const t = day + h * 3600 + int(0, 3599);
+          if (t < from || t > until - 3600 || blocked(u, t) || blocked(u, t + 7200)) continue;
+          noiseSession(u, t);
+        }
+      }
+      if (!u.noPayments && chance(0.33)) {
+        const n = int(1, 3);
+        for (let i = 0; i < n; i++) {
+          const t = int(from, until - 600); if (blocked(u, t)) continue;
+          const st = chance(0.88) ? 'SUCCESS' : 'CANCELED';
+          purchase(u, t, pick(PRODUCTS)[0], st);
+        }
+      }
+    }
+
+    // noise error logs
+    const ERRS = [
+      ['WARN', 'GameAPI', () => `slow request: POST /api/v2/battle/result took ${int(1200, 4800)}ms`],
+      ['WARN', 'GameAPI', () => `rate limit exceeded: /api/v2/gacha/draw (ip=${randIp('JP')})`],
+      ['ERROR', 'GameAPI', () => 'upstream timeout: matchmaking-svc (30000ms)'],
+      ['WARN', 'MySQL', () => `slow query detected (${(int(20, 90) / 10).toFixed(1)}s): SELECT ... FROM item_logs WHERE ...`],
+      ['ERROR', 'Redis', () => 'connection reset by peer (ranking-cache-02)'],
+      ['WARN', 'ChatService', () => `message rejected by NG word filter (len=${int(5, 80)})`],
+      ['ERROR', 'AuctionService', () => `bid conflict, rolled back (auction:${int(80000, 99999)})`],
+      ['WARN', 'Batch', () => 'daily_ranking_aggregate finished with 3 retries'],
+      ['ERROR', 'PushService', () => `APNs responded 410 Unregistered (${int(1, 40)} tokens)`],
+    ];
+    for (let i = 0; i < 220; i++) {
+      const [lv, svc, f] = pick(ERRS);
+      const withUser = svc === 'GameAPI' && chance(0.4);
+      err(int(T0, T1), lv, svc, f(), withUser ? pickNoiseUser().id : null);
+    }
+
+    // ================= scripted cases =================
+    const T = toT;
+    const KEY = {};
+
+    // ---- case 1: シルフィ削除（本人） ----
+    login(S.c1, T('2026-11-03 12:31:05'), 'SUCCESS', '126.204.33.17', 'iPhone15,2-7F3A');
+    itemlog(S.c1, K.sylphy, T('2026-11-03 12:33:40'), 1001, 'USE', 2);
+    itemlog(S.c1, K.sylphy, T('2026-11-03 12:39:02'), 1004, 'TRADE_OUT', 3, { target_user_id: S.c6f.id, detail: JSON.stringify({ to_character_id: K.popolon.id }) });
+    itemlog(S.c6f, K.popolon, T('2026-11-03 12:39:02'), 1004, 'TRADE_IN', 3, { target_user_id: S.c1.id, detail: JSON.stringify({ from_character_id: K.sylphy.id }) });
+    charlog(K.sylphy, T('2026-11-03 12:42:18'), 'DELETE', { name: 'シルフィ', level: 87, confirm: 'name_input' }, '126.204.33.17', 'iPhone15,2-7F3A', 'c1_delete');
+
+    // ---- case 2: 煌星の大剣（強化で消滅） ----
+    const kira = 'EQ-7781-3302';
+    const c2steps = [
+      ['2026-10-28 14:22:10', 'GET', { source: 'レイド:星喰いの竜' }],
+      ['2026-10-29 12:01:33', 'ENHANCE_SUCCESS', { from: 0, to: 1, protect: false }],
+      ['2026-10-29 12:02:10', 'ENHANCE_SUCCESS', { from: 1, to: 2, protect: false }],
+      ['2026-10-30 13:15:42', 'ENHANCE_SUCCESS', { from: 2, to: 3, protect: false }],
+      ['2026-10-31 11:40:05', 'ENHANCE_SUCCESS', { from: 3, to: 4, protect: false }],
+      ['2026-11-02 12:20:18', 'ENHANCE_FAIL', { from: 4, to: 4, protect: false }],
+      ['2026-11-02 12:21:02', 'ENHANCE_SUCCESS', { from: 4, to: 5, protect: false }],
+      ['2026-11-04 13:05:51', 'ENHANCE_SUCCESS', { from: 5, to: 6, protect: false }],
+      ['2026-11-06 12:44:30', 'ENHANCE_FAIL', { from: 6, to: 6, protect: true }],
+      ['2026-11-06 12:45:12', 'ENHANCE_SUCCESS', { from: 6, to: 7, protect: true }],
+      ['2026-11-08 14:10:09', 'ENHANCE_SUCCESS', { from: 7, to: 8, protect: true }],
+      ['2026-11-10 12:30:00', 'STORAGE_IN', null],
+      ['2026-11-11 13:01:12', 'STORAGE_OUT', null],
+      ['2026-11-11 13:03:40', 'ENHANCE_SUCCESS', { from: 8, to: 9, protect: false }],
+      ['2026-11-11 13:05:41', 'ENHANCE_DESTROY', { from: 9, to: null, protect: false }],
+    ];
+    const loggedDays = new Set();
+    for (const [ts, action, d] of c2steps) {
+      const t = T(ts);
+      const day = ts.slice(0, 10);
+      if (!loggedDays.has(day)) { loggedDays.add(day); login(S.c2, t - int(180, 900), 'SUCCESS', '219.110.5.88', 'PC-WIN-4D10'); }
+      if (d && d.protect) itemlog(S.c2, K.wolf, t - 2, 1103, 'USE', 1);
+      if (action.startsWith('ENHANCE')) cur(S.c2, t + 1, 'GOLD', -((d.from + 1) * 20000), 'ENHANCE_COST', kira);
+      itemlog(S.c2, K.wolf, t, 5012, action, 1, { item_uid: kira, detail: d ? JSON.stringify(d) : null }, action === 'ENHANCE_DESTROY' ? 'c2_destroy' : null);
+    }
+    // 別ユーザーの煌星の大剣（おとり）
+    {
+      const u = K.kiraOwner; const c = u.chars.find((x) => !x.deletedT) || u.chars[0]; const uid = newUid();
+      itemlog(u, c, T('2026-10-25 11:42:31'), 5012, 'GET', 1, { item_uid: uid, detail: JSON.stringify({ source: 'レイド:星喰いの竜' }) });
+      itemlog(u, c, T('2026-11-11 12:58:20'), 5012, 'STORAGE_IN', 1, { item_uid: uid });
+      itemlog(u, c, T('2026-11-11 13:20:05'), 5012, 'ENHANCE_FAIL', 1, { item_uid: uid, detail: JSON.stringify({ from: 3, to: 3, protect: false }) });
+    }
+
+    // ---- case 3: ゴールド減少（UTCの罠） ----
+    login(S.c3, T('2026-11-07 22:47:10'), 'SUCCESS', '153.240.17.62', 'SH-M26-91B4');
+    cur(S.c3, T('2026-11-07 22:48:31'), 'GOLD', 12000, 'QUEST_REWARD', null);
+    cur(S.c3, T('2026-11-07 22:51:37'), 'GOLD', -4800000, 'GUILD_DONATE', 'guild:118', 'c3_donate');
+    itemlog(S.c3, K.hayate, T('2026-11-07 22:55:02'), 1001, 'USE', 1);
+    login(S.c3, T('2026-11-08 11:20:44'), 'SUCCESS', '153.240.17.62', 'SH-M26-91B4');
+    cur(S.c3, T('2026-11-08 11:31:05'), 'GOLD', -10000, 'GUILD_DONATE', 'guild:118');
+    cur(S.c3, T('2026-11-08 11:40:22'), 'GOLD', -35000, 'SHOP_BUY', 'shop:4');
+    cur(S.c3, T('2026-11-08 11:52:47'), 'GOLD', 22000, 'QUEST_REWARD', null);
+
+    // ---- case 4: ワールド移動 ----
+    login(S.c4, T('2026-11-09 10:05:18'), 'SUCCESS', '180.17.230.4', 'iPhone14,5-0C2E');
+    itemlog(S.c4, K.shikkoku, T('2026-11-09 10:12:50'), 1201, 'GET', 1, { detail: JSON.stringify({ source: 'ジェムショップ' }) });
+    cur(S.c4, T('2026-11-09 10:12:50'), 'GEM', -1200, 'SHOP_BUY', 'gemshop:world_transfer');
+    itemlog(S.c4, K.shikkoku, T('2026-11-09 10:14:20'), 1201, 'USE', 1);
+    charlog(K.shikkoku, T('2026-11-09 10:14:22'), 'WORLD_TRANSFER', { from_world: 1, to_world: 3 }, '180.17.230.4', 'iPhone14,5-0C2E', 'c4_transfer');
+
+    // ---- case 5: 課金未反映（本物の不具合） ----
+    login(S.c5, T('2026-11-05 09:58:40'), 'SUCCESS', '111.239.160.33', 'Pixel8-5E21');
+    purchase(S.c5, T('2026-11-05 10:02:11'), 'gem_pack_980', 'SUCCESS', 'GPA.3391-0042-1150-20871');
+    cur(S.c5, T('2026-11-05 10:04:30'), 'GEM', -300, 'GACHA', 'gacha:2026_autumn');
+    login(S.c5, T('2026-11-10 11:15:02'), 'SUCCESS', '111.239.160.33', 'Pixel8-5E21');
+    purchase(S.c5, T('2026-11-10 11:18:40'), 'gem_pack_3000', 'CANCELED', 'GPA.3391-0042-7781-48820');
+    const c5pay = purchase(S.c5, T('2026-11-10 11:20:03'), 'gem_pack_3000', 'SUCCESS', 'GPA.3391-0042-7781-55102', { noGrant: true, key: 'c5_pay' });
+    err(T('2026-11-10 11:20:04'), 'WARN', 'GemGrantService', () => `grant retry (attempt 2/3) payment_id=${c5pay.id}`, S.c5.id);
+    err(T('2026-11-10 11:20:05'), 'WARN', 'GemGrantService', () => `grant retry (attempt 3/3) payment_id=${c5pay.id}`, S.c5.id);
+    err(T('2026-11-10 11:20:06'), 'ERROR', 'GemGrantService', () => `grant aborted: Deadlock found when trying to get lock; try restarting transaction (payment_id=${c5pay.id})`, S.c5.id, 'c5_err');
+
+    // ---- case 6: 乗っ取り ----
+    const V = S.c6, X = S.c6x, F = S.c6f;
+    const vUid = {};
+    for (const [ts, id, src] of [['2026-10-22 12:40:10', 5020, 'レイド:天空の覇者'], ['2026-10-25 13:10:44', 5031, 'レイド:竜王の巣'], ['2026-11-01 11:55:02', 5040, 'イベント報酬'], ['2026-11-02 12:30:30', 1004, 'イベント報酬']]) {
+      vUid[id] = id === 1004 ? null : newUid();
+      itemlog(V, K.luna, T(ts), id, 'GET', id === 1004 ? 30 : 1, { item_uid: vUid[id], detail: JSON.stringify({ source: src }) });
+    }
+    login(V, T('2026-11-08 12:10:07'), 'SUCCESS', '60.112.45.201', 'SM-S918-2B71');
+    itemlog(V, K.luna, T('2026-11-08 12:22:31'), 1002, 'TRADE_OUT', 20, { target_user_id: F.id, detail: JSON.stringify({ to_character_id: K.popolon.id }) });
+    itemlog(F, K.popolon, T('2026-11-08 12:22:31'), 1002, 'TRADE_IN', 20, { target_user_id: V.id, detail: JSON.stringify({ from_character_id: K.luna.id }) });
+    login(X, T('2026-11-10 16:45:30'), 'SUCCESS', '185.220.101.47', 'PC-WIN-9C4E', 'NL');
+    login(X, T('2026-11-11 21:12:09'), 'SUCCESS', '185.220.101.47', 'PC-WIN-9C4E', 'NL');
+    for (const ts of ['2026-11-12 03:02:11', '2026-11-12 03:03:40', '2026-11-12 03:05:02', '2026-11-12 03:06:55', '2026-11-12 03:08:30']) {
+      login(V, T(ts), 'FAILED', '185.220.101.47', 'PC-WIN-9C4E', 'NL');
+    }
+    login(V, T('2026-11-12 03:10:33'), 'SUCCESS', '185.220.101.47', 'PC-WIN-9C4E', 'NL', 'c6_login');
+    login(X, T('2026-11-12 03:12:50'), 'SUCCESS', '185.220.101.47', 'PC-WIN-9C4E', 'NL');
+    const loot = [['2026-11-12 03:14:05', 5020, 1], ['2026-11-12 03:15:40', 5031, 1], ['2026-11-12 03:16:22', 5040, 1], ['2026-11-12 03:18:09', 1004, 30]];
+    for (const [ts, id, q] of loot) {
+      itemlog(V, K.luna, T(ts), id, 'TRADE_OUT', q, { item_uid: vUid[id], target_user_id: X.id, detail: JSON.stringify({ to_character_id: K.kageroh.id }) });
+      itemlog(X, K.kageroh, T(ts), id, 'TRADE_IN', q, { item_uid: vUid[id], target_user_id: V.id, detail: JSON.stringify({ from_character_id: K.luna.id }) });
+    }
+    cur(X, T('2026-11-12 03:25:10'), 'GOLD', 1500000, 'AUCTION_SELL', 'auction:91822');
+    login(V, T('2026-11-13 00:35:12'), 'SUCCESS', '60.112.45.201', 'SM-S918-2B71');
+
+    // ---- case 7: 機種変更で別アカウント ----
+    login(S.c7old, T('2026-11-11 23:05:40'), 'SUCCESS', '49.98.140.77', 'SO-51D-33E8');
+    itemlog(S.c7old, K.milk, T('2026-11-11 23:09:12'), 1002, 'USE', 1);
+    login(S.c7, T('2026-11-12 11:02:40'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
+    itemlog(S.c7, K.milkNew, T('2026-11-12 11:15:30'), 1001, 'GET', 5, { detail: JSON.stringify({ source: 'チュートリアル報酬' }) });
+    login(S.c7, T('2026-11-12 13:41:09'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
+    login(S.c7, T('2026-11-12 23:48:55'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
+
+    // ================= finalize =================
+    const order = (a, b) => a._t - b._t || a._s - b._s;
+    for (const k of Object.keys(L)) {
+      L[k].sort(order);
+      L[k].forEach((r, i) => { r.id = i + 1; if (r._key) KEY[r._key] = r.id; });
+    }
+    // balances
+    const bal = new Map();
+    for (const r of L.cur) {
+      const k = r.user_id + ':' + r.currency;
+      if (!bal.has(k)) bal.set(k, []);
+      bal.get(k).push(r);
+    }
+    const userById = new Map(users.map((u) => [u.id, u]));
+    for (const [k, rows] of bal) {
+      const u = userById.get(+k.split(':')[0]);
+      const isGold = k.endsWith('GOLD');
+      let s = 0, min = 0;
+      for (const r of rows) { s += r.amount; min = Math.min(min, s); }
+      let b = isGold ? (u.gold0 != null ? u.gold0 : int(2, 300) * 10000) : int(0, 4000);
+      if (b + min < 0) b = -min + (isGold ? int(1, 20) * 1000 : int(0, 200));
+      for (const r of rows) { b += r.amount; r.balance_after = b; }
+    }
+
+    return {
+      schema: SCHEMA,
+      worlds: [[1, 'アルファ'], [2, 'ベータ'], [3, 'ガンマ']],
+      items: ITEMS, products: PRODUCTS,
+      users: users.map((u) => [u.id, u.pub, u.platform, u.status, u.created]),
+      characters: chars.map((c) => [c.id, c.user.id, c.world, c.name, c.job, c.level, c.created, c.deleted || null]),
+      login: L.login.map((r) => [r.id, r.user_id, r.result, r.ip_address, r.country, r.device_id, fmt(r._t)]),
+      charlog: L.charlog.map((r) => [r.id, r.user_id, r.character_id, r.action, r.detail, r.ip_address, r.device_id, fmt(r._t)]),
+      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.quantity, r.target_user_id, r.detail, fmt(r._t)]),
+      cur: L.cur.map((r) => [r.id, r.user_id, r.currency, r.amount, r.balance_after, r.reason, r.ref_id, fmt(r._t)]),
+      pay: L.pay.map((r) => [r.id, r.user_id, r.product_id, r.price_jpy, r.store, r.transaction_id, r.status, fmt(r._t)]),
+      err: L.err.map((r) => [r.id, r.level, r.service, typeof r.message === 'function' ? r.message() : r.message, r.user_id, fmt(r._t)]),
+      keys: KEY,
+    };
+  }
+
+  function buildDatabase(SQL, seed) {
+    const g = generate(seed);
+    const db = new SQL.Database();
+    db.run(g.schema);
+    db.run('BEGIN');
+    const ins = (table, rows) => {
+      if (!rows.length) return;
+      const st = db.prepare(`INSERT INTO ${table} VALUES (${rows[0].map(() => '?').join(',')})`);
+      for (const r of rows) st.run(r);
+      st.free();
+    };
+    ins('worlds', g.worlds); ins('m_items', g.items); ins('m_products', g.products);
+    ins('users', g.users); ins('characters', g.characters);
+    ins('login_logs', g.login); ins('character_logs', g.charlog); ins('item_logs', g.item);
+    ins('currency_logs', g.cur); ins('payment_logs', g.pay); ins('error_logs', g.err);
+    db.run('COMMIT');
+    return { db, keys: g.keys, counts: { users: g.users.length, characters: g.characters.length, login_logs: g.login.length, character_logs: g.charlog.length, item_logs: g.item.length, currency_logs: g.cur.length, payment_logs: g.pay.length, error_logs: g.err.length } };
+  }
+
+  const api = { buildDatabase, generate, toT, fmt, WEND };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.LogDB = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const $ = (s, el) => (el || document).querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const STORE_KEY = 'logs-dont-lie:v1';
+  const NOW_UTC = '2026-11-13 01:00:00';
+  const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20;
+
+  // ---------------------------------------------------------------- 資料
+  const NOTES = `
+    <h4>運用メモ</h4>
+    <ul>
+      <li>DBの日時はすべて <em>UTC</em>。問い合わせの日時は日本時間（JST = UTC+9）。</li>
+      <li>SQLite方言。JSTで見るなら <code>datetime(created_at, '+9 hours')</code>。<code>CONVERT_TZ()</code> と <code>NOW()</code> も使えます。</li>
+      <li>JSON列は <code>json_extract(detail, '$.from')</code> で取り出せます。</li>
+      <li>参照専用。更新系のSQLを流すと始末書です。</li>
+      <li>結果のセルをダブルクリックすると、回答の根拠欄に入ります。</li>
+    </ul>`;
+
+  const TABLE_DOCS = [
+    { name: 'users', desc: 'アカウント。問い合わせには公開ID（public_id）が書かれています。', cols: [
+      ['user_id', '内部ID。他のテーブルはこれで参照'], ['public_id', 'ゲーム内に表示されるID（例: U-38127）'], ['platform', 'iOS / Android / PC'],
+      ['status', 'ACTIVE / BANNED'], ['created_at', 'アカウント作成日時 <em>UTC</em>']] },
+    { name: 'characters', desc: 'キャラクター。削除は論理削除。名前はワールド内で一意。', cols: [
+      ['character_id', 'キャラID'], ['user_id', '持ち主 → users'], ['world_id', '所属ワールド → worlds'], ['name', 'キャラ名'],
+      ['job', '職業'], ['level', 'レベル'], ['created_at', '作成日時 <em>UTC</em>'], ['deleted_at', '削除日時 <em>UTC</em>。NULLなら未削除']] },
+    { name: 'worlds', desc: 'ワールド（サーバー）。', cols: [['world_id', 'ワールドID'], ['name', 'ワールド名']] },
+    { name: 'character_logs', desc: 'キャラクターの操作ログ。', cols: [
+      ['log_id', 'ログID'], ['user_id', '操作したユーザー'], ['character_id', '対象キャラ'],
+      ['action', 'CREATE / DELETE / RESTORE / RENAME / WORLD_TRANSFER'], ['detail', 'JSON。変更前後の値など'],
+      ['ip_address', '操作元IP'], ['device_id', '操作元の端末'], ['created_at', '発生日時 <em>UTC</em>']] },
+    { name: 'login_logs', desc: 'ログイン試行の記録（失敗も含む）。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ログイン先アカウント'], ['result', 'SUCCESS / FAILED'], ['ip_address', '接続元IP'],
+      ['country', 'IPから推定した国コード'], ['device_id', '端末ID'], ['created_at', '発生日時 <em>UTC</em>']] },
+    { name: 'item_logs', desc: 'アイテムの増減・移動。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['item_id', 'アイテム → m_items'],
+      ['item_uid', '装備の個体ID（消耗品はNULL）'],
+      ['action', 'GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE'],
+      ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'],
+      ['created_at', '発生日時 <em>UTC</em>']] },
+    { name: 'm_items', desc: 'アイテムマスタ。', cols: [
+      ['item_id', 'アイテムID'], ['name', '名前'], ['category', '武器 / 防具 / 消耗品 など'], ['rarity', 'N / R / SR / SSR / UR'], ['tradable', '1 = トレード可、0 = 不可']] },
+    { name: 'currency_logs', desc: 'ゴールド・ジェムの増減。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['currency', 'GOLD / GEM'], ['amount', '増減（マイナスは消費）'], ['balance_after', '変動後の残高'],
+      ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE'],
+      ['ref_id', '関連ID（ギルド、決済の transaction_id など）'], ['created_at', '発生日時 <em>UTC</em>']] },
+    { name: 'payment_logs', desc: 'ストア決済の記録。', cols: [
+      ['payment_id', '決済ID'], ['user_id', 'ユーザー'], ['product_id', '商品 → m_products'], ['price_jpy', '金額（円）'],
+      ['store', 'GooglePlay / AppStore / WebShop'], ['transaction_id', 'ストアの取引ID'], ['status', 'SUCCESS / CANCELED'], ['created_at', '決済日時 <em>UTC</em>']] },
+    { name: 'm_products', desc: '課金商品マスタ。', cols: [['product_id', '商品ID'], ['name', '商品名'], ['price_jpy', '価格（円）'], ['gem', '付与されるジェム数']] },
+    { name: 'error_logs', desc: 'サーバーのエラー・警告ログ。', cols: [
+      ['log_id', 'ログID'], ['level', 'WARN / ERROR'], ['service', '発生したサービス'], ['message', 'メッセージ'], ['user_id', '関連ユーザー（NULLあり）'], ['created_at', '発生日時 <em>UTC</em>']] },
+  ];
+
+  const sub = (pub) => `(SELECT user_id FROM users WHERE public_id = '${pub}')`;
+  const norm = (s) => String(s || '').normalize('NFKC').replace(/[\s#"'`]/g, '').toUpperCase();
+  const pubAccept = (id) => (v) => { const n = norm(v); return n === id || n === id.replace('U-', ''); };
+
+  // ---------------------------------------------------------------- 問い合わせ
+  const CASES = [
+    {
+      no: 'CS-1104-0412', label: 'キャラ消失', received: '2026-11-04 10:12', user: 'U-38127', world: 'アルファ', category: 'キャラクター',
+      body: '11月3日の夜、キャラクター『シルフィ』が突然いなくなりました！何もしていません！大事に育ててきたキャラなので、すぐに戻してください！',
+      note: '先週からの持ち越し案件です。ユーザーはかなりお怒りです。まずは事実確認をお願いします。',
+      options: [
+        ['a', '本人の操作による削除（普段と同じ端末・IPから実行）'],
+        ['b', '第三者の不正ログインによる削除'],
+        ['c', 'サーバー不具合によるデータ消失'],
+        ['d', 'キャラクターは消えていない（表示の問題）'],
+      ],
+      answer: 'a',
+      evidence: { label: '決め手になったログの log_id（character_logs）', placeholder: '例: 1234', key: 'c1_delete' },
+      hints: [
+        'users テーブルで公開ID（U-38127）を検索すると、内部の <code>user_id</code> が分かります。ほかのテーブルは user_id で絞り込みます。',
+        'characters でそのユーザーのキャラを確認しましょう。<code>deleted_at</code> に日時が入っていれば削除済みです。',
+        "character_logs で <code>action = 'DELETE'</code> を探し、ip_address と device_id を login_logs の普段のログインと比べましょう。",
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、11月3日 21:42 に、お客様が普段ご利用の端末から、キャラクター名の入力確認を経て『シルフィ』の削除操作が行われた記録を確認いたしました。削除から30日以内のため復旧申請が可能ですが、同じ名前が他のお客様に使用されているため、復旧時に名前の変更が必要です。',
+      reaction: '……あっ。サブキャラを消すつもりで、間違えたかもしれません。復旧申請します。すみませんでした。',
+      explain: 'シルフィは UTC 11/3 12:42:18（JST 21:42）に削除されています。直前に普段と同じiPhone・同じIPでログインしており、キャラ名入力による削除確認（<code>confirm: name_input</code>）も通っています。本人の操作と判断できます。削除の直前にエリクサーを友人へ渡しているのも、整理していた様子をうかがわせます。なお、アルファでは 11/5 に別のユーザーが「シルフィ」を作成済み。復旧には名前変更が必要になる点も添えておくと親切です。',
+      model: `-- 公開IDから内部の user_id を引く
+SELECT * FROM users WHERE public_id = 'U-38127';
+
+-- キャラの状態
+SELECT * FROM characters WHERE user_id = ${sub('U-38127')};
+
+-- 削除ログ（JSTも並べる）
+SELECT log_id, action, detail, ip_address, device_id,
+       created_at, datetime(created_at, '+9 hours') AS jst
+FROM character_logs
+WHERE user_id = ${sub('U-38127')} AND action = 'DELETE';
+
+-- 普段のログイン元
+SELECT ip_address, device_id, COUNT(*) AS cnt
+FROM login_logs
+WHERE user_id = ${sub('U-38127')}
+GROUP BY ip_address, device_id;`,
+      starter: `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行
+-- まずは問い合わせてきたユーザーを探してみよう
+SELECT * FROM users WHERE public_id = 'U-38127';
+`,
+    },
+    {
+      no: 'CS-1112-0087', label: '武器消失', received: '2026-11-12 09:30', user: 'U-52904', world: 'ベータ', category: 'アイテム',
+      body: '昨日の夜、倉庫に預けていた『煌星の大剣』（+8）がなくなっていました。レイドでやっと出た超レア武器です。倉庫の不具合ですよね？今すぐ補填してください。',
+      note: '同じような「倉庫からアイテムが消えた」報告は、ほかに届いていません。',
+      options: [
+        ['a', '強化の失敗による消滅（仕様どおり）'],
+        ['b', '他のプレイヤーへのトレード'],
+        ['c', 'NPCショップへの売却'],
+        ['d', '倉庫の不具合による消失'],
+      ],
+      answer: 'a',
+      evidence: { label: '決め手になったログの log_id（item_logs）', placeholder: '例: 1234', key: 'c2_destroy' },
+      hints: [
+        'アイテム名は <code>m_items</code> にあります。item_id を調べて item_logs を絞り込みましょう。',
+        'item_logs をそのユーザー・そのアイテムで絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。',
+        '最後のほうのログに注目。倉庫から出した後、何をしている？ detail の <code>protect</code> は保護の巻物を使ったかどうかです。',
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、『煌星の大剣』は11月11日 22:01 に倉庫から取り出され、22:03 に+9への強化に成功した後、22:05 に保護の巻物を使用せずに+10への強化を行い、強化失敗により消滅したことを確認いたしました。仕様どおりの挙動のため、補填はいたしかねます。何卒ご理解ください。',
+      reaction: '……+9になった勢いでいけると思ったんです。巻物、ケチるんじゃなかった。',
+      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01（JST）に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>m_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
+      model: `SELECT * FROM m_items WHERE name = '煌星の大剣';
+
+SELECT log_id, action, item_uid, detail,
+       datetime(created_at, '+9 hours') AS jst
+FROM item_logs
+WHERE user_id = ${sub('U-52904')}
+  AND item_id = (SELECT item_id FROM m_items WHERE name = '煌星の大剣')
+ORDER BY created_at;`,
+    },
+    {
+      no: 'CS-1112-0233', label: 'ゴールド減少', received: '2026-11-12 18:05', user: 'U-27730', world: 'アルファ', category: 'ゲーム内通貨',
+      body: '11月8日の朝8時ごろにログインしたら、ゴールドが500万近く減っていました！自分は何も使っていません。乗っ取りじゃないですか？早く調べてください！',
+      note: 'ユーザーはスマホ1台で遊んでいるそうです。',
+      options: [
+        ['a', '本人の操作によるギルドへの寄付'],
+        ['b', '本人の操作によるオークションでの購入'],
+        ['c', '第三者の不正ログインによる消費'],
+        ['d', '該当時間帯にゴールド減少の記録はない'],
+      ],
+      answer: 'a',
+      evidence: { label: '決め手になったログの log_id（currency_logs）', placeholder: '例: 1234', key: 'c3_donate' },
+      hints: [
+        "currency_logs をそのユーザーの <code>currency = 'GOLD'</code> で絞り込みましょう。",
+        '問い合わせの「11月8日 朝8時」は日本時間。DBの created_at は UTC です。9時間ずらすと何日の何時？',
+        "<code>datetime(created_at, '+9 hours')</code> を SELECT に足すと、日本時間で読めます。",
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、11月8日 7:47 にお客様の普段の端末からログインがあり、7:51 にギルドへ 4,800,000 ゴールドを寄付する操作が行われていたことを確認いたしました。第三者によるログインの形跡はございません。',
+      reaction: '4,800,000……48万のつもりで、ゼロをひとつ多く押してました。ギルマスに相談してきます……。',
+      explain: 'JST の 11/8 08:00 は UTC の 11/7 23:00。UTC 11/7 22:47（JST 07:47）に普段のスマホ・IPでログインし、22:51（JST 07:51）に GUILD_DONATE で 4,800,000 ゴールドを寄付しています。UTC の「11/8」だけを見ると 1万ゴールドの寄付しか見つからず、「記録なし」と判断したり、別のログを根拠にしてしまう落とし穴でした。',
+      model: `SELECT log_id, amount, balance_after, reason, ref_id,
+       created_at, datetime(created_at, '+9 hours') AS jst
+FROM currency_logs
+WHERE user_id = ${sub('U-27730')}
+  AND currency = 'GOLD'
+  AND datetime(created_at, '+9 hours') BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'
+ORDER BY created_at;
+
+SELECT * FROM login_logs
+WHERE user_id = ${sub('U-27730')}
+  AND created_at BETWEEN '2026-11-07 15:00:00' AND '2026-11-08 15:00:00';`,
+    },
+    {
+      no: 'CS-1112-0301', label: 'キャラ不在', received: '2026-11-12 21:47', user: 'U-44590', world: 'アルファ', category: 'キャラクター',
+      body: 'キャラクター『漆黒の堕天使』がキャラ一覧から消えています！！削除なんて絶対にしていません！アルファで遊んでいます。どうなってるんですか！',
+      note: 'ユーザーはアルファで『ノワール』というキャラも持っているとのことです。',
+      options: [
+        ['a', '本人の操作による削除'],
+        ['b', '本人の操作によるワールド移動（キャラクターは無事）'],
+        ['c', '本人の操作による名前変更（キャラクターは無事）'],
+        ['d', '不具合によるキャラクターの消失'],
+      ],
+      answer: 'b',
+      evidence: { label: '『漆黒の堕天使』が今いるワールド名', placeholder: '例: ベータ', accept: (v) => { const n = norm(v); return n.includes('ガンマ') || n === '3' || n === 'GAMMA' || n === 'WORLD3' || n === 'ワールド3'; } },
+      hints: [
+        "characters で <code>name = '漆黒の堕天使'</code> を検索すると……複数ヒットするかも。user_id で持ち主を確かめましょう。",
+        'world_id は <code>worlds</code> テーブルと対応しています。問い合わせのワールドと一致していますか？',
+        'character_logs でこのキャラの action を確認しましょう。detail に移動元と移動先が入っています。',
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、『漆黒の堕天使』は11月9日 19:14 にワールド移動チケットを使用して、アルファからガンマへ移動しております。キャラクターは削除されておりませんので、ガンマにログインしてご確認ください。',
+      reaction: 'ガンマのイベントに行くために移動したの、完全に忘れてました……。いました。よかった……。',
+      explain: '11/9 19:14（JST）に、ジェムショップで買ったワールド移動チケットを使い、アルファ（1）からガンマ（3）へ移動しています（<code>WORLD_TRANSFER</code>）。キャラクターは削除されていません。ベータにも同じ名前のキャラがいますが、別のユーザーのものです。',
+      model: `SELECT c.*, w.name AS world_name
+FROM characters c JOIN worlds w USING (world_id)
+WHERE c.name = '漆黒の堕天使';
+
+SELECT log_id, action, detail, datetime(created_at, '+9 hours') AS jst
+FROM character_logs
+WHERE user_id = ${sub('U-44590')}
+ORDER BY created_at;`,
+    },
+    {
+      no: 'CS-1111-0019', label: '課金未反映', received: '2026-11-11 08:20', user: 'U-73315', world: 'ベータ', category: '課金',
+      body: '11月10日の夜に3,000円のジェムパックを買いましたが、ジェムが増えていません！Google Playからは3,000円の購入メールが届いています。お金だけ取られたってことですか？',
+      note: '課金関連です。補填が必要かどうかを明確にしてください。',
+      options: [
+        ['a', '正常に付与済み（ユーザーの見落とし）'],
+        ['b', '決済が完了していない（キャンセル）'],
+        ['c', '決済は完了したが、ジェムの付与に失敗している（補填対象）'],
+        ['d', '返金処理済み'],
+      ],
+      answer: 'c',
+      evidence: { label: '該当する決済の transaction_id', placeholder: '例: GPA.0000-0000-0000-00000', accept: (v) => norm(v) === 'GPA.3391-0042-7781-55102' },
+      hints: [
+        'payment_logs をそのユーザーで見てみましょう。<code>status</code> にも注目。',
+        "決済が SUCCESS なら、currency_logs に <code>ref_id = transaction_id</code> の GEM 付与（reason = 'PURCHASE'）があるはずです。",
+        'error_logs の同じ時刻あたりも確認してみましょう。',
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、11月10日 20:20 のご購入（取引ID: GPA.3391-0042-7781-55102）について、決済は完了していたものの、サーバーの不具合によりジェムが付与されていなかったことを確認いたしました。ご迷惑をおかけし申し訳ございません。ジェム 1,800 個を補填いたします。',
+      reaction: 'ちゃんと調べてもらえて安心しました！ありがとうございます！',
+      explain: '11/10 20:18（JST）の決済はユーザーがキャンセル（CANCELED）、20:20 の決済が SUCCESS です。正常な購入なら currency_logs に同じ transaction_id を ref_id に持つ PURCHASE が記録されますが、この決済には存在しません。直後の error_logs には GemGrantService のデッドロックによる付与中断が残っています。不具合として 1,800 ジェムの補填対象です。11/5 の購入は正常に付与されています。',
+      model: `SELECT p.*, datetime(p.created_at, '+9 hours') AS jst,
+       c.log_id AS grant_log_id, c.amount AS granted
+FROM payment_logs p
+LEFT JOIN currency_logs c
+  ON c.ref_id = p.transaction_id AND c.reason = 'PURCHASE'
+WHERE p.user_id = ${sub('U-73315')}
+ORDER BY p.created_at;
+
+SELECT * FROM error_logs
+WHERE user_id = ${sub('U-73315')};`,
+    },
+    {
+      no: 'CS-1113-0004', label: 'アイテム大量消失', received: '2026-11-13 09:52', user: 'U-61458', world: 'ベータ', category: 'アカウント',
+      body: '昨日は一度もログインしていないのに、今朝ログインしたら弓や防具、エリクサーがごっそり消えていました。どうなっているんですか！？',
+      note: 'ユーザーはAndroid端末1台だけで遊んでいるとのことです。',
+      options: [
+        ['a', '本人の操作によるトレード'],
+        ['b', '第三者の不正ログイン後、別アカウントへトレード（乗っ取りの疑い）'],
+        ['c', 'アイテムの有効期限切れ'],
+        ['d', '不具合によるアイテムの消失'],
+      ],
+      answer: 'b',
+      evidence: { label: 'アイテムの移動先アカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-90417') },
+      hints: [
+        'login_logs で直近のログインを見てみましょう。result・ip_address・country・device_id に注目。',
+        "item_logs の <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> はアイテムを渡した相手の user_id です。",
+        'target_user_id を users と JOIN すると公開IDが分かります。いつ作られたアカウントかも見てみましょう。',
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、11月12日 12:10 に、お客様が普段ご利用の端末とは異なる海外の環境からログインがあり、その直後にアイテムが別のアカウントへ移動していたことを確認いたしました。第三者による不正ログインの可能性が高いため、至急パスワードの変更をお願いいたします。アイテムの扱いについては、担当部署で調査のうえ改めてご連絡いたします。',
+      reaction: 'パスワード、他のサイトと同じのを使ってました……。すぐ変えます。',
+      explain: '11/12 12:02〜12:08（JST）に、オランダのIP・見慣れないPC端末から5回ログインに失敗した後、12:10 にログインが成功しています。その直後、天穹の弓・竜鱗の外套・星詠みの耳飾り・エリクサー30個が、11/10 に作られたばかりのアカウント U-90417 へトレードされました。U-90417 も同じIPからログインしています。11/8 のハイポーションのトレードは普段の端末からの本人操作で、今回とは無関係です。乗っ取りの疑いが強いので、パスワード再設定の案内とセキュリティチームへのエスカレーションが必要です。',
+      model: `SELECT log_id, result, ip_address, country, device_id,
+       datetime(created_at, '+9 hours') AS jst
+FROM login_logs
+WHERE user_id = ${sub('U-61458')}
+  AND created_at >= '2026-11-10'
+ORDER BY created_at;
+
+SELECT i.log_id, m.name, i.quantity, u.public_id AS to_public_id,
+       u.created_at AS to_created_at,
+       datetime(i.created_at, '+9 hours') AS jst
+FROM item_logs i
+JOIN m_items m USING (item_id)
+JOIN users u ON u.user_id = i.target_user_id
+WHERE i.user_id = ${sub('U-61458')} AND i.action = 'TRADE_OUT'
+ORDER BY i.created_at;`,
+    },
+    {
+      no: 'CS-1113-0002', label: '機種変更', received: '2026-11-13 08:55', user: 'U-15562', world: '（未記入）', category: 'アカウント',
+      body: '機種変更したら、キャラクター『ミルク』がいなくなっていました。昨日の朝まで前のスマホで遊んでいたのに……。引き継ぎはちゃんとやったはずです。',
+      note: '問い合わせは新しいiPhoneのアプリから届いています。',
+      options: [
+        ['a', '本人の操作によるキャラクターの削除'],
+        ['b', '引き継ぎがされず、新しいアカウントが作られている（キャラクターは前のアカウントに存在）'],
+        ['c', '第三者の不正ログインによるキャラクターの削除'],
+        ['d', '引き継ぎ処理の不具合によるデータ消失'],
+      ],
+      answer: 'b',
+      evidence: { label: '『ミルク』がいるアカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-31846') },
+      hints: [
+        '問い合わせアカウント（U-15562）の作成日時と、持っているキャラを確認しましょう。',
+        "『ミルク』という名前のキャラは何人もいます。characters を name で検索し、持ち主を洗い出しましょう。",
+        '問い合わせアカウントがログインした ip_address から、ほかにログインしているアカウントはありませんか？',
+      ],
+      reply: 'お問い合わせありがとうございます。調査の結果、現在ご利用のアカウントは11月12日に新しく作成されたもので、『ミルク』は以前の端末でご利用のアカウントに残っていることを確認いたしました。以前の端末で引き継ぎコードを発行し、新しい端末で入力していただくと、『ミルク』のデータを引き継げます。',
+      reaction: '引き継ぎコード、発行しただけで入力してませんでした……！前のスマホ、まだ捨ててなくてよかった。',
+      explain: 'U-15562 は 11/12 20:02（JST）に新しいiPhoneで作られたアカウントで、『ミルク』の作成記録はありません（よく似た『みるく』があるだけ）。『ミルク』を持つアカウントは複数ありますが、アルファの『ミルク』の持ち主 U-31846 だけが、問い合わせアカウントと同じ自宅回線のIP（114.150.82.9）からログインしています。最終ログインは 11/12 08:05（JST）で「昨日の朝まで遊んでいた」とも一致。引き継ぎをせずに新しいアカウントを作ってしまったと考えられます。',
+      model: `SELECT * FROM users WHERE public_id = 'U-15562';
+SELECT * FROM characters WHERE user_id = ${sub('U-15562')};
+
+-- 『ミルク』の持ち主たち
+SELECT c.*, u.public_id FROM characters c JOIN users u USING (user_id)
+WHERE c.name = 'ミルク';
+
+-- 同じIPからログインしているアカウント
+SELECT u.public_id, l.ip_address, COUNT(*) AS cnt,
+       MAX(datetime(l.created_at, '+9 hours')) AS last_jst
+FROM login_logs l JOIN users u USING (user_id)
+WHERE l.ip_address IN (
+  SELECT ip_address FROM login_logs WHERE user_id = ${sub('U-15562')}
+)
+GROUP BY u.public_id, l.ip_address;`,
+    },
+  ];
+
+  const RANKS = [
+    [680, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
+    [580, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
+    [450, '一人前の調査担当', '時差の罠にも、もう引っかかりません。'],
+    [300, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
+    [0, '研修やり直し', 'まずは users テーブルから。焦らず WHERE を書きましょう。'],
+  ];
+
+  // ---------------------------------------------------------------- state
+  let DB = null, KEYS = {}, COUNTS = {};
+  let state = freshState();
+  function freshState() {
+    return {
+      started: false, current: 0, shimatsu: 0,
+      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, queries: 0, heavy: false, choice: null, evidence: '' })),
+      drafts: {}, history: [],
+    };
+  }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
+  function loadLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; } }
+  function validState(s) { return s && Array.isArray(s.cases) && s.cases.length === CASES.length && typeof s.current === 'number'; }
+
+  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score, 0) - state.shimatsu * SHIMATSU);
+  const allDone = () => state.cases.every((c) => c.status !== 'open');
+  const firstOpen = () => { const i = state.cases.findIndex((c) => c.status === 'open'); return i < 0 ? CASES.length - 1 : i; };
+
+  // ---------------------------------------------------------------- time helpers
+  function shiftDt(dt, minutes) {
+    if (dt == null) return null;
+    const m = String(dt).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (!m) return null;
+    const t = Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) + minutes * 60000;
+    return new Date(t).toISOString().slice(0, 19).replace('T', ' ');
+  }
+  function tzOffset(tz) {
+    const s = String(tz || '').trim();
+    if (/^(UTC|GMT|SYSTEM|Z)$/i.test(s)) return 0;
+    if (/^(JST|Asia\/Tokyo)$/i.test(s)) return 540;
+    const m = s.match(/^([+-])(\d{1,2}):?(\d{2})$/);
+    if (!m) return null;
+    return (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]);
+  }
+
+  // ---------------------------------------------------------------- DB boot
+  function loadScript(src) {
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load failed: ' + src)); document.head.appendChild(s); });
+  }
+  function withTimeout(p, ms) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]); }
+  async function loadSql() {
+    try {
+      if (typeof window.initSqlJs !== 'function') throw new Error('sql-wasm.js not loaded');
+      return await withTimeout(window.initSqlJs({ locateFile: (f) => f }), 20000);
+    } catch (e) {
+      // WebAssembly が使えない環境向けの asm.js 版
+      await loadScript('sql-asm.js');
+      return await window.initSqlJs();
+    }
+  }
+  async function initDb() {
+    const conn = $('#conn'), label = $('#conn-label');
+    try {
+      const SQL = await loadSql();
+      await new Promise((r) => setTimeout(r, 0));
+      const built = window.LogDB.buildDatabase(SQL);
+      DB = built.db; KEYS = built.keys; COUNTS = built.counts;
+      DB.create_function('CONVERT_TZ', (dt, from, to) => { const a = tzOffset(from), b = tzOffset(to); return a == null || b == null ? null : shiftDt(dt, b - a); });
+      DB.create_function('JST', (dt) => shiftDt(dt, 540));
+      DB.create_function('NOW', () => NOW_UTC);
+      DB.run('PRAGMA query_only = 1');
+      conn.classList.add('is-ready'); label.textContent = 'prod-replica-01';
+      $('#run').disabled = false;
+      renderSchema();
+      if (!$('#results').dataset.used) renderResultsEmpty();
+    } catch (e) {
+      conn.classList.add('is-error');
+      label.textContent = 'DBに接続できませんでした';
+      $('#results').innerHTML = `<div class="rerr">データベースを読み込めませんでした: ${esc(e.message)}<small>ページを再読み込みしてください。ファイル単体で開いている場合は、sql-wasm.js / sql-wasm.wasm / sql-asm.js を同じフォルダに置き、Webサーバー経由で開いてください。</small></div>`;
+    }
+  }
+
+  // ---------------------------------------------------------------- SQL runner
+  function splitStatements(src) {
+    const out = []; let cur = ''; let i = 0; const n = src.length;
+    while (i < n) {
+      const ch = src[i], nx = src[i + 1];
+      if (ch === '-' && nx === '-') { const j = src.indexOf('\n', i); const end = j < 0 ? n : j; cur += src.slice(i, end); i = end; continue; }
+      if (ch === '/' && nx === '*') { const j = src.indexOf('*/', i + 2); const end = j < 0 ? n : j + 2; cur += src.slice(i, end); i = end; continue; }
+      if (ch === "'" || ch === '"' || ch === '`') {
+        let j = i + 1;
+        while (j < n) { if (src[j] === ch) { if (src[j + 1] === ch) { j += 2; continue; } break; } j++; }
+        cur += src.slice(i, j + 1); i = j + 1; continue;
+      }
+      if (ch === ';') { out.push(cur); cur = ''; i++; continue; }
+      cur += ch; i++;
+    }
+    out.push(cur);
+    return out.map((s) => s.trim()).filter((s) => stripComments(s).trim());
+  }
+  const stripComments = (s) => s.replace(/--[^\n]*/g, ' ').replace(/\/\*[\s\S]*?(\*\/|$)/g, ' ');
+  const firstWord = (s) => { const m = stripComments(s).replace(/^[\s(]+/, '').match(/^[A-Za-z]+/); return m ? m[0].toUpperCase() : ''; };
+
+  const SHIMATSU_MSG = {
+    DELETE: '本番DBで DELETE を流そうとしました。手が震えています。',
+    UPDATE: '本番データの書き換えには変更申請と二人承認が必要です。',
+    INSERT: '補填は所定の管理ツールから。DBに直接 INSERT してはいけません。',
+    DROP: 'DROP……？ 背後でインフラ担当が椅子から転げ落ちました。',
+    TRUNCATE: 'TRUNCATE……？ 全ログが消えるところでした。',
+    ALTER: '本番のスキーマ変更はメンテナンス時間にどうぞ。',
+    REPLACE: 'REPLACE も立派な書き込みです。',
+    CREATE: '本番DBにテーブルを作ってはいけません。',
+  };
+  function isAllowed(stmt) {
+    const w = firstWord(stmt);
+    if (/query_only|writable_schema/i.test(stmt)) return false;
+    if (w === 'PRAGMA') return /^\s*PRAGMA\s+(table_info|table_xinfo|index_list|index_info)\b/i.test(stripComments(stmt));
+    return ['SELECT', 'WITH', 'EXPLAIN', 'VALUES'].includes(w);
+  }
+  function issueShimatsu(word) {
+    state.shimatsu++;
+    save(); renderHud();
+    toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
+  }
+
+  const MYSQL_TIPS = [
+    [/no such function: DATE_ADD|no such function: DATE_SUB|no such function: ADDTIME/i, "SQLite では datetime(created_at, '+9 hours') のように書きます。"],
+    [/no such function: DATE_FORMAT/i, "SQLite では strftime('%Y-%m-%d %H:%M', created_at) を使います。"],
+    [/no such function: (IFNULL2|IF)\b/i, 'SQLite では iif(条件, 真, 偽) か CASE WHEN を使います。'],
+    [/no such column/i, '列名はテーブル定義で確認できます。文字列は "ダブル" ではなく \'シングル\' クォートで囲みます。'],
+    [/no such table/i, 'テーブル名は右の「テーブル定義」に一覧があります。'],
+    [/readonly|read-only/i, 'このDBは参照専用です。'],
+    [/syntax error/i, 'カンマ・括弧・クォートの閉じ忘れがないか確認しましょう。'],
+  ];
+
+  function runSql() {
+    if (!DB) return;
+    const ta = $('#sql');
+    const selected = ta.selectionStart !== ta.selectionEnd ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : '';
+    const src = selected || ta.value;
+    const stmts = splitStatements(src);
+    const out = $('#results');
+    out.dataset.used = '1';
+    if (!stmts.length) { out.innerHTML = '<p class="rnote">実行するSQLがありません。</p>'; return; }
+    const bad = stmts.find((s) => !isAllowed(s));
+    if (bad) {
+      issueShimatsu(firstWord(bad));
+      out.innerHTML = `<div class="rerr">実行を止めました: ${esc(firstWord(bad) || 'この文')} は参照系ではありません。<small>このコンソールで使えるのは SELECT / WITH / EXPLAIN と PRAGMA table_info だけです。</small></div>`;
+      pushHistory(src, false, '始末書');
+      return;
+    }
+    const cs = state.cases[state.current];
+    cs.queries++;
+    const blocks = [];
+    let ok = true, totalRows = 0, heavy = false;
+    for (let k = 0; k < stmts.length; k++) {
+      const s = stmts[k];
+      const t0 = performance.now();
+      let st;
+      try {
+        st = DB.prepare(s);
+        const cols = st.getColumnNames();
+        const rows = [];
+        let count = 0;
+        while (st.step()) { if (count < 1000) rows.push(st.get()); count++; }
+        const ms = performance.now() - t0;
+        totalRows += count; if (count >= 2000) heavy = true;
+        blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms));
+      } catch (e) {
+        ok = false;
+        const tip = /\bINTERVAL\b/i.test(s) ? "SQLite に INTERVAL はありません。datetime(created_at, '+9 hours') のように書きます。"
+          : (MYSQL_TIPS.find(([re]) => re.test(e.message)) || [])[1];
+        if (/readonly|read-only/i.test(e.message)) issueShimatsu('');
+        blocks.push(`<div class="rblock"><div class="rmeta"><b>#${k + 1}</b><span class="rsql">${esc(oneLine(s))}</span></div><div class="rerr">${esc(e.message)}${tip ? `<small>${esc(tip)}</small>` : ''}</div></div>`);
+        break;
+      } finally { if (st) st.free(); }
+    }
+    out.innerHTML = blocks.join('');
+    out.scrollTop = 0;
+    pushHistory(src, ok, ok ? `${totalRows.toLocaleString()}行` : 'エラー');
+    if (heavy && !cs.heavy) {
+      cs.heavy = true;
+      toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
+    }
+    save();
+  }
+  const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
+  function renderTable(k, n, sql, cols, rows, count, ms) {
+    const head = `<tr><th class="rn">#</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>`;
+    const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v) => {
+      if (v === null || v === undefined) return '<td class="null">NULL</td>';
+      if (typeof v === 'number') return `<td class="num">${esc(v)}</td>`;
+      if (v instanceof Uint8Array) return '<td class="null">BLOB</td>';
+      return `<td title="${esc(v)}">${esc(v)}</td>`;
+    }).join('')}</tr>`).join('');
+    const more = count > rows.length ? `<span>（先頭 ${rows.length.toLocaleString()} 行を表示）</span>` : '';
+    const label = n > 1 ? `<b>#${k + 1}</b>` : '';
+    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}</b> 行</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
+      <div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
+  }
+  function renderResultsEmpty() {
+    $('#results').innerHTML = `<div class="results-empty"><b>SELECT * FROM 問い合わせ;</b>左の問い合わせ票を読み、SQLでログを調べましょう。右のテーブル定義のテーブル名をクリックすると、SELECT文がエディタに入ります。</div>`;
+  }
+
+  function pushHistory(sql, ok, meta) {
+    state.history.unshift({ sql: sql.trim().slice(0, 2000), ok, meta, c: state.current + 1 });
+    state.history = state.history.slice(0, 40);
+    renderHistory();
+  }
+
+  // ---------------------------------------------------------------- editor
+  const KW = new Set(('SELECT FROM WHERE AND OR NOT IN IS NULL AS ON JOIN LEFT RIGHT INNER OUTER CROSS GROUP BY ORDER HAVING LIMIT OFFSET DISTINCT CASE WHEN THEN ELSE END LIKE BETWEEN UNION ALL WITH ASC DESC EXISTS USING INSERT UPDATE DELETE DROP CREATE TABLE INTO VALUES SET ALTER TRUNCATE EXPLAIN PRAGMA GLOB ESCAPE CAST REPLACE NATURAL INTERSECT EXCEPT COLLATE').split(' '));
+  function highlight(src) {
+    const re = /(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*'?)|("(?:[^"]|"")*"?|`[^`]*`?)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)/g;
+    let out = '', last = 0, m;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      if (m[1]) out += `<span class="t-com">${esc(m[1])}</span>`;
+      else if (m[2]) out += `<span class="t-str">${esc(m[2])}</span>`;
+      else if (m[3]) out += `<span class="t-id">${esc(m[3])}</span>`;
+      else if (m[4]) out += `<span class="t-num">${esc(m[4])}</span>`;
+      else if (m[5]) {
+        if (KW.has(m[5].toUpperCase())) out += `<span class="t-kw">${esc(m[5])}</span>`;
+        else if (/^\s*\(/.test(src.slice(re.lastIndex, re.lastIndex + 3))) out += `<span class="t-fn">${esc(m[5])}</span>`;
+        else out += esc(m[5]);
+      }
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last)) + '\n';
+  }
+  let draftTimer = null;
+  function syncEditor() {
+    const ta = $('#sql');
+    $('#hl').innerHTML = highlight(ta.value);
+    syncScroll();
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => { state.drafts[state.current] = ta.value; save(); }, 300);
+  }
+  function syncScroll() { const ta = $('#sql'), pre = $('.editor pre'); pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; }
+  function setEditor(text, focus) {
+    const ta = $('#sql'); ta.value = text; syncEditor();
+    if (focus) { ta.focus(); ta.setSelectionRange(text.length, text.length); }
+  }
+  function insertAtCursor(text) {
+    const ta = $('#sql');
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+    ta.focus(); ta.setSelectionRange(s + text.length, s + text.length);
+    syncEditor();
+  }
+  function insertStatement(text) {
+    const ta = $('#sql');
+    const v = ta.value.replace(/\s+$/, '');
+    setEditor((v ? v + '\n\n' : '') + text, true);
+    ta.scrollTop = ta.scrollHeight; syncScroll();
+  }
+
+  // ---------------------------------------------------------------- render
+  function jstLabel(s) { const [d, t] = s.split(' '); const [, mo, da] = d.split('-'); return `${+mo}/${+da} ${t}`; }
+  function renderHud() {
+    $('#score').textContent = totalScore();
+    $('#shimatsu').textContent = state.shimatsu;
+    $('#stat-shimatsu').classList.toggle('warn', state.shimatsu > 0);
+    const q = $('#queue');
+    const unlocked = firstOpen();
+    q.innerHTML = CASES.map((c, i) => {
+      const st = state.cases[i].status;
+      const cls = ['chip', i === state.current ? 'is-current' : '', st === 'solved' ? 'is-solved' : '', st === 'gaveup' ? 'is-gaveup' : ''].join(' ');
+      const dis = i > unlocked && st === 'open' ? 'disabled' : '';
+      return `<button class="${cls}" data-case="${i}" ${dis} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${i + 1}</span>${esc(c.label)}</button>`;
+    }).join('') + (allDone() ? '<button class="chip is-current" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+  }
+
+  function renderTicket() {
+    const c = CASES[state.current], st = state.cases[state.current];
+    const t = $('#ticket');
+    t.innerHTML = `
+      <div class="ticket-head"><h2>問い合わせ票</h2><span class="tno">No. ${esc(c.no)}</span></div>
+      <dl class="ticket-grid">
+        <dt>受付日時</dt><dd>2026/${esc(jstLabel(c.received + ':00').replace(/:00$/, ''))} JST</dd>
+        <dt>公開ID</dt><dd>${esc(c.user)}</dd>
+        <dt>ワールド</dt><dd>${esc(c.world)}</dd>
+        <dt>種別</dt><dd>${esc(c.category)}</dd>
+      </dl>
+      <p class="ticket-body">${esc(c.body)}</p>
+      <p class="ticket-note"><b>CS担当メモ：</b>${esc(c.note)}</p>
+      ${st.status === 'solved' ? stampHtml('解決', '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
+  }
+  function stampHtml(text, cls) {
+    return `<div class="stamp ${cls}"><span><span class="s-main">${text}</span><span class="s-sub">2026.11.13</span></span></div>`;
+  }
+
+  function renderAnswer() {
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    const area = $('#answer-area');
+    if (st.status !== 'open') { area.innerHTML = resolutionHtml(i); return; }
+    area.innerHTML = `
+      <form class="card" id="answer-form" novalidate>
+        <h3>調査結論</h3>
+        <fieldset class="opts">
+          <legend hidden>調査結論</legend>
+          ${c.options.map(([v, l]) => `<label class="opt"><input type="radio" name="choice" value="${v}" ${st.choice === v ? 'checked' : ''}><span>${esc(l)}</span></label>`).join('')}
+        </fieldset>
+        <div class="field">
+          <label for="evidence">根拠：${esc(c.evidence.label)}</label>
+          <input id="evidence" name="evidence" autocomplete="off" placeholder="${esc(c.evidence.placeholder)}" value="${esc(st.evidence || '')}">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" type="submit">ユーザーに回答する</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（−${HINT}）</button>
+          <button class="btn btn-ghost" type="button" id="btn-giveup">先輩に聞く</button>
+        </div>
+        <ol class="hints" id="hints">${c.hints.slice(0, st.hints).map((h, k) => `<li><b>${k + 1}</b>${h}</li>`).join('')}</ol>
+        <p class="feedback" id="feedback" hidden></p>
+      </form>`;
+  }
+
+  function resolutionHtml(i) {
+    const c = CASES[i], st = state.cases[i];
+    const solved = st.status === 'solved';
+    const right = c.options.find((o) => o[0] === c.answer)[1];
+    return `<div class="card resolution">
+      <div class="points"><b>${solved ? '+' + st.score : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回` : '先輩に聞いたので 0 点'}</span></div>
+      <div><h3>正しい結論</h3><p class="explain">${esc(right)}</p></div>
+      <div><h3>ユーザーへの回答</h3><p class="reply">${esc(c.reply)}</p></div>
+      ${solved ? `<p class="reaction">ユーザーからの返信：「${esc(c.reaction)}」</p>` : ''}
+      <div><h3>解説</h3><p class="explain">${c.explain}</p></div>
+      <div><h3>模範SQL</h3><pre class="model">${highlight(c.model)}</pre>
+        <div class="btn-row"><button class="btn" type="button" id="btn-model">エディタに貼って実行</button></div></div>
+      <div class="btn-row"><button class="btn btn-primary" type="button" id="btn-next">${allDone() ? '結果を見る' : '次のチケットへ'}</button></div>
+    </div>`;
+  }
+
+  function renderSchema() {
+    $('#tab-schema').innerHTML = `<div class="notes">${NOTES}</div>` + TABLE_DOCS.map((t, k) => `
+      <details class="tbl" ${k < 2 ? 'open' : ''}>
+        <summary><span class="tbl-name">${t.name}</span><span class="tbl-count">${COUNTS[t.name] != null ? COUNTS[t.name].toLocaleString() + '行' : ''}</span></summary>
+        <p class="tbl-desc">${t.desc}</p>
+        <ul class="cols">${t.cols.map(([n, d]) => `<li><button type="button" data-col="${n}">${n}</button><span class="cmt">${d}</span></li>`).join('')}</ul>
+        <button class="tbl-insert" type="button" data-table="${t.name}">SELECT文をエディタに入れる</button>
+      </details>`).join('');
+  }
+  function renderHistory() {
+    const h = state.history;
+    $('#tab-history').innerHTML = h.length ? `<ul class="hist">${h.map((x, k) => `<li class="${x.ok ? '' : 'is-err'}"><button type="button" data-hist="${k}"><span class="hmeta">#${x.c} · ${esc(x.meta)}</span>${esc(x.sql)}</button></li>`).join('')}</ul>`
+      : '<p class="rnote">まだSQLを実行していません。実行したSQLはここに残り、クリックするとエディタに戻せます。</p>';
+  }
+
+  function renderAll() {
+    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderHistory();
+    const draft = state.drafts[state.current];
+    setEditor(draft != null ? draft : (CASES[state.current].starter || `-- #${state.current + 1} ${CASES[state.current].label}（${CASES[state.current].user}）\n`));
+    if (!$('#results').dataset.used) renderResultsEmpty();
+  }
+
+  // ---------------------------------------------------------------- answer flow
+  function checkEvidence(c, v) {
+    if (c.evidence.accept) return c.evidence.accept(v);
+    const n = parseInt(norm(v).replace(/^LOG_?ID[:=]?/, ''), 10);
+    return Number.isFinite(n) && n === KEYS[c.evidence.key];
+  }
+  function onSubmit(e) {
+    e.preventDefault();
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    const form = $('#answer-form');
+    const choice = (form.querySelector('input[name="choice"]:checked') || {}).value;
+    const ev = $('#evidence').value;
+    st.choice = choice || null; st.evidence = ev;
+    const fb = $('#feedback');
+    if (!choice || !ev.trim()) {
+      fb.hidden = false; fb.className = 'feedback is-info';
+      fb.textContent = !choice ? '調査結論を選んでください。' : '根拠を入力してください。ログを見て、決め手になった値を書きます。';
+      return;
+    }
+    if (!DB) { fb.hidden = false; fb.className = 'feedback is-info'; fb.textContent = 'DBの準備中です。少し待ってから送信してください。'; return; }
+    const okC = choice === c.answer, okE = checkEvidence(c, ev);
+    if (okC && okE) {
+      st.status = 'solved';
+      st.score = Math.max(FLOOR, BASE - st.wrong * WRONG - st.hints * HINT);
+      save();
+      renderHud(); renderTicket(); renderAnswer();
+      const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+      $('#ticket-scroll').scrollTop = 0;
+      return;
+    }
+    st.wrong++;
+    save(); renderHud();
+    const msg = !okC && !okE ? '先輩「結論も根拠も、もう一度ログを見直してみて」'
+      : !okC ? '先輩「根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？」'
+        : '先輩「結論はいい線。でも根拠の値が違う。どのログが決め手？」';
+    fb.hidden = false; fb.className = 'feedback';
+    fb.textContent = `差し戻されました（−${WRONG}点）。${msg}`;
+    fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const t = $('#ticket');
+    t.querySelectorAll('.stamp.is-reject').forEach((x) => x.remove());
+    t.insertAdjacentHTML('beforeend', stampHtml('差戻', 'is-reject fade'));
+    t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake');
+  }
+  function showHint() {
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    if (st.hints >= c.hints.length) return;
+    st.hints++; save(); renderHud();
+    $('#hints').insertAdjacentHTML('beforeend', `<li><b>${st.hints}</b>${c.hints[st.hints - 1]}</li>`);
+    if (st.hints >= c.hints.length) $('#btn-hint').disabled = true;
+  }
+  let giveupArmed = false;
+  function giveUp(btn) {
+    if (!giveupArmed) { giveupArmed = true; btn.textContent = '本当に聞く？（このチケットは0点）'; btn.classList.add('btn-danger'); return; }
+    giveupArmed = false;
+    const st = state.cases[state.current];
+    st.status = 'gaveup'; st.score = 0; save();
+    renderHud(); renderTicket(); renderAnswer();
+    const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+  }
+  function goto(i) {
+    if (i === state.current) return;
+    state.drafts[state.current] = $('#sql').value;
+    state.current = i; giveupArmed = false; save();
+    renderHud(); renderTicket(); renderAnswer();
+    const draft = state.drafts[i];
+    setEditor(draft != null ? draft : (CASES[i].starter || `-- #${i + 1} ${CASES[i].label}（${CASES[i].user}）\n`));
+    $('#ticket-scroll').scrollTop = 0;
+  }
+  function next() {
+    if (allDone()) showFinal(); else goto(firstOpen());
+  }
+
+  // ---------------------------------------------------------------- modals
+  function openModal(html) { $('#modal').innerHTML = html; $('#overlay').hidden = false; const b = $('#modal button'); if (b) b.focus(); }
+  function closeModal() { $('#overlay').hidden = true; }
+  function showIntro() {
+    const resume = state.started && !allDone();
+    openModal(`
+      <p class="eyebrow">株式会社ノクトゲームス　運用チーム　配属初日</p>
+      <h1>ログは嘘をつかない<span class="cursor"></span></h1>
+      <p class="lead">サーバーエンジニア問い合わせ対応シミュレーター</p>
+      <p>あなたは運営中のMMORPG『クロノリア・オンライン』のサーバーエンジニア。CSチームから「キャラが消えた」「課金が反映されない」といった調査依頼のチケットが回ってきます。</p>
+      <p>本番DB（参照専用レプリカ）にSQLを投げてログを確かめ、事実にもとづいてユーザーへ回答してください。ユーザーの言い分が正しいとは限りません。</p>
+      <dl class="rules">
+        <dt>回答</dt><dd>調査結論を選び、決め手になった値（ログIDなど）を根拠として添える</dd>
+        <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}</dd>
+        <dt>禁止</dt><dd>更新系のSQL。流そうとすると始末書（−${SHIMATSU}）</dd>
+        <dt>注意</dt><dd>DBの日時は UTC、問い合わせは日本時間</dd>
+      </dl>
+      <div class="btn-row">
+        ${resume ? `<button class="btn btn-primary" type="button" data-act="resume">続きから（#${firstOpen() + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
+          : '<button class="btn btn-primary" type="button" data-act="start">出社する</button>'}
+      </div>`);
+  }
+  function rankOf(score) { return RANKS.find((r) => score >= r[0]); }
+  function showFinal() {
+    const score = totalScore(); const [, title, line] = rankOf(score);
+    const solved = state.cases.filter((c) => c.status === 'solved').length;
+    const rows = CASES.map((c, i) => { const s = state.cases[i]; return `<tr><td>#${i + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${s.status === 'solved' ? '解決' : s.status === 'gaveup' ? '先輩に聞いた' : '未対応'}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score}</td></tr>`; }).join('');
+    openModal(`
+      <p class="eyebrow">本日の業務終了　2026.11.13</p>
+      <div class="final-score"><b>${score}</b><span>/ ${CASES.length * BASE} 点　${solved}件解決</span></div>
+      <p class="final-title"><span>称号</span>${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p>
+      <p>${esc(line)}</p>
+      <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）</td><td class="r"></td></tr></tfoot></table>
+      <div class="btn-row">
+        <button class="btn btn-primary" type="button" data-act="copy">結果をコピー</button>
+        <button class="btn" type="button" data-act="review">チケットを見直す</button>
+        <button class="btn btn-ghost" type="button" data-act="reset">最初から遊ぶ</button>
+      </div>`);
+  }
+  function resultText() {
+    const score = totalScore(); const [, title] = rankOf(score);
+    const marks = state.cases.map((c) => (c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×')).join('');
+    return `『ログは嘘をつかない』 ${score}/${CASES.length * BASE}点 ${marks} 称号「${title}」 始末書${state.shimatsu}枚`;
+  }
+
+  // ---------------------------------------------------------------- toast
+  function toast(title, body, bad) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (bad ? ' is-bad' : '');
+    el.innerHTML = `<b>${esc(title)}</b>${esc(body)}`;
+    $('#toasts').appendChild(el);
+    setTimeout(() => el.remove(), 5200);
+  }
+
+  // ---------------------------------------------------------------- events
+  function bind() {
+    const ta = $('#sql');
+    ta.addEventListener('input', syncEditor);
+    ta.addEventListener('scroll', syncScroll);
+    ta.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runSql(); return; }
+      if (e.key === 'Tab' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); insertAtCursor('  '); }
+    });
+    $('#run').addEventListener('click', runSql);
+    $('#btn-clear').addEventListener('click', () => setEditor('', true));
+
+    document.addEventListener('submit', (e) => { if (e.target.id === 'answer-form') onSubmit(e); });
+    document.addEventListener('change', (e) => {
+      if (e.target.name === 'choice') { state.cases[state.current].choice = e.target.value; save(); }
+    });
+    document.addEventListener('input', (e) => { if (e.target.id === 'evidence') { state.cases[state.current].evidence = e.target.value; save(); } });
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.id === 'btn-hint') showHint();
+      else if (b.id === 'btn-giveup') giveUp(b);
+      else if (b.id === 'btn-next') next();
+      else if (b.id === 'btn-model') { setEditor(CASES[state.current].model, false); runSql(); }
+      else if (b.dataset.case != null) goto(+b.dataset.case);
+      else if (b.dataset.final) showFinal();
+      else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
+      else if (b.dataset.col) insertAtCursor(b.dataset.col);
+      else if (b.dataset.hist != null) { const h = state.history[+b.dataset.hist]; if (h) setEditor(h.sql, true); }
+      else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-history') {
+        const hist = b.id === 'tab-btn-history';
+        $('#tab-btn-schema').setAttribute('aria-selected', String(!hist));
+        $('#tab-btn-history').setAttribute('aria-selected', String(hist));
+        $('#tab-schema').hidden = hist; $('#tab-history').hidden = !hist;
+      } else if (b.dataset.act) {
+        const a = b.dataset.act;
+        if (a === 'start' || a === 'resume') { state.started = true; save(); closeModal(); $('#sql').focus(); }
+        else if (a === 'reset') {
+          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'もう一度押すと記録を消して最初から'; return; }
+          state = freshState(); state.started = true; save();
+          $('#results').dataset.used = ''; renderAll(); closeModal();
+        } else if (a === 'review') closeModal();
+        else if (a === 'copy') {
+          const text = resultText();
+          const done = () => { b.textContent = 'コピーしました'; };
+          try { navigator.clipboard.writeText(text).then(done, () => { b.textContent = text; }); } catch (err) { b.textContent = text; }
+        }
+      }
+      if (b.id !== 'btn-giveup' && giveupArmed) { giveupArmed = false; const g = $('#btn-giveup'); if (g) { g.textContent = '先輩に聞く'; g.classList.remove('btn-danger'); } }
+    });
+    document.addEventListener('dblclick', (e) => {
+      const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn')) return;
+      const inp = $('#evidence'); if (!inp) return;
+      inp.value = td.textContent; state.cases[state.current].evidence = inp.value; save();
+      document.querySelectorAll('.grid td.picked').forEach((x) => x.classList.remove('picked'));
+      td.classList.add('picked');
+      toast('根拠欄に入力しました', td.textContent);
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state.started) closeModal(); });
+  }
+
+  // ---------------------------------------------------------------- boot
+  function start(data) {
+    const saved = validState(data) ? data : loadLocal();
+    if (validState(saved)) {
+      state = Object.assign(freshState(), saved);
+      state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
+    }
+    bind();
+    renderAll();
+    if (allDone() && state.started) showFinal(); else showIntro();
+    initDb();
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) { try { hot.snapshot(() => state); } catch (e) { /* ignore */ } }
+  if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+
+</script>
+</body>
+</html>

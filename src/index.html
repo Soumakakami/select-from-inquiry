@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ログは嘘をつかない</title>
+<meta name="description" content="ゲーム会社のサーバーエンジニアになって、ユーザーからの問い合わせをSQLとログで調査するゲーム">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Sans+JP:wght@400;600&family=M+PLUS+1+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="brand"><b>ログは嘘をつかない</b><small>クロノリア・オンライン 運用チーム</small></div>
+    <nav class="queue" id="queue" aria-label="調査依頼チケット"></nav>
+    <div class="stats">
+      <div class="stat"><span>JST</span><b id="clock">11/13 10:00</b></div>
+      <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat" id="stat-shimatsu"><span>始末書</span><b id="shimatsu">0</b></div>
+    </div>
+  </header>
+
+  <main class="desk">
+    <section class="pane pane-ticket" aria-label="問い合わせチケット">
+      <div class="ticket-scroll" id="ticket-scroll">
+        <article class="ticket" id="ticket"></article>
+        <div id="answer-area"></div>
+      </div>
+    </section>
+
+    <section class="pane pane-console" aria-label="SQLコンソール">
+      <div class="console-bar">
+        <span class="conn" id="conn"><i class="dot"></i><span id="conn-label">prod-replica-01 に接続中…</span><span class="ro">READ ONLY</span></span>
+        <div class="bar-actions">
+          <button class="btn btn-ghost" id="btn-clear" type="button">クリア</button>
+          <button class="btn btn-primary btn-run" id="run" type="button" disabled>実行 <kbd>Ctrl</kbd><kbd>Enter</kbd></button>
+        </div>
+      </div>
+      <div class="editor">
+        <pre aria-hidden="true"><code id="hl"></code></pre>
+        <textarea id="sql" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQLエディタ"></textarea>
+      </div>
+      <div class="results" id="results" aria-live="polite"></div>
+    </section>
+
+    <aside class="pane pane-ref" aria-label="資料">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-btn-schema" aria-selected="true" aria-controls="tab-schema" type="button">テーブル定義</button>
+        <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="tab-history" type="button">実行履歴</button>
+      </div>
+      <div class="tab-panel" id="tab-schema" role="tabpanel" aria-labelledby="tab-btn-schema"></div>
+      <div class="tab-panel" id="tab-history" role="tabpanel" aria-labelledby="tab-btn-history" hidden></div>
+    </aside>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="sql-wasm.js"></script>
+<script>
+/*__DATAGEN__*/
+</script>
+<script>
+/*__GAME__*/
+</script>
+</body>
+</html>

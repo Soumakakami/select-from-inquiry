@@ -1,0 +1,13 @@
+{
+  "name": "select-from-inquiry",
+  "version": "1.0.0",
+  "description": "ゲーム会社のサーバーエンジニアになって、問い合わせをSQLとログで調査するブラウザゲーム",
+  "scripts": {
+    "build": "node build.js",
+    "verify": "node test/verify.js"
+  },
+  "dependencies": {
+    "sql.js": "1.10.3"
+  },
+  "private": true
+}
