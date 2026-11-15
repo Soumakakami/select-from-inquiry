@@ -4,15 +4,16 @@
   const $ = (s, el) => (el || document).querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE_KEY = 'logs-dont-lie:v1';
-  const NOW_UTC = '2026-11-13 01:00:00';
+  const NOW_JST = '2026-11-13 10:00:00';
   const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20;
+  const snd = (name) => { if (window.Sound) window.Sound.sfx(name); };
 
   // ---------------------------------------------------------------- 資料
   const NOTES = `
     <h4>運用メモ</h4>
     <ul>
-      <li>DBの日時はすべて <em>UTC</em>。問い合わせの日時は日本時間（JST = UTC+9）。</li>
-      <li>SQLite方言。JSTで見るなら <code>datetime(created_at, '+9 hours')</code>。<code>CONVERT_TZ()</code> と <code>NOW()</code> も使えます。</li>
+      <li>DBの日時はすべて <em>日本時間（JST）</em>。問い合わせの日時もJSTなので、そのまま比べられます。</li>
+      <li>SQLite方言。日付で絞るなら <code>created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'</code> や <code>date(created_at) = '2026-11-08'</code>。<code>NOW()</code> も使えます。</li>
       <li>JSON列は <code>json_extract(detail, '$.from')</code> で取り出せます。</li>
       <li>参照専用。更新系のSQLを流すと始末書です。</li>
       <li>結果のセルをダブルクリックすると、回答の根拠欄に入ります。</li>
@@ -21,36 +22,36 @@
   const TABLE_DOCS = [
     { name: 'users', desc: 'アカウント。問い合わせには公開ID（public_id）が書かれています。', cols: [
       ['user_id', '内部ID。他のテーブルはこれで参照'], ['public_id', 'ゲーム内に表示されるID（例: U-38127）'], ['platform', 'iOS / Android / PC'],
-      ['status', 'ACTIVE / BANNED'], ['created_at', 'アカウント作成日時 <em>UTC</em>']] },
+      ['status', 'ACTIVE / BANNED'], ['created_at', 'アカウント作成日時 <em>JST</em>']] },
     { name: 'characters', desc: 'キャラクター。削除は論理削除。名前はワールド内で一意。', cols: [
       ['character_id', 'キャラID'], ['user_id', '持ち主 → users'], ['world_id', '所属ワールド → worlds'], ['name', 'キャラ名'],
-      ['job', '職業'], ['level', 'レベル'], ['created_at', '作成日時 <em>UTC</em>'], ['deleted_at', '削除日時 <em>UTC</em>。NULLなら未削除']] },
+      ['job', '職業'], ['level', 'レベル'], ['created_at', '作成日時 <em>JST</em>'], ['deleted_at', '削除日時 <em>JST</em>。NULLなら未削除']] },
     { name: 'worlds', desc: 'ワールド（サーバー）。', cols: [['world_id', 'ワールドID'], ['name', 'ワールド名']] },
     { name: 'character_logs', desc: 'キャラクターの操作ログ。', cols: [
       ['log_id', 'ログID'], ['user_id', '操作したユーザー'], ['character_id', '対象キャラ'],
       ['action', 'CREATE / DELETE / RESTORE / RENAME / WORLD_TRANSFER'], ['detail', 'JSON。変更前後の値など'],
-      ['ip_address', '操作元IP'], ['device_id', '操作元の端末'], ['created_at', '発生日時 <em>UTC</em>']] },
+      ['ip_address', '操作元IP'], ['device_id', '操作元の端末'], ['created_at', '発生日時 <em>JST</em>']] },
     { name: 'login_logs', desc: 'ログイン試行の記録（失敗も含む）。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ログイン先アカウント'], ['result', 'SUCCESS / FAILED'], ['ip_address', '接続元IP'],
-      ['country', 'IPから推定した国コード'], ['device_id', '端末ID'], ['created_at', '発生日時 <em>UTC</em>']] },
+      ['country', 'IPから推定した国コード'], ['device_id', '端末ID'], ['created_at', '発生日時 <em>JST</em>']] },
     { name: 'item_logs', desc: 'アイテムの増減・移動。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['item_id', 'アイテム → m_items'],
       ['item_uid', '装備の個体ID（消耗品はNULL）'],
       ['action', 'GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE'],
       ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'],
-      ['created_at', '発生日時 <em>UTC</em>']] },
+      ['created_at', '発生日時 <em>JST</em>']] },
     { name: 'm_items', desc: 'アイテムマスタ。', cols: [
       ['item_id', 'アイテムID'], ['name', '名前'], ['category', '武器 / 防具 / 消耗品 など'], ['rarity', 'N / R / SR / SSR / UR'], ['tradable', '1 = トレード可、0 = 不可']] },
     { name: 'currency_logs', desc: 'ゴールド・ジェムの増減。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['currency', 'GOLD / GEM'], ['amount', '増減（マイナスは消費）'], ['balance_after', '変動後の残高'],
       ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE'],
-      ['ref_id', '関連ID（ギルド、決済の transaction_id など）'], ['created_at', '発生日時 <em>UTC</em>']] },
+      ['ref_id', '関連ID（ギルド、決済の transaction_id など）'], ['created_at', '発生日時 <em>JST</em>']] },
     { name: 'payment_logs', desc: 'ストア決済の記録。', cols: [
       ['payment_id', '決済ID'], ['user_id', 'ユーザー'], ['product_id', '商品 → m_products'], ['price_jpy', '金額（円）'],
-      ['store', 'GooglePlay / AppStore / WebShop'], ['transaction_id', 'ストアの取引ID'], ['status', 'SUCCESS / CANCELED'], ['created_at', '決済日時 <em>UTC</em>']] },
+      ['store', 'GooglePlay / AppStore / WebShop'], ['transaction_id', 'ストアの取引ID'], ['status', 'SUCCESS / CANCELED'], ['created_at', '決済日時 <em>JST</em>']] },
     { name: 'm_products', desc: '課金商品マスタ。', cols: [['product_id', '商品ID'], ['name', '商品名'], ['price_jpy', '価格（円）'], ['gem', '付与されるジェム数']] },
     { name: 'error_logs', desc: 'サーバーのエラー・警告ログ。', cols: [
-      ['log_id', 'ログID'], ['level', 'WARN / ERROR'], ['service', '発生したサービス'], ['message', 'メッセージ'], ['user_id', '関連ユーザー（NULLあり）'], ['created_at', '発生日時 <em>UTC</em>']] },
+      ['log_id', 'ログID'], ['level', 'WARN / ERROR'], ['service', '発生したサービス'], ['message', 'メッセージ'], ['user_id', '関連ユーザー（NULLあり）'], ['created_at', '発生日時 <em>JST</em>']] },
   ];
 
   const sub = (pub) => `(SELECT user_id FROM users WHERE public_id = '${pub}')`;
@@ -78,16 +79,15 @@
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月3日 21:42 に、お客様が普段ご利用の端末から、キャラクター名の入力確認を経て『シルフィ』の削除操作が行われた記録を確認いたしました。削除から30日以内のため復旧申請が可能ですが、同じ名前が他のお客様に使用されているため、復旧時に名前の変更が必要です。',
       reaction: '……あっ。サブキャラを消すつもりで、間違えたかもしれません。復旧申請します。すみませんでした。',
-      explain: 'シルフィは UTC 11/3 12:42:18（JST 21:42）に削除されています。直前に普段と同じiPhone・同じIPでログインしており、キャラ名入力による削除確認（<code>confirm: name_input</code>）も通っています。本人の操作と判断できます。削除の直前にエリクサーを友人へ渡しているのも、整理していた様子をうかがわせます。なお、アルファでは 11/5 に別のユーザーが「シルフィ」を作成済み。復旧には名前変更が必要になる点も添えておくと親切です。',
+      explain: 'シルフィは 11/3 21:42:18 に削除されています。直前に普段と同じiPhone・同じIPでログインしており、キャラ名入力による削除確認（<code>confirm: name_input</code>）も通っています。本人の操作と判断できます。削除の直前にエリクサーを友人へ渡しているのも、整理していた様子をうかがわせます。なお、アルファでは 11/5 に別のユーザーが「シルフィ」を作成済み。復旧には名前変更が必要になる点も添えておくと親切です。',
       model: `-- 公開IDから内部の user_id を引く
 SELECT * FROM users WHERE public_id = 'U-38127';
 
 -- キャラの状態
 SELECT * FROM characters WHERE user_id = ${sub('U-38127')};
 
--- 削除ログ（JSTも並べる）
-SELECT log_id, action, detail, ip_address, device_id,
-       created_at, datetime(created_at, '+9 hours') AS jst
+-- 削除ログ
+SELECT log_id, action, detail, ip_address, device_id, created_at
 FROM character_logs
 WHERE user_id = ${sub('U-38127')} AND action = 'DELETE';
 
@@ -120,11 +120,10 @@ SELECT * FROM users WHERE public_id = 'U-38127';
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、『煌星の大剣』は11月11日 22:01 に倉庫から取り出され、22:03 に+9への強化に成功した後、22:05 に保護の巻物を使用せずに+10への強化を行い、強化失敗により消滅したことを確認いたしました。仕様どおりの挙動のため、補填はいたしかねます。何卒ご理解ください。',
       reaction: '……+9になった勢いでいけると思ったんです。巻物、ケチるんじゃなかった。',
-      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01（JST）に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>m_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
+      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>m_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
       model: `SELECT * FROM m_items WHERE name = '煌星の大剣';
 
-SELECT log_id, action, item_uid, detail,
-       datetime(created_at, '+9 hours') AS jst
+SELECT log_id, action, item_uid, detail, created_at
 FROM item_logs
 WHERE user_id = ${sub('U-52904')}
   AND item_id = (SELECT item_id FROM m_items WHERE name = '煌星の大剣')
@@ -144,23 +143,22 @@ ORDER BY created_at;`,
       evidence: { label: '決め手になったログの log_id（currency_logs）', placeholder: '例: 1234', key: 'c3_donate' },
       hints: [
         "currency_logs をそのユーザーの <code>currency = 'GOLD'</code> で絞り込みましょう。",
-        '問い合わせの「11月8日 朝8時」は日本時間。DBの created_at は UTC です。9時間ずらすと何日の何時？',
-        "<code>datetime(created_at, '+9 hours')</code> を SELECT に足すと、日本時間で読めます。",
+        "11月8日に絞り込みましょう。<code>created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'</code> のように書けます。",
+        'amount の大きなマイナスと reason に注目。login_logs で、その直前に誰がどの端末からログインしたかも確かめましょう。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月8日 7:47 にお客様の普段の端末からログインがあり、7:51 にギルドへ 4,800,000 ゴールドを寄付する操作が行われていたことを確認いたしました。第三者によるログインの形跡はございません。',
       reaction: '4,800,000……48万のつもりで、ゼロをひとつ多く押してました。ギルマスに相談してきます……。',
-      explain: 'JST の 11/8 08:00 は UTC の 11/7 23:00。UTC 11/7 22:47（JST 07:47）に普段のスマホ・IPでログインし、22:51（JST 07:51）に GUILD_DONATE で 4,800,000 ゴールドを寄付しています。UTC の「11/8」だけを見ると 1万ゴールドの寄付しか見つからず、「記録なし」と判断したり、別のログを根拠にしてしまう落とし穴でした。',
-      model: `SELECT log_id, amount, balance_after, reason, ref_id,
-       created_at, datetime(created_at, '+9 hours') AS jst
+      explain: '11/8 07:47 に普段のスマホ・IPでログインし、07:51 に GUILD_DONATE で 4,800,000 ゴールドを寄付しています。「ログインしたら減っていた」という言い分とは逆で、減ったのはログインした後、本人の端末からの操作です。同じ日の夜にも 1万ゴールドの寄付がありますが、こちらは金額が合いません。',
+      model: `SELECT log_id, amount, balance_after, reason, ref_id, created_at
 FROM currency_logs
 WHERE user_id = ${sub('U-27730')}
   AND currency = 'GOLD'
-  AND datetime(created_at, '+9 hours') BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'
+  AND created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'
 ORDER BY created_at;
 
 SELECT * FROM login_logs
 WHERE user_id = ${sub('U-27730')}
-  AND created_at BETWEEN '2026-11-07 15:00:00' AND '2026-11-08 15:00:00';`,
+  AND created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59';`,
     },
     {
       no: 'CS-1112-0301', label: 'キャラ不在', received: '2026-11-12 21:47', user: 'U-44590', world: 'アルファ', category: 'キャラクター',
@@ -181,12 +179,12 @@ WHERE user_id = ${sub('U-27730')}
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、『漆黒の堕天使』は11月9日 19:14 にワールド移動チケットを使用して、アルファからガンマへ移動しております。キャラクターは削除されておりませんので、ガンマにログインしてご確認ください。',
       reaction: 'ガンマのイベントに行くために移動したの、完全に忘れてました……。いました。よかった……。',
-      explain: '11/9 19:14（JST）に、ジェムショップで買ったワールド移動チケットを使い、アルファ（1）からガンマ（3）へ移動しています（<code>WORLD_TRANSFER</code>）。キャラクターは削除されていません。ベータにも同じ名前のキャラがいますが、別のユーザーのものです。',
+      explain: '11/9 19:14 に、ジェムショップで買ったワールド移動チケットを使い、アルファ（1）からガンマ（3）へ移動しています（<code>WORLD_TRANSFER</code>）。キャラクターは削除されていません。ベータにも同じ名前のキャラがいますが、別のユーザーのものです。',
       model: `SELECT c.*, w.name AS world_name
 FROM characters c JOIN worlds w USING (world_id)
 WHERE c.name = '漆黒の堕天使';
 
-SELECT log_id, action, detail, datetime(created_at, '+9 hours') AS jst
+SELECT log_id, action, detail, created_at
 FROM character_logs
 WHERE user_id = ${sub('U-44590')}
 ORDER BY created_at;`,
@@ -210,9 +208,8 @@ ORDER BY created_at;`,
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月10日 20:20 のご購入（取引ID: GPA.3391-0042-7781-55102）について、決済は完了していたものの、サーバーの不具合によりジェムが付与されていなかったことを確認いたしました。ご迷惑をおかけし申し訳ございません。ジェム 1,800 個を補填いたします。',
       reaction: 'ちゃんと調べてもらえて安心しました！ありがとうございます！',
-      explain: '11/10 20:18（JST）の決済はユーザーがキャンセル（CANCELED）、20:20 の決済が SUCCESS です。正常な購入なら currency_logs に同じ transaction_id を ref_id に持つ PURCHASE が記録されますが、この決済には存在しません。直後の error_logs には GemGrantService のデッドロックによる付与中断が残っています。不具合として 1,800 ジェムの補填対象です。11/5 の購入は正常に付与されています。',
-      model: `SELECT p.*, datetime(p.created_at, '+9 hours') AS jst,
-       c.log_id AS grant_log_id, c.amount AS granted
+      explain: '11/10 20:18 の決済はユーザーがキャンセル（CANCELED）、20:20 の決済が SUCCESS です。正常な購入なら currency_logs に同じ transaction_id を ref_id に持つ PURCHASE が記録されますが、この決済には存在しません。直後の error_logs には GemGrantService のデッドロックによる付与中断が残っています。不具合として 1,800 ジェムの補填対象です。11/5 の購入は正常に付与されています。',
+      model: `SELECT p.*, c.log_id AS grant_log_id, c.amount AS granted
 FROM payment_logs p
 LEFT JOIN currency_logs c
   ON c.ref_id = p.transaction_id AND c.reason = 'PURCHASE'
@@ -241,17 +238,15 @@ WHERE user_id = ${sub('U-73315')};`,
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月12日 12:10 に、お客様が普段ご利用の端末とは異なる海外の環境からログインがあり、その直後にアイテムが別のアカウントへ移動していたことを確認いたしました。第三者による不正ログインの可能性が高いため、至急パスワードの変更をお願いいたします。アイテムの扱いについては、担当部署で調査のうえ改めてご連絡いたします。',
       reaction: 'パスワード、他のサイトと同じのを使ってました……。すぐ変えます。',
-      explain: '11/12 12:02〜12:08（JST）に、オランダのIP・見慣れないPC端末から5回ログインに失敗した後、12:10 にログインが成功しています。その直後、天穹の弓・竜鱗の外套・星詠みの耳飾り・エリクサー30個が、11/10 に作られたばかりのアカウント U-90417 へトレードされました。U-90417 も同じIPからログインしています。11/8 のハイポーションのトレードは普段の端末からの本人操作で、今回とは無関係です。乗っ取りの疑いが強いので、パスワード再設定の案内とセキュリティチームへのエスカレーションが必要です。',
-      model: `SELECT log_id, result, ip_address, country, device_id,
-       datetime(created_at, '+9 hours') AS jst
+      explain: '11/12 12:02〜12:08 に、オランダのIP・見慣れないPC端末から5回ログインに失敗した後、12:10 にログインが成功しています。その直後、天穹の弓・竜鱗の外套・星詠みの耳飾り・エリクサー30個が、11/11 の深夜に作られたばかりのアカウント U-90417 へトレードされました。U-90417 も同じIPからログインしています。11/8 のハイポーションのトレードは普段の端末からの本人操作で、今回とは無関係です。乗っ取りの疑いが強いので、パスワード再設定の案内とセキュリティチームへのエスカレーションが必要です。',
+      model: `SELECT log_id, result, ip_address, country, device_id, created_at
 FROM login_logs
 WHERE user_id = ${sub('U-61458')}
   AND created_at >= '2026-11-10'
 ORDER BY created_at;
 
 SELECT i.log_id, m.name, i.quantity, u.public_id AS to_public_id,
-       u.created_at AS to_created_at,
-       datetime(i.created_at, '+9 hours') AS jst
+       u.created_at AS to_created_at, i.created_at
 FROM item_logs i
 JOIN m_items m USING (item_id)
 JOIN users u ON u.user_id = i.target_user_id
@@ -277,7 +272,7 @@ ORDER BY i.created_at;`,
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、現在ご利用のアカウントは11月12日に新しく作成されたもので、『ミルク』は以前の端末でご利用のアカウントに残っていることを確認いたしました。以前の端末で引き継ぎコードを発行し、新しい端末で入力していただくと、『ミルク』のデータを引き継げます。',
       reaction: '引き継ぎコード、発行しただけで入力してませんでした……！前のスマホ、まだ捨ててなくてよかった。',
-      explain: 'U-15562 は 11/12 20:02（JST）に新しいiPhoneで作られたアカウントで、『ミルク』の作成記録はありません（よく似た『みるく』があるだけ）。『ミルク』を持つアカウントは複数ありますが、アルファの『ミルク』の持ち主 U-31846 だけが、問い合わせアカウントと同じ自宅回線のIP（114.150.82.9）からログインしています。最終ログインは 11/12 08:05（JST）で「昨日の朝まで遊んでいた」とも一致。引き継ぎをせずに新しいアカウントを作ってしまったと考えられます。',
+      explain: 'U-15562 は 11/12 20:02 に新しいiPhoneで作られたアカウントで、『ミルク』の作成記録はありません（よく似た『みるく』があるだけ）。『ミルク』を持つアカウントは複数ありますが、アルファの『ミルク』の持ち主 U-31846 だけが、問い合わせアカウントと同じ自宅回線のIP（114.150.82.9）からログインしています。最終ログインは 11/12 08:05 で「昨日の朝まで遊んでいた」とも一致。引き継ぎをせずに新しいアカウントを作ってしまったと考えられます。',
       model: `SELECT * FROM users WHERE public_id = 'U-15562';
 SELECT * FROM characters WHERE user_id = ${sub('U-15562')};
 
@@ -287,7 +282,7 @@ WHERE c.name = 'ミルク';
 
 -- 同じIPからログインしているアカウント
 SELECT u.public_id, l.ip_address, COUNT(*) AS cnt,
-       MAX(datetime(l.created_at, '+9 hours')) AS last_jst
+       MAX(l.created_at) AS last_login
 FROM login_logs l JOIN users u USING (user_id)
 WHERE l.ip_address IN (
   SELECT ip_address FROM login_logs WHERE user_id = ${sub('U-15562')}
@@ -299,7 +294,7 @@ GROUP BY u.public_id, l.ip_address;`,
   const RANKS = [
     [680, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
     [580, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
-    [450, '一人前の調査担当', '時差の罠にも、もう引っかかりません。'],
+    [450, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
     [300, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
     [0, '研修やり直し', 'まずは users テーブルから。焦らず WHERE を書きましょう。'],
   ];
@@ -332,8 +327,8 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   function tzOffset(tz) {
     const s = String(tz || '').trim();
-    if (/^(UTC|GMT|SYSTEM|Z)$/i.test(s)) return 0;
-    if (/^(JST|Asia\/Tokyo)$/i.test(s)) return 540;
+    if (/^(UTC|GMT|Z)$/i.test(s)) return 0;
+    if (/^(JST|Asia\/Tokyo|SYSTEM)$/i.test(s)) return 540; // DBの時刻はJST
     const m = s.match(/^([+-])(\d{1,2}):?(\d{2})$/);
     if (!m) return null;
     return (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]);
@@ -362,8 +357,7 @@ GROUP BY u.public_id, l.ip_address;`,
       const built = window.LogDB.buildDatabase(SQL);
       DB = built.db; KEYS = built.keys; COUNTS = built.counts;
       DB.create_function('CONVERT_TZ', (dt, from, to) => { const a = tzOffset(from), b = tzOffset(to); return a == null || b == null ? null : shiftDt(dt, b - a); });
-      DB.create_function('JST', (dt) => shiftDt(dt, 540));
-      DB.create_function('NOW', () => NOW_UTC);
+      DB.create_function('NOW', () => NOW_JST);
       DB.run('PRAGMA query_only = 1');
       conn.classList.add('is-ready'); label.textContent = 'prod-replica-01';
       $('#run').disabled = false;
@@ -416,11 +410,12 @@ GROUP BY u.public_id, l.ip_address;`,
   function issueShimatsu(word) {
     state.shimatsu++;
     save(); renderHud();
+    snd('shimatsu');
     toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
   }
 
   const MYSQL_TIPS = [
-    [/no such function: DATE_ADD|no such function: DATE_SUB|no such function: ADDTIME/i, "SQLite では datetime(created_at, '+9 hours') のように書きます。"],
+    [/no such function: DATE_ADD|no such function: DATE_SUB|no such function: ADDTIME/i, "SQLite では datetime(created_at, '+1 day') や datetime(created_at, '-2 hours') のように書きます。"],
     [/no such function: DATE_FORMAT/i, "SQLite では strftime('%Y-%m-%d %H:%M', created_at) を使います。"],
     [/no such function: (IFNULL2|IF)\b/i, 'SQLite では iif(条件, 真, 偽) か CASE WHEN を使います。'],
     [/no such column/i, '列名はテーブル定義で確認できます。文字列は "ダブル" ではなく \'シングル\' クォートで囲みます。'],
@@ -464,7 +459,7 @@ GROUP BY u.public_id, l.ip_address;`,
         blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms));
       } catch (e) {
         ok = false;
-        const tip = /\bINTERVAL\b/i.test(s) ? "SQLite に INTERVAL はありません。datetime(created_at, '+9 hours') のように書きます。"
+        const tip = /\bINTERVAL\b/i.test(s) ? "SQLite に INTERVAL はありません。datetime(created_at, '+1 day') のように書きます。"
           : (MYSQL_TIPS.find(([re]) => re.test(e.message)) || [])[1];
         if (/readonly|read-only/i.test(e.message)) issueShimatsu('');
         blocks.push(`<div class="rblock"><div class="rmeta"><b>#${k + 1}</b><span class="rsql">${esc(oneLine(s))}</span></div><div class="rerr">${esc(e.message)}${tip ? `<small>${esc(tip)}</small>` : ''}</div></div>`);
@@ -474,10 +469,12 @@ GROUP BY u.public_id, l.ip_address;`,
     out.innerHTML = blocks.join('');
     out.scrollTop = 0;
     pushHistory(src, ok, ok ? `${totalRows.toLocaleString()}行` : 'エラー');
+    snd('run');
     if (heavy && !cs.heavy) {
       cs.heavy = true;
+      snd('warn');
       toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
-    }
+    } else snd(ok ? 'ok' : 'error');
     save();
   }
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
@@ -666,6 +663,7 @@ GROUP BY u.public_id, l.ip_address;`,
     st.choice = choice || null; st.evidence = ev;
     const fb = $('#feedback');
     if (!choice || !ev.trim()) {
+      snd('pop');
       fb.hidden = false; fb.className = 'feedback is-info';
       fb.textContent = !choice ? '調査結論を選んでください。' : '根拠を入力してください。ログを見て、決め手になった値を書きます。';
       return;
@@ -676,6 +674,7 @@ GROUP BY u.public_id, l.ip_address;`,
       st.status = 'solved';
       st.score = Math.max(FLOOR, BASE - st.wrong * WRONG - st.hints * HINT);
       save();
+      snd('solved');
       renderHud(); renderTicket(); renderAnswer();
       const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
       $('#ticket-scroll').scrollTop = 0;
@@ -683,6 +682,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     st.wrong++;
     save(); renderHud();
+    snd('reject');
     const msg = !okC && !okE ? '先輩「結論も根拠も、もう一度ログを見直してみて」'
       : !okC ? '先輩「根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？」'
         : '先輩「結論はいい線。でも根拠の値が違う。どのログが決め手？」';
@@ -698,15 +698,17 @@ GROUP BY u.public_id, l.ip_address;`,
     const i = state.current, c = CASES[i], st = state.cases[i];
     if (st.hints >= c.hints.length) return;
     st.hints++; save(); renderHud();
+    snd('hint');
     $('#hints').insertAdjacentHTML('beforeend', `<li><b>${st.hints}</b>${c.hints[st.hints - 1]}</li>`);
     if (st.hints >= c.hints.length) $('#btn-hint').disabled = true;
   }
   let giveupArmed = false;
   function giveUp(btn) {
-    if (!giveupArmed) { giveupArmed = true; btn.textContent = '本当に聞く？（このチケットは0点）'; btn.classList.add('btn-danger'); return; }
+    if (!giveupArmed) { giveupArmed = true; btn.textContent = '本当に聞く？（このチケットは0点）'; btn.classList.add('btn-danger'); snd('pop'); return; }
     giveupArmed = false;
     const st = state.cases[state.current];
     st.status = 'gaveup'; st.score = 0; save();
+    snd('giveup');
     renderHud(); renderTicket(); renderAnswer();
     const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
   }
@@ -714,13 +716,14 @@ GROUP BY u.public_id, l.ip_address;`,
     if (i === state.current) return;
     state.drafts[state.current] = $('#sql').value;
     state.current = i; giveupArmed = false; save();
+    snd('page');
     renderHud(); renderTicket(); renderAnswer();
     const draft = state.drafts[i];
     setEditor(draft != null ? draft : (CASES[i].starter || `-- #${i + 1} ${CASES[i].label}（${CASES[i].user}）\n`));
     $('#ticket-scroll').scrollTop = 0;
   }
   function next() {
-    if (allDone()) showFinal(); else goto(firstOpen());
+    if (allDone()) { snd('final'); showFinal(); } else goto(firstOpen());
   }
 
   // ---------------------------------------------------------------- modals
@@ -738,7 +741,8 @@ GROUP BY u.public_id, l.ip_address;`,
         <dt>回答</dt><dd>調査結論を選び、決め手になった値（ログIDなど）を根拠として添える</dd>
         <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}</dd>
         <dt>禁止</dt><dd>更新系のSQL。流そうとすると始末書（−${SHIMATSU}）</dd>
-        <dt>注意</dt><dd>DBの日時は UTC、問い合わせは日本時間</dd>
+        <dt>日時</dt><dd>DBも問い合わせも日本時間（JST）</dd>
+        <dt>音</dt><dd>BGMと効果音が鳴ります。右上の BGM / SE で切り替え</dd>
       </dl>
       <div class="btn-row">
         ${resume ? `<button class="btn btn-primary" type="button" data-act="resume">続きから（#${firstOpen() + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
@@ -802,7 +806,9 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.id === 'btn-next') next();
       else if (b.id === 'btn-model') { setEditor(CASES[state.current].model, false); runSql(); }
       else if (b.dataset.case != null) goto(+b.dataset.case);
-      else if (b.dataset.final) showFinal();
+      else if (b.dataset.final) { snd('final'); showFinal(); }
+      else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
+      else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
       else if (b.dataset.col) insertAtCursor(b.dataset.col);
       else if (b.dataset.hist != null) { const h = state.history[+b.dataset.hist]; if (h) setEditor(h.sql, true); }
@@ -813,15 +819,16 @@ GROUP BY u.public_id, l.ip_address;`,
         $('#tab-schema').hidden = hist; $('#tab-history').hidden = !hist;
       } else if (b.dataset.act) {
         const a = b.dataset.act;
-        if (a === 'start' || a === 'resume') { state.started = true; save(); closeModal(); $('#sql').focus(); }
+        if (a === 'start' || a === 'resume') { state.started = true; save(); closeModal(); snd('start'); if (window.Sound) window.Sound.playBgm(); $('#sql').focus(); }
         else if (a === 'reset') {
-          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'もう一度押すと記録を消して最初から'; return; }
+          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'もう一度押すと記録を消して最初から'; snd('pop'); return; }
           state = freshState(); state.started = true; save();
+          snd('start'); if (window.Sound) window.Sound.playBgm();
           $('#results').dataset.used = ''; renderAll(); closeModal();
         } else if (a === 'review') closeModal();
         else if (a === 'copy') {
           const text = resultText();
-          const done = () => { b.textContent = 'コピーしました'; };
+          const done = () => { b.textContent = 'コピーしました'; snd('pop'); };
           try { navigator.clipboard.writeText(text).then(done, () => { b.textContent = text; }); } catch (err) { b.textContent = text; }
         }
       }
@@ -833,9 +840,19 @@ GROUP BY u.public_id, l.ip_address;`,
       inp.value = td.textContent; state.cases[state.current].evidence = inp.value; save();
       document.querySelectorAll('.grid td.picked').forEach((x) => x.classList.remove('picked'));
       td.classList.add('picked');
+      snd('pop');
       toast('根拠欄に入力しました', td.textContent);
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state.started) closeModal(); });
+  }
+
+  // ---------------------------------------------------------------- sound toggles
+  function bindSound() {
+    const S = window.Sound;
+    const bgm = $('#btn-bgm'), se = $('#btn-sfx');
+    if (!S) { bgm.hidden = true; se.hidden = true; return; }
+    const sync = (p) => { bgm.setAttribute('aria-pressed', String(p.bgm)); se.setAttribute('aria-pressed', String(p.sfx)); };
+    sync(S.prefs); S.onChange(sync);
   }
 
   // ---------------------------------------------------------------- boot
@@ -846,8 +863,9 @@ GROUP BY u.public_id, l.ip_address;`,
       state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
     }
     bind();
+    bindSound();
     renderAll();
-    if (allDone() && state.started) showFinal(); else showIntro();
+    if (allDone() && state.started) { showFinal(); if (window.Sound) window.Sound.playBgm(); } else showIntro();
     initDb();
   }
   const hot = window.claude && window.claude.hot;

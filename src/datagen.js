@@ -1,7 +1,9 @@
 /*
  * ログは嘘をつかない — 本番DB（ダミー）生成
  * 乱数シード固定なので、誰が遊んでも同じデータになる。
- * 日時はすべて UTC の 'YYYY-MM-DD HH:MM:SS' 文字列。
+ * DBに入る日時はすべて日本時間（JST）の 'YYYY-MM-DD HH:MM:SS' 文字列。
+ * 生成処理の中（このファイルに書かれた時刻、プレイ時間帯、ブラックアウト期間など）は
+ * UTC で組み立て、DBに書き出すときにだけ toJ / fmtJ で +9時間して JST にする。
  */
 (function (root) {
   'use strict';
@@ -17,9 +19,12 @@
 
   const toT = (s) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +s.slice(11, 13), +s.slice(14, 16), +s.slice(17, 19)) / 1000;
   const fmt = (t) => new Date(t * 1000).toISOString().slice(0, 19).replace('T', ' ');
+  const JST_OFFSET = 9 * 3600;
+  const fmtJ = (t) => fmt(t + JST_OFFSET); // 内部の UTC 秒 → DBに入れる JST 文字列
+  const toJ = (s) => (s == null ? null : fmtJ(toT(s))); // 内部の UTC 文字列 → JST 文字列
 
-  const WSTART = '2026-10-20 00:00:00';
-  const WEND = '2026-11-13 01:00:00'; // JST 11/13 10:00 = ゲーム内の「今」
+  const WSTART = '2026-10-20 00:00:00'; // UTC
+  const WEND = '2026-11-13 01:00:00'; // UTC。JST 11/13 10:00 = ゲーム内の「今」
 
   const SCHEMA = `
 CREATE TABLE worlds (
@@ -504,7 +509,7 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
       itemlog(u, c, T('2026-11-11 13:20:05'), 5012, 'ENHANCE_FAIL', 1, { item_uid: uid, detail: JSON.stringify({ from: 3, to: 3, protect: false }) });
     }
 
-    // ---- case 3: ゴールド減少（UTCの罠） ----
+    // ---- case 3: ゴールド減少（JST 11/8 07:47 ログイン → 07:51 寄付） ----
     login(S.c3, T('2026-11-07 22:47:10'), 'SUCCESS', '153.240.17.62', 'SH-M26-91B4');
     cur(S.c3, T('2026-11-07 22:48:31'), 'GOLD', 12000, 'QUEST_REWARD', null);
     cur(S.c3, T('2026-11-07 22:51:37'), 'GOLD', -4800000, 'GUILD_DONATE', 'guild:118', 'c3_donate');
@@ -593,14 +598,15 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
       schema: SCHEMA,
       worlds: [[1, 'アルファ'], [2, 'ベータ'], [3, 'ガンマ']],
       items: ITEMS, products: PRODUCTS,
-      users: users.map((u) => [u.id, u.pub, u.platform, u.status, u.created]),
-      characters: chars.map((c) => [c.id, c.user.id, c.world, c.name, c.job, c.level, c.created, c.deleted || null]),
-      login: L.login.map((r) => [r.id, r.user_id, r.result, r.ip_address, r.country, r.device_id, fmt(r._t)]),
-      charlog: L.charlog.map((r) => [r.id, r.user_id, r.character_id, r.action, r.detail, r.ip_address, r.device_id, fmt(r._t)]),
-      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.quantity, r.target_user_id, r.detail, fmt(r._t)]),
-      cur: L.cur.map((r) => [r.id, r.user_id, r.currency, r.amount, r.balance_after, r.reason, r.ref_id, fmt(r._t)]),
-      pay: L.pay.map((r) => [r.id, r.user_id, r.product_id, r.price_jpy, r.store, r.transaction_id, r.status, fmt(r._t)]),
-      err: L.err.map((r) => [r.id, r.level, r.service, typeof r.message === 'function' ? r.message() : r.message, r.user_id, fmt(r._t)]),
+      // ここで JST に変換して書き出す
+      users: users.map((u) => [u.id, u.pub, u.platform, u.status, toJ(u.created)]),
+      characters: chars.map((c) => [c.id, c.user.id, c.world, c.name, c.job, c.level, toJ(c.created), toJ(c.deleted)]),
+      login: L.login.map((r) => [r.id, r.user_id, r.result, r.ip_address, r.country, r.device_id, fmtJ(r._t)]),
+      charlog: L.charlog.map((r) => [r.id, r.user_id, r.character_id, r.action, r.detail, r.ip_address, r.device_id, fmtJ(r._t)]),
+      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.quantity, r.target_user_id, r.detail, fmtJ(r._t)]),
+      cur: L.cur.map((r) => [r.id, r.user_id, r.currency, r.amount, r.balance_after, r.reason, r.ref_id, fmtJ(r._t)]),
+      pay: L.pay.map((r) => [r.id, r.user_id, r.product_id, r.price_jpy, r.store, r.transaction_id, r.status, fmtJ(r._t)]),
+      err: L.err.map((r) => [r.id, r.level, r.service, typeof r.message === 'function' ? r.message() : r.message, r.user_id, fmtJ(r._t)]),
       keys: KEY,
     };
   }
@@ -624,7 +630,7 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
     return { db, keys: g.keys, counts: { users: g.users.length, characters: g.characters.length, login_logs: g.login.length, character_logs: g.charlog.length, item_logs: g.item.length, currency_logs: g.cur.length, payment_logs: g.pay.length, error_logs: g.err.length } };
   }
 
-  const api = { buildDatabase, generate, toT, fmt, WEND };
+  const api = { buildDatabase, generate, toT, fmt, fmtJ, WEND };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LogDB = api;
 })(typeof window !== 'undefined' ? window : globalThis);

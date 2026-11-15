@@ -1,0 +1,251 @@
+/*
+ * ログは嘘をつかない — サウンド（BGM・効果音）
+ * 音声ファイルは使わず、Web Audio API でその場で合成する（ダウンロード不要・ライセンス不要）。
+ * ブラウザの自動再生制限があるため、最初のクリック／キー入力で AudioContext を作る。
+ * 設定（BGM・効果音のオン/オフ）は localStorage に保存。使えない環境でも動く。
+ */
+(function (root) {
+  'use strict';
+
+  const PREF_KEY = 'logs-dont-lie:audio';
+  const BGM_LEVEL = 0.32; // BGM の音量（効果音より控えめに）
+  const MASTER = 0.8;
+
+  const prefs = (() => {
+    const d = { bgm: true, sfx: true };
+    try { return Object.assign(d, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { return d; }
+  })();
+  const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* storage unavailable */ } };
+
+  let ctx = null, master = null, bgmBus = null, sfxBus = null, noiseBuf = null;
+  let bgmWanted = false;
+  const listeners = [];
+
+  function ensure() {
+    if (!ctx) {
+      const AC = root.AudioContext || root.webkitAudioContext;
+      if (!AC) return null;
+      try { ctx = new AC(); } catch (e) { return null; }
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.ratio.value = 4;
+      master = ctx.createGain(); master.gain.value = MASTER;
+      master.connect(comp); comp.connect(ctx.destination);
+      bgmBus = ctx.createGain(); bgmBus.gain.value = prefs.bgm ? BGM_LEVEL : 0; bgmBus.connect(master);
+      sfxBus = ctx.createGain(); sfxBus.gain.value = 1; sfxBus.connect(master);
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const ch = noiseBuf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(() => {});
+    return ctx;
+  }
+  const ready = () => ctx && ctx.state === 'running';
+
+  // ------------------------------------------------------------ 音の部品
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  function tone(o) {
+    const { t, f, dur, bus = sfxBus } = o;
+    const type = o.type || 'sine', peak = o.gain == null ? 0.2 : o.gain, attack = o.attack || 0.004;
+    const osc = ctx.createOscillator(); osc.type = type;
+    osc.frequency.setValueAtTime(f, t);
+    if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + (o.glide || dur));
+    if (o.detune) osc.detune.value = o.detune;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + attack);
+    if (o.hold) g.gain.setValueAtTime(peak, t + attack + o.hold);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + (o.hold || 0) + dur);
+    let node = osc;
+    if (o.lp) { const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = o.lp; fl.Q.value = o.q || 0.7; node.connect(fl); node = fl; }
+    node.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(t + attack + (o.hold || 0) + dur + 0.05);
+  }
+
+  function noise(o) {
+    const { t, dur, bus = sfxBus } = o;
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+    const fl = ctx.createBiquadFilter(); fl.type = o.filter || 'bandpass';
+    fl.frequency.setValueAtTime(o.freq || 1000, t);
+    if (o.freq2) fl.frequency.exponentialRampToValueAtTime(o.freq2, t + dur);
+    fl.Q.value = o.q || 0.8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(o.gain == null ? 0.2 : o.gain, t + (o.attack || 0.002));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(fl); fl.connect(g); g.connect(bus);
+    src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05);
+  }
+
+  // エレピ風の短い音（サイン波＋倍音）
+  function pluck(t, midi, len, gain, bus) {
+    const f = mtof(midi);
+    tone({ t, f, dur: Math.max(0.25, len), gain, bus, attack: 0.006 });
+    tone({ t, f: f * 2, dur: 0.18, gain: gain * 0.35, bus, attack: 0.003 });
+    tone({ t, f: f * 3.01, dur: 0.06, gain: gain * 0.12, bus, attack: 0.002 });
+  }
+  // ベル（正解や開始のチャイム）
+  function bell(t, midi, gain, dur) {
+    const f = mtof(midi);
+    tone({ t, f, dur: dur || 0.9, gain, attack: 0.003 });
+    tone({ t, f: f * 2.76, dur: (dur || 0.9) * 0.35, gain: gain * 0.25, attack: 0.002 });
+    tone({ t, f: f * 5.4, dur: 0.12, gain: gain * 0.08, attack: 0.001 });
+  }
+  // 印鑑を押す「ドン」
+  function thud(t, gain) {
+    tone({ t, f: 140, f2: 48, glide: 0.12, dur: 0.22, gain: gain || 0.55, attack: 0.002 });
+    noise({ t, dur: 0.09, gain: 0.25, filter: 'lowpass', freq: 900, q: 0.5 });
+    noise({ t: t + 0.004, dur: 0.03, gain: 0.12, filter: 'bandpass', freq: 2400, q: 1.2 });
+  }
+
+  // ------------------------------------------------------------ 効果音
+  const SFX = {
+    // SQL実行：エンターキーの「カタッ」＋短い電子音
+    run(t) { noise({ t, dur: 0.035, gain: 0.18, freq: 2600, q: 1.4 }); tone({ t: t + 0.03, f: 880, f2: 1320, glide: 0.05, dur: 0.07, gain: 0.07, type: 'triangle' }); },
+    // 結果が返ってきた
+    ok(t) { tone({ t: t + 0.09, f: 1318.5, dur: 0.08, gain: 0.05, type: 'triangle' }); tone({ t: t + 0.15, f: 1760, dur: 0.1, gain: 0.04, type: 'triangle' }); },
+    // SQLエラー
+    error(t) { tone({ t: t + 0.06, f: 233, dur: 0.09, gain: 0.08, type: 'square', lp: 1400 }); tone({ t: t + 0.17, f: 196, dur: 0.14, gain: 0.08, type: 'square', lp: 1200 }); },
+    // 正解：解決の印鑑＋チャイム
+    solved(t) {
+      thud(t);
+      [72, 76, 79, 84].forEach((m, i) => bell(t + 0.16 + i * 0.085, m, 0.13, 0.9));
+      bell(t + 0.5, 88, 0.06, 1.4);
+    },
+    // 差し戻し：印鑑＋ブブー
+    reject(t) {
+      thud(t, 0.45);
+      tone({ t: t + 0.14, f: 155, dur: 0.12, hold: 0.05, gain: 0.12, type: 'square', lp: 900 });
+      tone({ t: t + 0.36, f: 131, dur: 0.22, hold: 0.08, gain: 0.12, type: 'square', lp: 800 });
+    },
+    // ヒント：ポロン
+    hint(t) { bell(t, 79, 0.1, 0.6); bell(t + 0.1, 86, 0.08, 0.8); },
+    // 始末書：警報
+    shimatsu(t) {
+      for (let i = 0; i < 3; i++) {
+        tone({ t: t + i * 0.26, f: 880, f2: 620, glide: 0.22, dur: 0.06, hold: 0.16, gain: 0.07, type: 'square', lp: 2600 });
+      }
+      thud(t + 0.8, 0.4);
+    },
+    // インフラ担当からの警告など
+    warn(t) { tone({ t, f: 1046.5, dur: 0.1, gain: 0.07, type: 'triangle' }); tone({ t: t + 0.13, f: 784, dur: 0.16, gain: 0.07, type: 'triangle' }); },
+    // 小さな通知（根拠欄に入力、コピー など）
+    pop(t) { tone({ t, f: 1200, f2: 1600, glide: 0.03, dur: 0.05, gain: 0.07, type: 'sine' }); },
+    // チケットを切り替える：紙をめくる
+    page(t) { noise({ t, dur: 0.12, gain: 0.1, filter: 'bandpass', freq: 1800, freq2: 5200, q: 0.6, attack: 0.03 }); },
+    // 出社：起動チャイム
+    start(t) { [60, 64, 67, 72].forEach((m, i) => pluck(t + i * 0.09, m, 0.5, 0.11, sfxBus)); bell(t + 0.38, 79, 0.07, 1.2); },
+    // 先輩に聞く
+    giveup(t) { [76, 72, 69].forEach((m, i) => pluck(t + i * 0.12, m, 0.4, 0.09, sfxBus)); },
+    // 結果発表：ファンファーレ
+    final(t) {
+      const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];
+      seq.forEach(([d, m]) => pluck(t + d, m, 0.5, 0.12, sfxBus));
+      [72, 76, 79, 83].forEach((m) => tone({ t: t + 0.6, f: mtof(m), dur: 1.6, hold: 0.3, gain: 0.04, type: 'triangle', attack: 0.05, lp: 2400 }));
+      bell(t + 0.62, 96, 0.05, 1.6);
+    },
+  };
+
+  function sfx(name) {
+    if (!prefs.sfx) return;
+    if (!ctx || !ensure()) return; // まだ一度も操作されていない（自動再生制限中）なら鳴らさない
+    const f = SFX[name]; if (!f) return;
+    try { f(ctx.currentTime + 0.01); } catch (e) { /* ignore */ }
+  }
+
+  // ------------------------------------------------------------ BGM
+  // 夜の運用デスクの、落ち着いたローファイ。78BPM、4小節のコード進行を8小節のメロディで回す。
+  const BPM = 78, SPB = 60 / BPM, STEP = SPB / 4, BAR = 16;
+  const CHORDS = [
+    { name: 'Fmaj7', root: 41, notes: [53, 57, 60, 64] },
+    { name: 'G6', root: 43, notes: [55, 59, 62, 64] },
+    { name: 'Em7', root: 40, notes: [52, 55, 59, 62] },
+    { name: 'Am9', root: 45, notes: [60, 64, 67, 71] },
+  ];
+  // [16分の位置, MIDIノート, 長さ(16分)]
+  const MELODY = [
+    [[0, 76, 4], [6, 72, 2], [8, 74, 2], [12, 72, 4]],
+    [[2, 74, 2], [4, 71, 4], [10, 67, 2], [12, 69, 4]],
+    [[0, 67, 2], [3, 71, 3], [8, 74, 4], [14, 76, 2]],
+    [[0, 76, 6], [8, 72, 2], [10, 71, 2], [12, 69, 4]],
+    [[8, 81, 2], [10, 79, 2], [12, 76, 4]],
+    [[0, 74, 4], [6, 71, 2], [8, 74, 2], [12, 79, 4]],
+    [[0, 76, 3], [4, 74, 2], [8, 71, 4], [12, 67, 4]],
+    [[0, 69, 8], [12, 64, 2], [14, 67, 2]],
+  ];
+  const BASS = [[0, 0, 6], [7, 0, 2], [10, 7, 4], [14, 12, 2]]; // [位置, ルートからの半音, 長さ]
+
+  let timer = null, nextT = 0, stepAbs = 0;
+
+  function pad(t, chord, len) {
+    for (const m of chord.notes) {
+      for (const det of [-7, 7]) {
+        tone({ t, f: mtof(m), dur: 0.9, hold: len - 0.5, gain: 0.018, type: 'triangle', attack: 0.45, detune: det, lp: 1100, bus: bgmBus });
+      }
+    }
+  }
+  function playStep(s, t) {
+    const bar = Math.floor(s / BAR), st = s % BAR;
+    const chord = CHORDS[bar % CHORDS.length];
+    const swing = st % 2 === 1 ? STEP * 0.2 : 0;
+    const tt = t + swing;
+    const drums = bar >= 2; // 最初の2小節はパッドとメロディだけ
+    if (st === 0) pad(t, chord, BAR * STEP);
+    for (const [p, semi, len] of BASS) {
+      if (p === st) tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.9, gain: 0.16, type: 'sine', attack: 0.01, bus: bgmBus });
+    }
+    if (bar >= 1) {
+      for (const [p, m, len] of MELODY[bar % MELODY.length]) if (p === st) pluck(tt, m, len * STEP, 0.07, bgmBus);
+    }
+    if (drums) {
+      if (st === 0 || st === 10 || (st === 7 && bar % 2 === 1)) tone({ t: tt, f: 110, f2: 42, glide: 0.11, dur: 0.24, gain: 0.32, bus: bgmBus });
+      if (st === 4 || st === 12) { noise({ t: tt, dur: 0.11, gain: 0.07, filter: 'bandpass', freq: 1700, q: 0.9, bus: bgmBus }); tone({ t: tt, f: 190, dur: 0.06, gain: 0.04, type: 'triangle', bus: bgmBus }); }
+      if (st % 2 === 0) noise({ t: tt, dur: st % 4 === 2 ? 0.05 : 0.03, gain: st % 4 === 2 ? 0.035 : 0.02, filter: 'highpass', freq: 7500, q: 0.7, bus: bgmBus });
+    }
+  }
+  function scheduler() {
+    if (!ready()) return;
+    if (nextT < ctx.currentTime) nextT = ctx.currentTime + 0.05; // 復帰時に溜まった分は飛ばす
+    while (nextT < ctx.currentTime + 0.15) {
+      playStep(stepAbs, nextT);
+      nextT += STEP;
+      stepAbs = (stepAbs + 1) % (BAR * MELODY.length * 4) || BAR * MELODY.length; // ループ時はイントロを飛ばし、8小節の頭へ
+    }
+  }
+  function startLoop() {
+    if (timer || !prefs.bgm || !bgmWanted || !ensure() || !ready()) return;
+    bgmBus.gain.cancelScheduledValues(ctx.currentTime);
+    bgmBus.gain.setValueAtTime(0.0001, ctx.currentTime);
+    bgmBus.gain.linearRampToValueAtTime(BGM_LEVEL, ctx.currentTime + 1.5);
+    nextT = ctx.currentTime + 0.1;
+    timer = setInterval(scheduler, 25);
+    scheduler();
+  }
+  function stopLoop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (ctx) { bgmBus.gain.cancelScheduledValues(ctx.currentTime); bgmBus.gain.setTargetAtTime(0, ctx.currentTime, 0.08); }
+    stepAbs = 0;
+  }
+
+  // ------------------------------------------------------------ 公開API
+  function playBgm() { bgmWanted = true; startLoop(); }
+  function setBgm(on) { prefs.bgm = !!on; savePrefs(); if (on) { bgmWanted = true; ensure(); startLoop(); } else stopLoop(); notify(); }
+  function setSfx(on) { prefs.sfx = !!on; savePrefs(); notify(); }
+  function onChange(fn) { listeners.push(fn); }
+  function notify() { listeners.forEach((fn) => { try { fn(Object.assign({}, prefs)); } catch (e) { /* ignore */ } }); }
+
+  // 最初の操作で音を出せるようにする
+  function unlock() {
+    if (!ensure()) return;
+    const go = () => startLoop();
+    if (ready()) go(); else ctx.resume().then(go, () => {});
+  }
+  ['pointerdown', 'keydown', 'touchend'].forEach((ev) => document.addEventListener(ev, unlock, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) ctx.suspend().catch(() => {});
+    else ctx.resume().then(() => startLoop(), () => {});
+  });
+
+  root.Sound = { sfx, playBgm, setBgm, setSfx, onChange, get prefs() { return Object.assign({}, prefs); } };
+})(window);

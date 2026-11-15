@@ -28,7 +28,7 @@ try:
     # mysql-ism error
     pg.fill('#sql', "SELECT DATE_ADD(created_at, INTERVAL 9 HOUR) FROM users"); pg.click('#run'); pg.wait_for_timeout(200)
     print('ERR:', pg.inner_text('#results')[:200])
-    pg.fill('#sql', "SELECT CONVERT_TZ(created_at,'+00:00','+09:00') a, JST(created_at) b, NOW() c, concat('x','y') d FROM users LIMIT 1"); pg.click('#run'); pg.wait_for_timeout(200)
+    pg.fill('#sql', "SELECT created_at, CONVERT_TZ(created_at,'+09:00','+00:00') utc, NOW() now, concat('x','y') d FROM users LIMIT 1"); pg.click('#run'); pg.wait_for_timeout(200)
     print('FUNCS:', pg.inner_text('#results')[:300])
     for i,(c,e) in enumerate(ANS):
       pg.click('#btn-model' if False else 'body')  # noop

@@ -4,9 +4,10 @@
 
 ## 方針
 
-- **日時はすべて UTC**。`'YYYY-MM-DD HH:MM:SS'` の文字列。問い合わせはJSTなので、9時間のずれを意識させる。
+- **日時はすべて日本時間（JST）**。`'YYYY-MM-DD HH:MM:SS'` の文字列。問い合わせもJSTなので、初心者でも時差を気にせずそのまま比べられる。
+  - 生成処理の中は UTC で組み立て、DBに書き出すとき（`generate()` の戻り値を作るところ）で `toJ` / `fmtJ` により +9時間している。`src/datagen.js` に書かれたシナリオの時刻は UTC なので注意。
 - **乱数シード固定**（mulberry32、シード 20261113）。誰がいつ遊んでも同じデータになる。
-- ログ期間は 2026-10-20 00:00 〜 2026-11-13 01:00 UTC（ゲーム内の「今」）。
+- ログ期間は 2026-10-20 09:00 〜 2026-11-13 10:00（ゲーム内の「今」）。
 - `WHERE` なしでは目的のログにたどり着けないよう、ノイズを大量に混ぜる。
 - 起動後に `PRAGMA query_only = 1` を設定し、書き込みはDB側でも拒否する。
 
@@ -58,8 +59,7 @@ MySQL に慣れた人でも書きやすいように、`create_function` で登�
 
 | 関数 | 動き |
 |---|---|
-| `CONVERT_TZ(dt, from, to)` | `'+00:00'`、`'+09:00'`、`'UTC'`、`'JST'`、`'Asia/Tokyo'` に対応 |
-| `JST(dt)` | UTC を JST に変換 |
-| `NOW()` | ゲーム内の現在時刻 `2026-11-13 01:00:00`（UTC） |
+| `CONVERT_TZ(dt, from, to)` | `'+00:00'`、`'+09:00'`、`'UTC'`、`'JST'`、`'Asia/Tokyo'`、`'SYSTEM'`（= JST）に対応 |
+| `NOW()` | ゲーム内の現在時刻 `2026-11-13 10:00:00`（JST） |
 
-SQLite の `datetime(created_at, '+9 hours')` や `json_extract(detail, '$.from')` もそのまま使える。
+SQLite の `date(created_at)`、`datetime(created_at, '+1 day')`、`json_extract(detail, '$.from')` もそのまま使える。
