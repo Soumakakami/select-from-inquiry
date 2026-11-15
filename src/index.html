@@ -19,7 +19,8 @@
     <nav class="queue" id="queue" aria-label="調査依頼チケット"></nav>
     <div class="stats">
       <div class="stat"><span>JST</span><b id="clock">11/13 10:00</b></div>
-      <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat stat-score"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat stat-combo" id="stat-combo" hidden><span>COMBO</span><b id="combo">0</b></div>
       <div class="stat" id="stat-shimatsu"><span>始末書</span><b id="shimatsu">0</b></div>
       <div class="sound" role="group" aria-label="サウンド">
         <button class="snd" id="btn-bgm" type="button" aria-pressed="true" title="BGMのオン／オフ"><i></i>BGM</button>
@@ -64,6 +65,9 @@
 
 <div class="overlay" id="overlay" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="comm-dock" id="comm" aria-live="polite"></div>
+<div class="fx-layer" id="fx-layer" aria-hidden="true"></div>
+<div class="crt" aria-hidden="true"></div>
 
 <script src="sql-wasm.js"></script>
 <script>
@@ -71,6 +75,9 @@
 </script>
 <script>
 /*__AUDIO__*/
+</script>
+<script>
+/*__FX__*/
 </script>
 <script>
 /*__GAME__*/

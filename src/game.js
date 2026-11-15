@@ -5,8 +5,12 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE_KEY = 'logs-dont-lie:v1';
   const NOW_JST = '2026-11-13 10:00:00';
-  const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20;
+  const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20, COMBO = 10;
+  // ゲーム内時計（10:00 出社からの経過分）の進み方
+  const CLOCK = { query: 2, hint: 3, wrong: 8, solve: 10, giveup: 15 }, DAY_START = 10 * 60, DAY_END = 18 * 60;
   const snd = (name) => { if (window.Sound) window.Sound.sfx(name); };
+  const FXo = () => window.FX || null;
+  const say = (who, html, opts) => { const f = FXo(); if (f) f.say(who, html, opts); };
 
   // ---------------------------------------------------------------- 資料
   const NOTES = `
@@ -96,10 +100,6 @@ SELECT ip_address, device_id, COUNT(*) AS cnt
 FROM login_logs
 WHERE user_id = ${sub('U-38127')}
 GROUP BY ip_address, device_id;`,
-      starter: `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行
--- まずは問い合わせてきたユーザーを探してみよう
-SELECT * FROM users WHERE public_id = 'U-38127';
-`,
     },
     {
       no: 'CS-1112-0087', label: '武器消失', received: '2026-11-12 09:30', user: 'U-52904', world: 'ベータ', category: 'アイテム',
@@ -291,31 +291,58 @@ GROUP BY u.public_id, l.ip_address;`,
     },
   ];
 
+  // 満点 = 基本点 ×件数 ＋ ノーミス連続ボーナス（2件目から +10, +20, …）
+  const MAX_SCORE = CASES.length * BASE + COMBO * (CASES.length - 1) * CASES.length / 2;
   const RANKS = [
-    [680, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
-    [580, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
-    [450, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
-    [300, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
+    [860, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
+    [700, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
+    [520, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
+    [340, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
     [0, '研修やり直し', 'まずは users テーブルから。焦らず WHERE を書きましょう。'],
   ];
+  // ユーザーの怒り（問い合わせ時点、5段階）
+  const TEMPER = [4, 3, 4, 5, 3, 4, 2];
+  const PRAISE = ['いいね、ログどおりだ。', 'ナイス。根拠もばっちり。', 'さすが。CSも助かるって。', 'その調子。次も頼んだ。', '完璧。もう一人で回せるな。'];
+  const ARRIVE = ['新しいチケットです！', '次、お願いします！', 'こちらも急ぎでお願いします！', '問い合わせ、もう1件です！'];
 
   // ---------------------------------------------------------------- state
   let DB = null, KEYS = {}, COUNTS = {};
   let state = freshState();
+  function shuffled(n) {
+    const a = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
   function freshState() {
+    const order = shuffled(CASES.length); // チケットの届く順番は毎回ランダム
     return {
-      started: false, current: 0, shimatsu: 0,
-      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, queries: 0, heavy: false, choice: null, evidence: '' })),
+      started: false, current: order[0], shimatsu: 0, order, combo: 0, maxCombo: 0, minutes: 0,
+      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false })),
       drafts: {}, history: [],
     };
   }
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
   function loadLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; } }
   function validState(s) { return s && Array.isArray(s.cases) && s.cases.length === CASES.length && typeof s.current === 'number'; }
+  function validOrder(o) { return Array.isArray(o) && o.length === CASES.length && o.slice().sort((a, b) => a - b).every((v, i) => v === i); }
 
-  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score, 0) - state.shimatsu * SHIMATSU);
+  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score + (c.bonus || 0), 0) - state.shimatsu * SHIMATSU);
   const allDone = () => state.cases.every((c) => c.status !== 'open');
-  const firstOpen = () => { const i = state.cases.findIndex((c) => c.status === 'open'); return i < 0 ? CASES.length - 1 : i; };
+  const posOf = (i) => state.order.indexOf(i);
+  const firstOpen = () => { const i = state.order.find((k) => state.cases[k].status === 'open'); return i == null ? state.order[CASES.length - 1] : i; };
+  const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, TEMPER[i] + state.cases[i].wrong));
+  function clockText(extra) {
+    const m = DAY_START + state.minutes + (extra || 0);
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  }
+  function advance(kind) { state.minutes += CLOCK[kind] || 0; }
+  function starterFor(i) {
+    const c = CASES[i];
+    if (posOf(i) === 0 && !state.history.length) {
+      return `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行\n-- まずは問い合わせてきたユーザーを探してみよう\nSELECT * FROM users WHERE public_id = '${c.user}';\n`;
+    }
+    return `-- #${posOf(i) + 1} ${c.label}（${c.user}）\n`;
+  }
 
   // ---------------------------------------------------------------- time helpers
   function shiftDt(dt, minutes) {
@@ -411,7 +438,13 @@ GROUP BY u.public_id, l.ip_address;`,
     state.shimatsu++;
     save(); renderHud();
     snd('shimatsu');
-    toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
+    const f = FXo();
+    if (f) {
+      f.siren(); f.flash('red'); f.shake($('.app'), true);
+      f.cutin('shimatsu', `始末書 ${state.shimatsu}枚目`, `−${SHIMATSU}点`);
+      f.floatText($('#score'), `−${SHIMATSU}`, 'minus');
+      say('bucho', `${esc(SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。')} ……始末書、${state.shimatsu}枚目だぞ。`, { interrupt: true });
+    } else toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
   }
 
   const MYSQL_TIPS = [
@@ -442,6 +475,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     const cs = state.cases[state.current];
     cs.queries++;
+    if (cs.status === 'open') advance('query');
     const blocks = [];
     let ok = true, totalRows = 0, heavy = false;
     for (let k = 0; k < stmts.length; k++) {
@@ -468,13 +502,16 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     out.innerHTML = blocks.join('');
     out.scrollTop = 0;
+    out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
     pushHistory(src, ok, ok ? `${totalRows.toLocaleString()}行` : 'エラー');
     snd('run');
     if (heavy && !cs.heavy) {
       cs.heavy = true;
       snd('warn');
-      toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
+      if (FXo()) { FXo().flash('amber'); say('infra', `いま重いクエリ流したの誰？ ${totalRows.toLocaleString()}行も引いたらDBが悲鳴あげるって。<code>WHERE</code> や <code>LIMIT</code> で絞ってくれ。`, { interrupt: true }); }
+      else toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
     } else snd(ok ? 'ok' : 'error');
+    renderClock();
     save();
   }
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
@@ -496,7 +533,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   function pushHistory(sql, ok, meta) {
-    state.history.unshift({ sql: sql.trim().slice(0, 2000), ok, meta, c: state.current + 1 });
+    state.history.unshift({ sql: sql.trim().slice(0, 2000), ok, meta, c: posOf(state.current) + 1 });
     state.history = state.history.slice(0, 40);
     renderHistory();
   }
@@ -550,25 +587,49 @@ GROUP BY u.public_id, l.ip_address;`,
 
   // ---------------------------------------------------------------- render
   function jstLabel(s) { const [d, t] = s.split(' '); const [, mo, da] = d.split('-'); return `${+mo}/${+da} ${t}`; }
+  let shownScore = null;
   function renderHud() {
-    $('#score').textContent = totalScore();
+    const total = totalScore();
+    const scoreEl = $('#score');
+    if (shownScore == null || !FXo()) scoreEl.textContent = total;
+    else if (shownScore !== total) FXo().countUp(scoreEl, shownScore, total, 800);
+    shownScore = total;
     $('#shimatsu').textContent = state.shimatsu;
     $('#stat-shimatsu').classList.toggle('warn', state.shimatsu > 0);
+    const comboEl = $('#stat-combo');
+    comboEl.hidden = state.combo < 2;
+    $('#combo').textContent = `×${state.combo}`;
+    renderClock();
     const q = $('#queue');
-    const unlocked = firstOpen();
-    q.innerHTML = CASES.map((c, i) => {
-      const st = state.cases[i].status;
-      const cls = ['chip', i === state.current ? 'is-current' : '', st === 'solved' ? 'is-solved' : '', st === 'gaveup' ? 'is-gaveup' : ''].join(' ');
-      const dis = i > unlocked && st === 'open' ? 'disabled' : '';
-      return `<button class="${cls}" data-case="${i}" ${dis} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${i + 1}</span>${esc(c.label)}</button>`;
-    }).join('') + (allDone() ? '<button class="chip is-current" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+    const unlockedPos = posOf(firstOpen());
+    q.innerHTML = state.order.map((i, p) => {
+      const c = CASES[i], st = state.cases[i];
+      const locked = p > unlockedPos && st.status === 'open';
+      const isNew = !locked && st.status === 'open' && !st.seen;
+      const cls = ['chip', i === state.current ? 'is-current' : '', st.status === 'solved' ? 'is-solved' : '', st.status === 'gaveup' ? 'is-gaveup' : '', isNew ? 'is-new' : ''].join(' ');
+      return `<button class="${cls}" data-case="${i}" ${locked ? 'disabled' : ''} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${p + 1}</span>${locked ? '<span class="lock">？？？</span>' : esc(c.label)}</button>`;
+    }).join('') + (allDone() ? '<button class="chip is-current is-final" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+  }
+  function renderClock() {
+    const el = $('#clock');
+    el.textContent = `11/13 ${clockText()}`;
+    el.parentElement.classList.toggle('warn', DAY_START + state.minutes >= DAY_END);
   }
 
-  function renderTicket() {
+  function angerHtml(i) {
+    const lv = angerOf(i), st = state.cases[i];
+    const face = st.status === 'solved' ? '鎮火' : lv >= 5 ? '激怒' : lv >= 4 ? '激おこ' : lv >= 3 ? 'イライラ' : 'ムッ';
+    return `<div class="anger lv-${lv}" aria-label="ユーザーの怒り ${lv}/5"><span class="anger-label">ユーザーの怒り</span><span class="anger-bar">${[1, 2, 3, 4, 5].map((k) => `<i class="${k <= lv ? 'on' : ''}"></i>`).join('')}</span><span class="anger-face">${face}</span></div>`;
+  }
+
+  function renderTicket(arrive) {
     const c = CASES[state.current], st = state.cases[state.current];
     const t = $('#ticket');
+    t.classList.remove('arrive');
+    if (arrive) { void t.offsetWidth; t.classList.add('arrive'); }
     t.innerHTML = `
       <div class="ticket-head"><h2>問い合わせ票</h2><span class="tno">No. ${esc(c.no)}</span></div>
+      ${angerHtml(state.current)}
       <dl class="ticket-grid">
         <dt>受付日時</dt><dd>2026/${esc(jstLabel(c.received + ':00').replace(/:00$/, ''))} JST</dd>
         <dt>公開ID</dt><dd>${esc(c.user)}</dd>
@@ -615,7 +676,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const solved = st.status === 'solved';
     const right = c.options.find((o) => o[0] === c.answer)[1];
     return `<div class="card resolution">
-      <div class="points"><b>${solved ? '+' + st.score : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回` : '先輩に聞いたので 0 点'}</span></div>
+      <div class="points"><b>${solved ? '+' + (st.score + (st.bonus || 0)) : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回${st.bonus ? `・コンボ +${st.bonus}` : ''}` : '先輩に聞いたので 0 点'}</span></div>
       <div><h3>正しい結論</h3><p class="explain">${esc(right)}</p></div>
       <div><h3>ユーザーへの回答</h3><p class="reply">${esc(c.reply)}</p></div>
       ${solved ? `<p class="reaction">ユーザーからの返信：「${esc(c.reaction)}」</p>` : ''}
@@ -644,7 +705,7 @@ GROUP BY u.public_id, l.ip_address;`,
   function renderAll() {
     renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderHistory();
     const draft = state.drafts[state.current];
-    setEditor(draft != null ? draft : (CASES[state.current].starter || `-- #${state.current + 1} ${CASES[state.current].label}（${CASES[state.current].user}）\n`));
+    setEditor(draft != null ? draft : starterFor(state.current));
     if (!$('#results').dataset.used) renderResultsEmpty();
   }
 
@@ -673,104 +734,215 @@ GROUP BY u.public_id, l.ip_address;`,
     if (okC && okE) {
       st.status = 'solved';
       st.score = Math.max(FLOOR, BASE - st.wrong * WRONG - st.hints * HINT);
+      const perfect = st.wrong === 0 && st.hints === 0;
+      state.combo = perfect ? state.combo + 1 : 0;
+      state.maxCombo = Math.max(state.maxCombo || 0, state.combo);
+      st.bonus = perfect && state.combo >= 2 ? (state.combo - 1) * COMBO : 0;
+      advance('solve');
       save();
       snd('solved');
       renderHud(); renderTicket(); renderAnswer();
       const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
       $('#ticket-scroll').scrollTop = 0;
+      const f = FXo();
+      if (f) {
+        const pts = st.score + st.bonus;
+        f.flash('white');
+        f.cutin('solve', perfect ? 'PERFECT!' : 'CASE CLOSED', `解決　+${pts}`);
+        setTimeout(() => f.burstFrom($('#ticket .stamp') || $('#ticket')), 120);
+        f.floatText($('#score'), `+${pts}`, 'plus');
+        if (st.bonus) setTimeout(() => { snd('combo'); f.cutin('combo', `${state.combo} COMBO`, `ボーナス +${st.bonus}`); }, 1500);
+        const line = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+        say('senpai', `${line}${state.combo >= 2 ? `ノーミス${state.combo}連続だ。` : ''}ユーザーからも返信が来てるぞ。`, { interrupt: true });
+      }
       return;
     }
     st.wrong++;
-    save(); renderHud();
+    if (state.combo) state.combo = 0;
+    advance('wrong');
+    save(); renderHud(); renderTicket();
     snd('reject');
-    const msg = !okC && !okE ? '先輩「結論も根拠も、もう一度ログを見直してみて」'
-      : !okC ? '先輩「根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？」'
-        : '先輩「結論はいい線。でも根拠の値が違う。どのログが決め手？」';
+    const line = !okC && !okE ? '結論も根拠も、もう一度ログを見直してみて。'
+      : !okC ? '根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？'
+        : '結論はいい線。でも根拠の値が違う。どのログが決め手？';
     fb.hidden = false; fb.className = 'feedback';
-    fb.textContent = `差し戻されました（−${WRONG}点）。${msg}`;
+    fb.textContent = `差し戻されました（−${WRONG}点）。先輩「${line}」`;
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const t = $('#ticket');
     t.querySelectorAll('.stamp.is-reject').forEach((x) => x.remove());
     t.insertAdjacentHTML('beforeend', stampHtml('差戻', 'is-reject fade'));
-    t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake');
+    const f = FXo();
+    if (f) { f.flash('red'); f.shake(t, true); f.cutin('reject', '差し戻し', `−${WRONG}点　ユーザーの怒りが上がった`); say('senpai', line, { interrupt: true }); }
+    else { t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
   }
   function showHint() {
     const i = state.current, c = CASES[i], st = state.cases[i];
     if (st.hints >= c.hints.length) return;
-    st.hints++; save(); renderHud();
+    st.hints++; advance('hint'); save(); renderHud();
     snd('hint');
     $('#hints').insertAdjacentHTML('beforeend', `<li><b>${st.hints}</b>${c.hints[st.hints - 1]}</li>`);
     if (st.hints >= c.hints.length) $('#btn-hint').disabled = true;
+    say('senpai', c.hints[st.hints - 1], { interrupt: true });
   }
   let giveupArmed = false;
   function giveUp(btn) {
     if (!giveupArmed) { giveupArmed = true; btn.textContent = '本当に聞く？（このチケットは0点）'; btn.classList.add('btn-danger'); snd('pop'); return; }
     giveupArmed = false;
     const st = state.cases[state.current];
-    st.status = 'gaveup'; st.score = 0; save();
+    st.status = 'gaveup'; st.score = 0; st.bonus = 0; state.combo = 0; advance('giveup'); save();
     snd('giveup');
     renderHud(); renderTicket(); renderAnswer();
     const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+    say('senpai', 'しょうがない、一緒に見ようか。解説と模範SQLを置いておくから、手を動かして確かめてみて。', { interrupt: true });
   }
-  function goto(i) {
-    if (i === state.current) return;
+  // 新しいチケットが届いたときの演出（電話 → 印字 → CS担当のひとこと）
+  function arrive(i) {
+    const st = state.cases[i], c = CASES[i];
+    st.seen = true; save();
+    snd('ring');
+    setTimeout(() => snd('print'), 520);
+    renderTicket(true);
+    renderHud();
+    const f = FXo();
+    if (f) {
+      f.cutin('incoming', 'INCOMING TICKET', `#${posOf(i) + 1}　${c.label}　${c.category}`);
+      const greet = posOf(i) === 0 ? ARRIVE[0] : ARRIVE[1 + Math.floor(Math.random() * (ARRIVE.length - 1))];
+      say('cs', `${greet}「${esc(c.label)}」の件、${esc(c.note)}`);
+    }
+  }
+  function goto(i, opts) {
+    if (i === state.current && !(opts && opts.force)) return;
     state.drafts[state.current] = $('#sql').value;
     state.current = i; giveupArmed = false; save();
     snd('page');
     renderHud(); renderTicket(); renderAnswer();
     const draft = state.drafts[i];
-    setEditor(draft != null ? draft : (CASES[i].starter || `-- #${i + 1} ${CASES[i].label}（${CASES[i].user}）\n`));
+    setEditor(draft != null ? draft : starterFor(i));
     $('#ticket-scroll').scrollTop = 0;
+    if (state.cases[i].status === 'open' && !state.cases[i].seen) arrive(i);
   }
   function next() {
-    if (allDone()) { snd('final'); showFinal(); } else goto(firstOpen());
+    if (allDone()) showFinal(true); else goto(firstOpen());
   }
 
   // ---------------------------------------------------------------- modals
-  function openModal(html) { $('#modal').innerHTML = html; $('#overlay').hidden = false; const b = $('#modal button'); if (b) b.focus(); }
-  function closeModal() { $('#overlay').hidden = true; }
+  function openModal(html, kind) {
+    const ov = $('#overlay');
+    ov.className = 'overlay' + (kind ? ` is-${kind}` : '');
+    $('#modal').innerHTML = html; ov.hidden = false;
+    const b = $('#modal .btn-primary') || $('#modal button'); if (b) b.focus({ preventScroll: true });
+  }
+  function closeModal() { $('#overlay').hidden = true; finalTimers.forEach(clearTimeout); finalTimers = []; }
   function showIntro() {
     const resume = state.started && !allDone();
+    const f = FXo();
+    const rain = f ? f.logRain(70) : '';
+    const cast = f ? ['senpai', 'cs', 'infra', 'bucho'].map((k) => `<figure class="cast-${k}">${f.avatar(k)}<figcaption>${esc(f.PEOPLE[k].name)}<small>${esc(f.PEOPLE[k].role)}</small></figcaption></figure>`).join('') : '';
     openModal(`
-      <p class="eyebrow">株式会社ノクトゲームス　運用チーム　配属初日</p>
-      <h1>ログは嘘をつかない<span class="cursor"></span></h1>
-      <p class="lead">サーバーエンジニア問い合わせ対応シミュレーター</p>
-      <p>あなたは運営中のMMORPG『クロノリア・オンライン』のサーバーエンジニア。CSチームから「キャラが消えた」「課金が反映されない」といった調査依頼のチケットが回ってきます。</p>
-      <p>本番DB（参照専用レプリカ）にSQLを投げてログを確かめ、事実にもとづいてユーザーへ回答してください。ユーザーの言い分が正しいとは限りません。</p>
-      <dl class="rules">
-        <dt>回答</dt><dd>調査結論を選び、決め手になった値（ログIDなど）を根拠として添える</dd>
-        <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}</dd>
-        <dt>禁止</dt><dd>更新系のSQL。流そうとすると始末書（−${SHIMATSU}）</dd>
-        <dt>日時</dt><dd>DBも問い合わせも日本時間（JST）</dd>
-        <dt>音</dt><dd>BGMと効果音が鳴ります。右上の BGM / SE で切り替え</dd>
-      </dl>
-      <div class="btn-row">
-        ${resume ? `<button class="btn btn-primary" type="button" data-act="resume">続きから（#${firstOpen() + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
-          : '<button class="btn btn-primary" type="button" data-act="start">出社する</button>'}
-      </div>`);
+      <div class="title-rain" aria-hidden="true"><pre>${rain}${rain}</pre></div>
+      <div class="title-inner">
+        <p class="eyebrow">NOCT GAMES ／ OPS TEAM ／ DAY 1</p>
+        <h1 class="logo"><span class="logo-ja" data-text="ログは嘘をつかない">ログは嘘をつかない</span><span class="cursor"></span></h1>
+        <p class="logo-en">LOGS DON'T LIE ── サーバーエンジニア問い合わせ対応シミュレーター</p>
+        <div class="cast">${cast}</div>
+        <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
+        <dl class="rules">
+          <dt>任務</dt><dd>ランダムな順番で届く7件のチケットを調査し、結論と決め手の値（ログIDなど）で回答</dd>
+          <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス</dd>
+          <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
+          <dt>時計</dt><dd>10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
+          <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
+        </dl>
+        <div class="btn-row title-actions">
+          ${resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
+            : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
+        </div>
+      </div>`, 'title');
   }
+  function beginDay(isResume) {
+    closeModal();
+    snd('start');
+    if (window.Sound) window.Sound.playBgm();
+    const first = () => {
+      const i = state.current;
+      if (state.cases[i].status === 'open' && !state.cases[i].seen) {
+        say('senpai', isResume ? 'おかえり。続きをやろう。' : `おはよう。今日の問い合わせは${CASES.length}件、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`);
+        arrive(i);
+      } else say('senpai', 'おかえり。続きをやろう。チケットは上のバーから選べるぞ。');
+      $('#sql').focus({ preventScroll: true });
+    };
+    const f = FXo();
+    if (isResume || !f) { first(); return; }
+    f.boot([
+      'NOCT GAMES  ops-terminal v2.6',
+      '> login ops-team ............ OK',
+      '> connect prod-replica-01 (READ ONLY) ... OK',
+      "> SELECT COUNT(*) FROM tickets WHERE status = 'OPEN';",
+      `  ${CASES.length}`,
+      '> 本日の業務を開始します',
+    ], first);
+  }
+
   function rankOf(score) { return RANKS.find((r) => score >= r[0]); }
-  function showFinal() {
+  function overtimeText() {
+    const end = DAY_START + state.minutes;
+    if (end <= DAY_END) return '定時退社';
+    const over = end - DAY_END;
+    return `残業 ${Math.floor(over / 60)}時間${over % 60}分`;
+  }
+  let finalTimers = [];
+  function showFinal(animate) {
+    const f = FXo();
+    if (f) f.closeSay();
+    if (animate) snd('final');
     const score = totalScore(); const [, title, line] = rankOf(score);
     const solved = state.cases.filter((c) => c.status === 'solved').length;
-    const rows = CASES.map((c, i) => { const s = state.cases[i]; return `<tr><td>#${i + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${s.status === 'solved' ? '解決' : s.status === 'gaveup' ? '先輩に聞いた' : '未対応'}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score}</td></tr>`; }).join('');
+    const rows = state.order.map((i, p) => {
+      const c = CASES[i], s = state.cases[i];
+      const res = s.status === 'solved' ? (s.wrong === 0 && s.hints === 0 ? 'PERFECT' : '解決') : s.status === 'gaveup' ? '先輩に聞いた' : '未対応';
+      return `<tr class="reveal-row"><td>#${p + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${res}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score + (s.bonus || 0)}</td></tr>`;
+    }).join('');
     openModal(`
-      <p class="eyebrow">本日の業務終了　2026.11.13</p>
-      <div class="final-score"><b>${score}</b><span>/ ${CASES.length * BASE} 点　${solved}件解決</span></div>
-      <p class="final-title"><span>称号</span>${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p>
-      <p>${esc(line)}</p>
+      <p class="eyebrow">本日の業務終了　2026.11.13　退勤 ${clockText()}</p>
+      <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${MAX_SCORE} 点　${solved}件解決</span></div>
+      <div class="badges"><span class="badge ${DAY_START + state.minutes <= DAY_END ? 'is-good' : 'is-bad'}">${overtimeText()}</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span></div>
       <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）</td><td class="r"></td></tr></tfoot></table>
+      <div class="final-rank" id="final-rank">
+        <div class="rank-stamp"><span>称号</span></div>
+        <div><p class="final-title">${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p><p class="final-line">${esc(line)}</p></div>
+      </div>
       <div class="btn-row">
         <button class="btn btn-primary" type="button" data-act="copy">結果をコピー</button>
         <button class="btn" type="button" data-act="review">チケットを見直す</button>
         <button class="btn btn-ghost" type="button" data-act="reset">最初から遊ぶ</button>
-      </div>`);
+      </div>`, 'final');
+    const modal = $('#modal');
+    if (!animate || !f || f.reduced()) { modal.classList.add('revealed'); return; }
+    // 1行ずつ判を押す → スコアのカウントアップ → 称号
+    modal.classList.add('revealing');
+    const rowsEl = [...modal.querySelectorAll('.reveal-row')];
+    let t = 700;
+    rowsEl.forEach((r) => { finalTimers.push(setTimeout(() => { r.classList.add('is-in'); snd('reveal'); }, t)); t += 300; });
+    finalTimers.push(setTimeout(() => f.countUp($('#final-score'), 0, score, 1300), t));
+    t += 1500;
+    finalTimers.push(setTimeout(() => {
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+      snd('rank'); f.burstFrom($('.rank-stamp'), { count: 50 });
+    }, t));
+    const skip = (e) => {
+      if (!modal.classList.contains('revealing') || e.target.closest('button')) return;
+      finalTimers.forEach(clearTimeout); finalTimers = [];
+      rowsEl.forEach((r) => r.classList.add('is-in'));
+      $('#final-score').textContent = score;
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+    };
+    modal.addEventListener('click', skip, { once: false });
   }
   function resultText() {
     const score = totalScore(); const [, title] = rankOf(score);
-    const marks = state.cases.map((c) => (c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×')).join('');
-    return `『ログは嘘をつかない』 ${score}/${CASES.length * BASE}点 ${marks} 称号「${title}」 始末書${state.shimatsu}枚`;
+    const marks = state.order.map((i) => { const c = state.cases[i]; return c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×'; }).join('');
+    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${marks} 称号「${title}」 最大${state.maxCombo || 0}コンボ 退勤${clockText()} 始末書${state.shimatsu}枚`;
   }
 
   // ---------------------------------------------------------------- toast
@@ -806,7 +978,7 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.id === 'btn-next') next();
       else if (b.id === 'btn-model') { setEditor(CASES[state.current].model, false); runSql(); }
       else if (b.dataset.case != null) goto(+b.dataset.case);
-      else if (b.dataset.final) { snd('final'); showFinal(); }
+      else if (b.dataset.final) showFinal(true);
       else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
@@ -819,12 +991,13 @@ GROUP BY u.public_id, l.ip_address;`,
         $('#tab-schema').hidden = hist; $('#tab-history').hidden = !hist;
       } else if (b.dataset.act) {
         const a = b.dataset.act;
-        if (a === 'start' || a === 'resume') { state.started = true; save(); closeModal(); snd('start'); if (window.Sound) window.Sound.playBgm(); $('#sql').focus(); }
+        if (a === 'start' || a === 'resume') { state.started = true; save(); beginDay(a === 'resume'); }
         else if (a === 'reset') {
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'もう一度押すと記録を消して最初から'; snd('pop'); return; }
           state = freshState(); state.started = true; save();
-          snd('start'); if (window.Sound) window.Sound.playBgm();
-          $('#results').dataset.used = ''; renderAll(); closeModal();
+          shownScore = null;
+          $('#results').dataset.used = ''; renderAll();
+          beginDay(false);
         } else if (a === 'review') closeModal();
         else if (a === 'copy') {
           const text = resultText();
@@ -861,11 +1034,13 @@ GROUP BY u.public_id, l.ip_address;`,
     if (validState(saved)) {
       state = Object.assign(freshState(), saved);
       state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
+      // 順番を持たない古い保存データは、元の並び順のまま続ける
+      if (!validOrder(saved.order)) state.order = CASES.map((_, i) => i);
     }
     bind();
     bindSound();
     renderAll();
-    if (allDone() && state.started) { showFinal(); if (window.Sound) window.Sound.playBgm(); } else showIntro();
+    if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
     initDb();
   }
   const hot = window.claude && window.claude.hot;

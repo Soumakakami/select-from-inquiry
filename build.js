@@ -5,6 +5,7 @@ let html = src('index.html');
 html = html.replace('/*__CSS__*/', () => src('style.css'))
   .replace('/*__DATAGEN__*/', () => src('datagen.js'))
   .replace('/*__AUDIO__*/', () => src('audio.js'))
+  .replace('/*__FX__*/', () => src('fx.js'))
   .replace('/*__GAME__*/', () => src('game.js'));
 fs.mkdirSync(path.join(__dirname, 'docs'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'docs', 'index.html'), html);

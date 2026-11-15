@@ -137,6 +137,31 @@
     start(t) { [60, 64, 67, 72].forEach((m, i) => pluck(t + i * 0.09, m, 0.5, 0.11, sfxBus)); bell(t + 0.38, 79, 0.07, 1.2); },
     // 先輩に聞く
     giveup(t) { [76, 72, 69].forEach((m, i) => pluck(t + i * 0.12, m, 0.4, 0.09, sfxBus)); },
+    // チケット着信：電話のベル
+    ring(t) {
+      for (let k = 0; k < 2; k++) {
+        for (let i = 0; i < 6; i++) {
+          const tt = t + k * 0.42 + i * 0.045;
+          tone({ t: tt, f: i % 2 ? 1568 : 1319, dur: 0.035, gain: 0.05, type: 'square', lp: 3200 });
+        }
+      }
+    },
+    // チケットの印字（プリンター）
+    print(t) { for (let i = 0; i < 5; i++) noise({ t: t + i * 0.07, dur: 0.05, gain: 0.05, filter: 'bandpass', freq: 900 + i * 120, q: 2.5 }); },
+    // 会話の文字送り
+    type(t) { tone({ t, f: 520 + Math.random() * 120, dur: 0.025, gain: 0.025, type: 'square', lp: 1800 }); },
+    // コンボ
+    combo(t) { [76, 81, 86, 88].forEach((m, i) => tone({ t: t + i * 0.05, f: mtof(m), dur: 0.12, gain: 0.07, type: 'square', lp: 4000 })); },
+    // スコアのカウントアップ
+    tick(t) { tone({ t, f: 1900, dur: 0.02, gain: 0.02, type: 'square', lp: 5000 }); },
+    // カットインの「シュッ」
+    whoosh(t) { noise({ t, dur: 0.32, gain: 0.12, filter: 'bandpass', freq: 400, freq2: 4200, q: 0.9, attack: 0.08 }); },
+    // 起動ログ
+    boot(t) { [0, 0.08, 0.16].forEach((d, i) => tone({ t: t + d, f: 660 * (1 + i * 0.5), dur: 0.05, gain: 0.05, type: 'square', lp: 3000 })); },
+    // 結果画面の1行（小さな印鑑）
+    reveal(t) { thud(t, 0.25); },
+    // 称号の発表
+    rank(t) { thud(t, 0.6); [72, 79, 84, 88, 91].forEach((m, i) => bell(t + 0.12 + i * 0.07, m, 0.1, 1.2)); },
     // 結果発表：ファンファーレ
     final(t) {
       const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];

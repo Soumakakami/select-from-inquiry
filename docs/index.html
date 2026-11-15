@@ -34,7 +34,10 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(239,166,58,.07), transparent 60%),
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px) 0 0 / 100% 28px,
+    var(--bg);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 14px;
@@ -77,7 +80,16 @@ button { cursor: pointer; }
 .stat { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
 .stat span { font-size: 10px; color: var(--muted); font-family: var(--font-body); letter-spacing: .1em; }
 .stat b { font-weight: 400; font-size: 20px; font-variant-numeric: tabular-nums; }
-.stat.warn b { color: var(--shu); }
+.stat.warn b { color: var(--shu); text-shadow: 0 0 10px rgba(212,54,31,.6); }
+.stat-score b { color: var(--amber); text-shadow: 0 0 12px rgba(239,166,58,.55); }
+.stat-score b.is-counting { transform: scale(1.12); }
+.stat b { transition: transform .15s ease; display: inline-block; }
+.stat-combo b { color: #ffdf6b; text-shadow: 0 0 12px rgba(255,223,107,.7); animation: comboPulse 1s ease-in-out infinite; }
+@keyframes comboPulse { 50% { transform: scale(1.12); } }
+.chip.is-new { border-color: #3fb67f; color: var(--ink); }
+.chip.is-new::after { content: "NEW"; font-family: var(--font-display); font-size: 10px; color: #0d1a12; background: #3fb67f; padding: 0 4px; border-radius: 2px; animation: blink 1s steps(1) infinite; }
+.chip .lock { letter-spacing: .1em; }
+.chip.is-final { border-color: #ffdf6b; color: #ffdf6b; animation: pager 1.6s ease-in-out infinite; }
 .sound { display: flex; gap: 4px; font-family: var(--font-display); }
 .snd {
   display: flex; align-items: center; gap: 5px;
@@ -123,7 +135,7 @@ button { cursor: pointer; }
 .ticket-note b { font-weight: 600; }
 
 .stamp {
-  position: absolute; right: 14px; top: 56px;
+  position: absolute; right: 14px; top: 84px;
   width: 92px; height: 92px; border-radius: 50%;
   border: 3px solid var(--shu); color: var(--shu);
   display: grid; place-items: center; text-align: center;
@@ -134,7 +146,7 @@ button { cursor: pointer; }
 .stamp::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--shu); border-radius: 50%; }
 .stamp .s-main { font-size: 26px; letter-spacing: .1em; }
 .stamp .s-sub { display: block; font-size: 10px; margin-top: 4px; font-family: var(--font-code); letter-spacing: .05em; }
-.stamp.is-reject { border-radius: 4px; width: 104px; height: 54px; top: 72px; }
+.stamp.is-reject { border-radius: 4px; width: 104px; height: 54px; top: 100px; }
 .stamp.is-reject::before { border-radius: 2px; }
 .stamp.is-reject .s-main { font-size: 22px; }
 .stamp.is-gaveup { border-color: #6b7686; color: #6b7686; }
@@ -145,6 +157,29 @@ button { cursor: pointer; }
 @keyframes fadeout { to { opacity: 0; } }
 .ticket.shake { animation: shake .3s ease; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.shake-hard { animation: shakeHard .45s cubic-bezier(.36,.07,.19,.97); }
+@keyframes shakeHard {
+  10%, 90% { transform: translate(-2px, 1px) rotate(-.3deg); }
+  20%, 80% { transform: translate(4px, -1px) rotate(.4deg); }
+  30%, 50%, 70% { transform: translate(-7px, 2px) rotate(-.6deg); }
+  40%, 60% { transform: translate(7px, -2px) rotate(.6deg); }
+}
+/* チケットが届くとき：プリンターから紙が出てくる */
+.ticket.arrive { animation: printOut .9s steps(9, end) both, settle .35s ease .9s both; }
+@keyframes printOut { from { clip-path: inset(0 0 100% 0); transform: translateY(-18px); } to { clip-path: inset(0 0 0 0); transform: translateY(0); } }
+@keyframes settle { 0% { transform: translateY(0) rotate(0); } 40% { transform: translateY(3px) rotate(-.6deg); } 100% { transform: translateY(0) rotate(0); } }
+
+/* ユーザーの怒りゲージ */
+.anger { display: flex; align-items: center; gap: 8px; margin: -2px 0 10px; font-size: 11px; color: #4b5666; }
+.anger-label { letter-spacing: .08em; }
+.anger-bar { display: flex; gap: 3px; }
+.anger-bar i { width: 16px; height: 8px; background: #d3d9e1; border-radius: 1px; transition: background .3s ease; }
+.anger-bar i.on { background: #e8833a; }
+.anger.lv-4 .anger-bar i.on, .anger.lv-5 .anger-bar i.on { background: var(--shu); }
+.anger.lv-5 .anger-bar { animation: shake .25s ease infinite; }
+.anger-face { font-family: var(--font-display); font-size: 13px; color: var(--shu); }
+.anger.lv-0 .anger-face { color: var(--ok); }
+.anger.lv-0 .anger-label { text-decoration: line-through; }
 
 /* ---------- answer ---------- */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
@@ -158,8 +193,9 @@ button { cursor: pointer; }
 .field input:focus { border-color: var(--amber); outline: none; }
 .btn { border: 1px solid var(--line); background: var(--raise); padding: 7px 12px; border-radius: 4px; font-size: 13px; }
 .btn:hover { border-color: #3d4858; background: #252d3a; }
-.btn-primary { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-weight: 600; }
+.btn-primary { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-weight: 600; box-shadow: 0 3px 0 #a5660f, 0 0 18px rgba(239,166,58,.25); transition: transform .06s ease, box-shadow .06s ease; }
 .btn-primary:hover { background: #f7b450; border-color: #f7b450; }
+.btn-primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #a5660f; }
 .btn-ghost { background: transparent; color: var(--muted); }
 .btn-danger { color: #ff8b78; border-color: #5a2a24; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
@@ -211,6 +247,10 @@ kbd { font-family: var(--font-code); font-size: 10.5px; padding: 0 4px; border: 
 .t-id { color: #c6d0dd; }
 
 .results { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
+.results.is-fresh .rblock { animation: rowsIn .28s ease both; }
+.results.is-fresh .rblock:nth-child(2) { animation-delay: .06s; }
+.results.is-fresh .rblock:nth-child(3) { animation-delay: .12s; }
+@keyframes rowsIn { from { opacity: 0; transform: translateY(6px); filter: brightness(1.8); } }
 .results-empty { margin: auto; text-align: center; color: var(--muted); font-size: 13px; max-width: 34em; }
 .results-empty b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
 .rblock { display: flex; flex-direction: column; min-height: 0; }
@@ -321,6 +361,164 @@ table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
 }
 
+/* =====================================================================
+   演出（fx.js）
+   ===================================================================== */
+
+/* ---------- CRT の走査線とビネット ---------- */
+.crt { position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,.08) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,.38) 100%);
+  mix-blend-mode: multiply; }
+
+.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+
+/* ---------- カットイン ---------- */
+.cutin { position: absolute; left: 0; right: 0; top: 38%; display: grid; place-items: center; }
+.cutin-band {
+  position: relative; width: 120%; margin-left: -10%; padding: 16px 0 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transform: skewY(-4deg);
+  background: linear-gradient(90deg, transparent, rgba(16,20,27,.94) 12%, rgba(16,20,27,.94) 88%, transparent);
+  border-top: 3px solid var(--amber); border-bottom: 3px solid var(--amber);
+  animation: cutBand 1.6s cubic-bezier(.2,.9,.2,1) both;
+}
+.cutin-band b { font-family: var(--font-display); font-weight: 400; font-size: clamp(34px, 7vw, 76px); letter-spacing: .08em; line-height: 1.05; color: #fff; text-shadow: 0 0 18px rgba(239,166,58,.8), 3px 3px 0 rgba(0,0,0,.6); animation: cutText 1.6s cubic-bezier(.2,.9,.2,1) both; }
+.cutin-band span { font-family: var(--font-display); font-size: clamp(14px, 2.4vw, 22px); color: var(--amber); letter-spacing: .12em; }
+@keyframes cutBand { 0% { transform: skewY(-4deg) scaleY(0); } 12% { transform: skewY(-4deg) scaleY(1); } 82% { transform: skewY(-4deg) scaleY(1); opacity: 1; } 100% { transform: skewY(-4deg) scaleY(0); opacity: 0; } }
+@keyframes cutText { 0% { transform: translateX(-60vw); } 16% { transform: translateX(0); } 80% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(60vw); opacity: 0; } }
+.cutin.is-solve .cutin-band { border-color: var(--ok); }
+.cutin.is-solve .cutin-band b { text-shadow: 0 0 20px rgba(63,182,127,.9), 3px 3px 0 rgba(0,0,0,.6); }
+.cutin.is-solve .cutin-band span { color: #8ff0bf; }
+.cutin.is-reject .cutin-band, .cutin.is-shimatsu .cutin-band { border-color: var(--shu); background: linear-gradient(90deg, transparent, rgba(40,10,8,.94) 12%, rgba(40,10,8,.94) 88%, transparent); }
+.cutin.is-reject .cutin-band b, .cutin.is-shimatsu .cutin-band b { text-shadow: 0 0 20px rgba(212,54,31,.9), 3px 3px 0 rgba(0,0,0,.6); }
+.cutin.is-reject .cutin-band span, .cutin.is-shimatsu .cutin-band span { color: #ff9a88; }
+.cutin.is-combo { top: 54%; }
+.cutin.is-combo .cutin-band { border-color: #ffdf6b; }
+.cutin.is-combo .cutin-band b { color: #ffdf6b; text-shadow: 0 0 20px rgba(255,223,107,.9), 3px 3px 0 rgba(0,0,0,.6); }
+.cutin.is-incoming { top: 22%; }
+.cutin.is-incoming .cutin-band { border-color: #8db7ff; }
+.cutin.is-incoming .cutin-band b { font-size: clamp(26px, 5vw, 52px); text-shadow: 0 0 18px rgba(141,183,255,.9), 3px 3px 0 rgba(0,0,0,.6); }
+.cutin.is-incoming .cutin-band span { color: #b9d1ff; }
+
+/* ---------- フラッシュ・サイレン ---------- */
+.flash { position: absolute; inset: 0; animation: flash .6s ease-out both; }
+.flash.is-white { background: rgba(255,255,255,.35); }
+.flash.is-red { background: rgba(212,54,31,.32); }
+.flash.is-amber { background: rgba(239,166,58,.22); }
+@keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+.siren { position: absolute; inset: 0; animation: siren .45s linear 4; box-shadow: inset 0 0 120px 30px rgba(212,54,31,.75); }
+@keyframes siren { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+/* ---------- パーティクル・得点 ---------- */
+.particle { position: absolute; display: block; border-radius: 1px; will-change: transform, opacity; }
+.float-text { position: absolute; transform: translateX(-50%); font-family: var(--font-display); font-size: 26px; animation: floatUp 1.3s ease-out both; text-shadow: 2px 2px 0 rgba(0,0,0,.6); white-space: nowrap; }
+.float-text.is-plus { color: #ffdf6b; }
+.float-text.is-minus { color: #ff7a66; }
+@keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.6); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, 46px) scale(1); } }
+
+/* ---------- 会話ウィンドウ ---------- */
+.comm-dock { position: fixed; right: 16px; bottom: 16px; z-index: 25; width: min(440px, calc(100% - 32px)); pointer-events: none; }
+.comm {
+  pointer-events: auto; cursor: pointer;
+  display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start;
+  padding: 12px 14px 12px 12px;
+  background: rgba(14,18,25,.96); border: 2px solid #3d4858; border-radius: 6px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.03);
+  transform: translateY(20px); opacity: 0; transition: transform .2s ease, opacity .2s ease;
+  position: relative;
+}
+.comm.is-in { transform: none; opacity: 1; }
+.comm.is-out { transform: translateY(12px); opacity: 0; }
+.comm-face { width: 64px; height: 64px; background: #232b38; border: 2px solid #3d4858; border-radius: 4px; overflow: hidden; }
+.comm-face svg { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.comm:not(.is-done) .comm-face svg { animation: talk .18s steps(2) infinite; }
+@keyframes talk { 50% { transform: translateY(1px); } }
+.comm-name { font-family: var(--font-display); font-size: 15px; color: var(--amber); line-height: 1.2; margin-bottom: 4px; }
+.comm-name small { font-family: var(--font-body); font-size: 10.5px; color: var(--muted); margin-left: 8px; letter-spacing: .08em; }
+.comm-text { margin: 0; font-size: 13.5px; line-height: 1.7; min-height: 2.6em; }
+.comm-text code { font-family: var(--font-code); font-size: .92em; background: rgba(255,255,255,.08); padding: 0 4px; border-radius: 3px; }
+.comm-close { position: absolute; right: 8px; bottom: 6px; border: 0; background: none; color: var(--amber); font-size: 10px; padding: 2px; animation: blink 1s steps(1) infinite; }
+.comm:not(.is-done) .comm-close { visibility: hidden; }
+.comm-cs { border-color: #7a4a3a; }
+.comm-cs .comm-name { color: #ff9f80; }
+.comm-infra { border-color: #2f6b52; }
+.comm-infra .comm-name { color: #6fd4a4; }
+.comm-bucho { border-color: var(--shu); box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 24px rgba(212,54,31,.35); }
+.comm-bucho .comm-name { color: #ff7a66; }
+
+/* ---------- 起動ログ ---------- */
+.boot { position: fixed; inset: 0; z-index: 60; background: #07090c; display: grid; place-items: center; padding: 24px; cursor: pointer; transition: opacity .35s ease; }
+.boot.is-out { opacity: 0; }
+.boot-text { margin: 0; width: min(640px, 100%); font-family: var(--font-code); font-size: clamp(12px, 2.4vw, 15px); line-height: 1.9; color: #9ff0c4; text-shadow: 0 0 8px rgba(63,182,127,.6); white-space: pre-wrap; }
+.boot-skip { position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; color: #3e5a4a; font-size: 11px; letter-spacing: .14em; margin: 0; }
+
+/* ---------- タイトル画面 ---------- */
+.overlay.is-title { background: #07090c; backdrop-filter: none; padding: 0; }
+.overlay.is-title .modal { width: 100%; max-width: none; min-height: 100%; background: transparent; border: 0; box-shadow: none; border-radius: 0; padding: 0; display: grid; place-items: center; position: relative; }
+.title-rain { position: fixed; inset: 0; overflow: hidden; z-index: 0; opacity: .22; mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent); }
+.title-rain pre { margin: 0; font-family: var(--font-code); font-size: 12px; line-height: 1.6; color: #5f7a6d; animation: rain 60s linear infinite; }
+.title-rain .lv-warn { color: #b88a3a; }
+.title-rain .lv-error { color: #b4513f; }
+@keyframes rain { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.title-inner { position: relative; z-index: 1; width: min(760px, 100%); padding: 40px 24px; text-align: center; }
+.title-inner .eyebrow { font-family: var(--font-code); letter-spacing: .3em; color: #6f8a7d; font-size: 11px; }
+.logo { margin: 6px 0 2px; font-family: var(--font-display); font-weight: 400; font-size: clamp(38px, 9vw, 84px); line-height: 1.1; letter-spacing: .04em; }
+.logo-ja { position: relative; display: inline-block; color: #fff6e6; text-shadow: 0 0 6px rgba(239,166,58,.9), 0 0 28px rgba(239,166,58,.55), 4px 4px 0 #3a2508; animation: flicker 6s infinite; }
+.logo-ja::before, .logo-ja::after { content: attr(data-text); position: absolute; inset: 0; pointer-events: none; text-shadow: none; }
+.logo-ja::before { color: #ff4d6d; clip-path: inset(0 0 60% 0); animation: glitch 3.2s steps(1) infinite; opacity: .7; }
+.logo-ja::after { color: #4dd2ff; clip-path: inset(55% 0 0 0); animation: glitch 3.2s steps(1) infinite reverse; opacity: .7; }
+@keyframes glitch { 0%, 88%, 100% { transform: none; opacity: 0; } 89% { transform: translate(-4px, 1px); opacity: .8; } 92% { transform: translate(4px, -1px); opacity: .8; } 95% { transform: translate(-2px, 0); opacity: .6; } }
+@keyframes flicker { 0%, 96%, 100% { opacity: 1; } 97% { opacity: .55; } 98% { opacity: 1; } 99% { opacity: .7; } }
+.title-inner .cursor { display: inline-block; width: .45em; height: .85em; background: var(--amber); vertical-align: -0.06em; margin-left: .08em; animation: blink 1s steps(1) infinite; box-shadow: 0 0 14px rgba(239,166,58,.8); }
+.title-inner p { margin-left: auto; margin-right: auto; }
+.logo-en { max-width: none !important; margin: 6px auto 22px !important; line-height: 1.6; font-family: var(--font-code); font-size: 12px; letter-spacing: .18em; color: var(--muted); }
+.cast { display: flex; justify-content: center; gap: 18px; margin: 0 0 18px; flex-wrap: wrap; }
+.cast figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: bob 2.4s ease-in-out infinite; }
+.cast figure:nth-child(2) { animation-delay: .3s; } .cast figure:nth-child(3) { animation-delay: .6s; } .cast figure:nth-child(4) { animation-delay: .9s; }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+.cast svg { width: 64px; height: 64px; background: #161c26; border: 2px solid #3d4858; border-radius: 4px; image-rendering: pixelated; }
+.cast figcaption { font-family: var(--font-display); font-size: 13px; line-height: 1.2; }
+.cast small { display: block; font-family: var(--font-body); font-size: 10px; color: var(--muted); }
+.story { max-width: 46em; margin: 0 auto 14px !important; font-size: 14px; line-height: 1.9; color: #c9d1dc; }
+.story b { color: var(--amber); font-weight: 600; }
+.overlay.is-title .rules { text-align: left; max-width: 620px; margin: 0 auto 22px; background: rgba(30,37,49,.85); border: 1px solid var(--line); }
+.title-actions { justify-content: center; }
+.title-actions .btn-primary { flex: 0 1 auto; }
+.btn-start { font-family: var(--font-display); font-weight: 400; font-size: 20px !important; padding: 12px 36px !important; letter-spacing: .1em; animation: startPulse 1.6s ease-in-out infinite; }
+@keyframes startPulse { 50% { box-shadow: 0 3px 0 #a5660f, 0 0 34px rgba(239,166,58,.6); } }
+
+/* ---------- 結果画面 ---------- */
+.overlay.is-final .modal { border-color: #4a3a1c; box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 60px rgba(239,166,58,.12); }
+.final-score b { text-shadow: 0 0 20px rgba(239,166,58,.6); font-variant-numeric: tabular-nums; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
+.badge { font-family: var(--font-display); font-size: 13px; padding: 2px 10px; border-radius: 3px; border: 1px solid var(--line); background: var(--raise); }
+.badge.is-good { border-color: #2b6b4c; color: #8ff0bf; }
+.badge.is-bad { border-color: #6b2b24; color: #ff9a88; }
+.modal.revealing .reveal-row { opacity: 0; transform: translateX(-12px); }
+.reveal-row { transition: opacity .2s ease, transform .2s ease; }
+.modal.revealing .reveal-row.is-in { opacity: 1; transform: none; }
+.final-rank { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin: 18px 0 4px; padding: 14px 16px; background: var(--raise); border-radius: 6px; }
+.modal.revealing .final-rank { visibility: hidden; }
+.modal.revealed .final-rank .rank-stamp { animation: slamRank .5s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes slamRank { 0% { transform: rotate(-12deg) scale(2.6); opacity: 0; } 100% { transform: rotate(-12deg) scale(1); opacity: 1; } }
+.rank-stamp { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--shu); color: var(--shu); display: grid; place-items: center; transform: rotate(-12deg); font-weight: 600; font-size: 15px; letter-spacing: .1em; box-shadow: inset 0 0 0 3px rgba(212,54,31,.25); }
+.final-rank .final-title { font-family: var(--font-display); font-size: clamp(20px, 4vw, 28px); margin: 0 0 4px; color: #fff6e6; }
+.final-line { margin: 0 !important; color: var(--muted); font-size: 13px; }
+
+@media (max-width: 760px) {
+  .comm-dock { right: 8px; left: 8px; bottom: 8px; width: auto; }
+  .comm { grid-template-columns: 48px 1fr; }
+  .comm-face { width: 48px; height: 48px; }
+  .cast svg { width: 48px; height: 48px; }
+  .title-inner { padding: 28px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crt { display: none; }
+  .title-rain pre { animation: none; }
+}
+
 </style>
 </head>
 <body>
@@ -330,7 +528,8 @@ table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-
     <nav class="queue" id="queue" aria-label="調査依頼チケット"></nav>
     <div class="stats">
       <div class="stat"><span>JST</span><b id="clock">11/13 10:00</b></div>
-      <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat stat-score"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat stat-combo" id="stat-combo" hidden><span>COMBO</span><b id="combo">0</b></div>
       <div class="stat" id="stat-shimatsu"><span>始末書</span><b id="shimatsu">0</b></div>
       <div class="sound" role="group" aria-label="サウンド">
         <button class="snd" id="btn-bgm" type="button" aria-pressed="true" title="BGMのオン／オフ"><i></i>BGM</button>
@@ -375,6 +574,9 @@ table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-
 
 <div class="overlay" id="overlay" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="comm-dock" id="comm" aria-live="polite"></div>
+<div class="fx-layer" id="fx-layer" aria-hidden="true"></div>
+<div class="crt" aria-hidden="true"></div>
 
 <script src="sql-wasm.js"></script>
 <script>
@@ -1156,6 +1358,31 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
     start(t) { [60, 64, 67, 72].forEach((m, i) => pluck(t + i * 0.09, m, 0.5, 0.11, sfxBus)); bell(t + 0.38, 79, 0.07, 1.2); },
     // 先輩に聞く
     giveup(t) { [76, 72, 69].forEach((m, i) => pluck(t + i * 0.12, m, 0.4, 0.09, sfxBus)); },
+    // チケット着信：電話のベル
+    ring(t) {
+      for (let k = 0; k < 2; k++) {
+        for (let i = 0; i < 6; i++) {
+          const tt = t + k * 0.42 + i * 0.045;
+          tone({ t: tt, f: i % 2 ? 1568 : 1319, dur: 0.035, gain: 0.05, type: 'square', lp: 3200 });
+        }
+      }
+    },
+    // チケットの印字（プリンター）
+    print(t) { for (let i = 0; i < 5; i++) noise({ t: t + i * 0.07, dur: 0.05, gain: 0.05, filter: 'bandpass', freq: 900 + i * 120, q: 2.5 }); },
+    // 会話の文字送り
+    type(t) { tone({ t, f: 520 + Math.random() * 120, dur: 0.025, gain: 0.025, type: 'square', lp: 1800 }); },
+    // コンボ
+    combo(t) { [76, 81, 86, 88].forEach((m, i) => tone({ t: t + i * 0.05, f: mtof(m), dur: 0.12, gain: 0.07, type: 'square', lp: 4000 })); },
+    // スコアのカウントアップ
+    tick(t) { tone({ t, f: 1900, dur: 0.02, gain: 0.02, type: 'square', lp: 5000 }); },
+    // カットインの「シュッ」
+    whoosh(t) { noise({ t, dur: 0.32, gain: 0.12, filter: 'bandpass', freq: 400, freq2: 4200, q: 0.9, attack: 0.08 }); },
+    // 起動ログ
+    boot(t) { [0, 0.08, 0.16].forEach((d, i) => tone({ t: t + d, f: 660 * (1 + i * 0.5), dur: 0.05, gain: 0.05, type: 'square', lp: 3000 })); },
+    // 結果画面の1行（小さな印鑑）
+    reveal(t) { thud(t, 0.25); },
+    // 称号の発表
+    rank(t) { thud(t, 0.6); [72, 79, 84, 88, 91].forEach((m, i) => bell(t + 0.12 + i * 0.07, m, 0.1, 1.2)); },
     // 結果発表：ファンファーレ
     final(t) {
       const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];
@@ -1271,6 +1498,233 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
 
 </script>
 <script>
+/*
+ * ログは嘘をつかない — 演出（キャラクターの会話、カットイン、パーティクル、起動画面など）
+ * 画像ファイルは使わず、ドット絵は文字列から SVG を組み立てる。
+ * prefers-reduced-motion のときは動きを抑える。
+ */
+(function (root) {
+  'use strict';
+
+  const $ = (s, el) => (el || document).querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const reduced = () => root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const snd = (n) => { if (root.Sound) root.Sound.sfx(n); };
+
+  // ------------------------------------------------------------ ドット絵の登場人物（12×12）
+  const BASE_PAL = { k: '#1b2330', s: '#f1c8a0', e: '#1b2330', m: '#b0504a', w: '#eef1f4' };
+  const PEOPLE = {
+    senpai: {
+      name: '黒田', role: '先輩エンジニア',
+      pal: { h: '#262a33', g: '#9fd0ff', c: '#4a5568' },
+      px: ['...hhhhhh...', '..hhhhhhhh..', '.hhhhhhhhhh.', '.hhsssssssh.', '.hsgggsgggsh', '.hsgegsgegsh', '.hssssssssh.', '..sssmmsss..', '...ssssss...', '..cccsscccc.', '.cccccccccc.', 'cccccccccccc'],
+    },
+    cs: {
+      name: '佐倉', role: 'CSチーム',
+      pal: { h: '#8a5232', p: '#c0c8d4', c: '#e07a5f' },
+      px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'phhhhhhhhhhp', 'phhsssssshhp', 'phsesssseshp', 'phsssssssshp', 'phssmmmmsshp', '.hhssssssshh', '.hh..pp..hh.', '...cccccc...', '..cccwwccc..', '.cccccccccc.'],
+    },
+    infra: {
+      name: '大森', role: 'インフラ担当',
+      pal: { r: '#2f7d5b', h: '#3a3026', d: '#5a4030', c: '#556070' },
+      px: ['...rrrrrr...', '..rrrrrrrr..', '.rrrrrrrrrrr', '..hssssssh..', '..sesssses..', '..ssssssss..', '..sssmmsss..', '..dddddddd..', '...dddddd...', '...cccccc...', '.cccccccccc.', 'cccccccccccc'],
+    },
+    bucho: {
+      name: '部長', role: '運用部',
+      pal: { h: '#7a7a7a', d: '#3b3b3b', n: '#2b3240', t: '#d4361f' },
+      px: ['............', '...ssssss...', '..ssssssss..', '.hssssssssh.', '.hskksskksh.', '.hsessssesh.', '.hssssssssh.', '..dddddddd..', '...smmmms...', '...nnwwnn...', '.nnnnttnnnn.', 'nnnnnttnnnnn'],
+    },
+  };
+  function avatar(who) {
+    const p = PEOPLE[who]; if (!p) return '';
+    const pal = Object.assign({}, BASE_PAL, p.pal);
+    let rects = '';
+    p.px.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = pal[row[x]]; if (c) rects += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${c}"/>`; } });
+    return `<svg viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+  }
+
+  // ------------------------------------------------------------ 会話ウィンドウ
+  const queue = [];
+  let showing = null, typeTimer = null, hideTimer = null;
+  function say(who, html, opts) {
+    opts = opts || {};
+    const msg = { who, html, hold: opts.hold };
+    if (opts.interrupt) { queue.length = 0; close(true); }
+    queue.push(msg);
+    if (!showing) next();
+  }
+  function next() {
+    const msg = queue.shift();
+    if (!msg) { showing = null; return; }
+    showing = msg;
+    const p = PEOPLE[msg.who] || PEOPLE.senpai;
+    const box = $('#comm');
+    box.innerHTML = `<div class="comm comm-${msg.who}" role="status">
+      <div class="comm-face">${avatar(msg.who)}</div>
+      <div class="comm-body"><div class="comm-name">${esc(p.name)}<small>${esc(p.role)}</small></div><p class="comm-text"></p></div>
+      <button class="comm-close" type="button" aria-label="閉じる">▼</button></div>`;
+    const el = $('.comm', box), text = $('.comm-text', box);
+    requestAnimationFrame(() => el.classList.add('is-in'));
+    const plain = msg.html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    const done = () => { clearInterval(typeTimer); typeTimer = null; text.innerHTML = msg.html; el.classList.add('is-done'); armHide(plain.length); };
+    if (reduced()) { done(); return; }
+    let i = 0;
+    typeTimer = setInterval(() => {
+      i += 2;
+      text.textContent = plain.slice(0, i);
+      if (i % 6 === 0) snd('type');
+      if (i >= plain.length) done();
+    }, 22);
+    el.addEventListener('click', () => { if (typeTimer) done(); else close(); });
+    el.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    el.addEventListener('mouseleave', () => { if (!typeTimer) armHide(10); });
+  }
+  function armHide(len) {
+    clearTimeout(hideTimer);
+    const ms = showing && showing.hold ? showing.hold : Math.min(9000, 2600 + len * 55);
+    hideTimer = setTimeout(close, ms);
+  }
+  function close(silent) {
+    clearInterval(typeTimer); typeTimer = null; clearTimeout(hideTimer);
+    const el = $('#comm .comm');
+    if (el) { el.classList.remove('is-in'); el.classList.add('is-out'); setTimeout(() => { if (el.parentNode) el.remove(); }, 220); }
+    showing = null;
+    if (!silent) setTimeout(() => { if (!showing) next(); }, 240);
+  }
+
+  // ------------------------------------------------------------ カットイン
+  function cutin(kind, main, sub) {
+    const layer = $('#fx-layer');
+    const el = document.createElement('div');
+    el.className = `cutin is-${kind}`;
+    el.innerHTML = `<div class="cutin-band"><b>${esc(main)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>`;
+    layer.appendChild(el);
+    snd('whoosh');
+    setTimeout(() => el.remove(), reduced() ? 900 : 1700);
+  }
+
+  // ------------------------------------------------------------ 画面効果
+  function flash(kind) {
+    const layer = $('#fx-layer');
+    const el = document.createElement('div');
+    el.className = `flash is-${kind}`;
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+  function shake(el, hard) {
+    if (!el || reduced()) return;
+    const cls = hard ? 'shake-hard' : 'shake';
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(() => el.classList.remove(cls), 500);
+  }
+  function siren() {
+    const layer = $('#fx-layer');
+    const el = document.createElement('div');
+    el.className = 'siren';
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 1800);
+  }
+  function burst(x, y, opts) {
+    if (reduced()) return;
+    opts = opts || {};
+    const colors = opts.colors || ['#efa63a', '#3fb67f', '#eef1f4', '#d4361f', '#8db7ff'];
+    const n = opts.count || 36;
+    const layer = $('#fx-layer');
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i');
+      p.className = 'particle';
+      const size = 4 + Math.random() * 6;
+      p.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size * (Math.random() < 0.5 ? 1 : 0.5)}px;background:${colors[i % colors.length]}`;
+      layer.appendChild(p);
+      const ang = Math.random() * Math.PI * 2, sp = 90 + Math.random() * 220;
+      const dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp - 120;
+      const rot = (Math.random() - 0.5) * 900;
+      const a = p.animate([
+        { transform: 'translate(-50%,-50%) rotate(0deg)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${dx * 0.7}px), calc(-50% + ${dy * 0.6}px)) rotate(${rot * 0.6}deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + 260}px)) rotate(${rot}deg)`, opacity: 0 },
+      ], { duration: 900 + Math.random() * 600, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
+      a.onfinish = () => p.remove();
+    }
+  }
+  function burstFrom(el, opts) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, opts);
+  }
+  function floatText(el, text, kind) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const f = document.createElement('div');
+    f.className = `float-text is-${kind || 'plus'}`;
+    f.textContent = text;
+    f.style.left = `${r.left + r.width / 2}px`; f.style.top = `${r.top + r.height}px`;
+    $('#fx-layer').appendChild(f);
+    setTimeout(() => f.remove(), 1400);
+  }
+  function countUp(el, from, to, ms) {
+    if (!el) return;
+    if (reduced() || from === to) { el.textContent = to; return; }
+    const t0 = performance.now(), dur = ms || 700;
+    let lastTick = 0;
+    el.classList.add('is-counting');
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const v = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+      el.textContent = v;
+      if (now - lastTick > 60 && k < 1) { snd('tick'); lastTick = now; }
+      if (k < 1) requestAnimationFrame(step); else el.classList.remove('is-counting');
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ------------------------------------------------------------ 起動ログ
+  function boot(lines, done) {
+    const el = document.createElement('div');
+    el.className = 'boot';
+    el.innerHTML = '<pre class="boot-text"></pre><p class="boot-skip">クリックでスキップ</p>';
+    document.body.appendChild(el);
+    const pre = $('.boot-text', el);
+    let li = 0, ci = 0, timer = null, finished = false;
+    const finish = () => {
+      if (finished) return; finished = true;
+      clearTimeout(timer);
+      pre.textContent = lines.join('\n');
+      el.classList.add('is-out');
+      setTimeout(() => { el.remove(); done(); }, 380);
+    };
+    el.addEventListener('click', finish);
+    if (reduced()) { setTimeout(finish, 300); return; }
+    const tick = () => {
+      if (li >= lines.length) { timer = setTimeout(finish, 650); return; }
+      const line = lines[li];
+      ci = Math.min(line.length, ci + (line.startsWith('>') ? 2 : 6));
+      pre.textContent = lines.slice(0, li).join('\n') + (li ? '\n' : '') + line.slice(0, ci) + '█';
+      if (ci >= line.length) { li++; ci = 0; snd(line.includes('OK') ? 'boot' : 'type'); timer = setTimeout(tick, 170); }
+      else timer = setTimeout(tick, 16);
+    };
+    tick();
+  }
+
+  // ------------------------------------------------------------ タイトル背景のログ
+  function logRain(n) {
+    const svc = ['GameAPI', 'AuthService', 'ItemService', 'GemGrantService', 'MySQL', 'Redis', 'Batch', 'ChatService'];
+    const act = ['LOGIN SUCCESS', 'ENHANCE_SUCCESS', 'TRADE_OUT', 'GUILD_DONATE', 'PURCHASE', 'STORAGE_IN', 'DELETE', 'WORLD_TRANSFER', 'LOGIN FAILED', 'GACHA'];
+    const lv = ['INFO', 'INFO', 'INFO', 'WARN', 'ERROR'];
+    let s = '';
+    for (let i = 0; i < n; i++) {
+      const h = String(Math.floor(Math.random() * 24)).padStart(2, '0'), m = String(Math.floor(Math.random() * 60)).padStart(2, '0'), sec = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+      const l = lv[Math.floor(Math.random() * lv.length)];
+      s += `<span class="lv-${l.toLowerCase()}">2026-11-12 ${h}:${m}:${sec} ${l.padEnd(5)} ${svc[i % svc.length]} user=${10000 + Math.floor(Math.random() * 89999)} ${act[Math.floor(Math.random() * act.length)]}</span>\n`;
+    }
+    return s;
+  }
+
+  root.FX = { avatar, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, logRain, reduced, PEOPLE };
+})(window);
+
+</script>
+<script>
 (function () {
   'use strict';
 
@@ -1278,8 +1732,12 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE_KEY = 'logs-dont-lie:v1';
   const NOW_JST = '2026-11-13 10:00:00';
-  const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20;
+  const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20, COMBO = 10;
+  // ゲーム内時計（10:00 出社からの経過分）の進み方
+  const CLOCK = { query: 2, hint: 3, wrong: 8, solve: 10, giveup: 15 }, DAY_START = 10 * 60, DAY_END = 18 * 60;
   const snd = (name) => { if (window.Sound) window.Sound.sfx(name); };
+  const FXo = () => window.FX || null;
+  const say = (who, html, opts) => { const f = FXo(); if (f) f.say(who, html, opts); };
 
   // ---------------------------------------------------------------- 資料
   const NOTES = `
@@ -1369,10 +1827,6 @@ SELECT ip_address, device_id, COUNT(*) AS cnt
 FROM login_logs
 WHERE user_id = ${sub('U-38127')}
 GROUP BY ip_address, device_id;`,
-      starter: `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行
--- まずは問い合わせてきたユーザーを探してみよう
-SELECT * FROM users WHERE public_id = 'U-38127';
-`,
     },
     {
       no: 'CS-1112-0087', label: '武器消失', received: '2026-11-12 09:30', user: 'U-52904', world: 'ベータ', category: 'アイテム',
@@ -1564,31 +2018,58 @@ GROUP BY u.public_id, l.ip_address;`,
     },
   ];
 
+  // 満点 = 基本点 ×件数 ＋ ノーミス連続ボーナス（2件目から +10, +20, …）
+  const MAX_SCORE = CASES.length * BASE + COMBO * (CASES.length - 1) * CASES.length / 2;
   const RANKS = [
-    [680, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
-    [580, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
-    [450, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
-    [300, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
+    [860, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
+    [700, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
+    [520, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
+    [340, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
     [0, '研修やり直し', 'まずは users テーブルから。焦らず WHERE を書きましょう。'],
   ];
+  // ユーザーの怒り（問い合わせ時点、5段階）
+  const TEMPER = [4, 3, 4, 5, 3, 4, 2];
+  const PRAISE = ['いいね、ログどおりだ。', 'ナイス。根拠もばっちり。', 'さすが。CSも助かるって。', 'その調子。次も頼んだ。', '完璧。もう一人で回せるな。'];
+  const ARRIVE = ['新しいチケットです！', '次、お願いします！', 'こちらも急ぎでお願いします！', '問い合わせ、もう1件です！'];
 
   // ---------------------------------------------------------------- state
   let DB = null, KEYS = {}, COUNTS = {};
   let state = freshState();
+  function shuffled(n) {
+    const a = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
   function freshState() {
+    const order = shuffled(CASES.length); // チケットの届く順番は毎回ランダム
     return {
-      started: false, current: 0, shimatsu: 0,
-      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, queries: 0, heavy: false, choice: null, evidence: '' })),
+      started: false, current: order[0], shimatsu: 0, order, combo: 0, maxCombo: 0, minutes: 0,
+      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false })),
       drafts: {}, history: [],
     };
   }
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
   function loadLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; } }
   function validState(s) { return s && Array.isArray(s.cases) && s.cases.length === CASES.length && typeof s.current === 'number'; }
+  function validOrder(o) { return Array.isArray(o) && o.length === CASES.length && o.slice().sort((a, b) => a - b).every((v, i) => v === i); }
 
-  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score, 0) - state.shimatsu * SHIMATSU);
+  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score + (c.bonus || 0), 0) - state.shimatsu * SHIMATSU);
   const allDone = () => state.cases.every((c) => c.status !== 'open');
-  const firstOpen = () => { const i = state.cases.findIndex((c) => c.status === 'open'); return i < 0 ? CASES.length - 1 : i; };
+  const posOf = (i) => state.order.indexOf(i);
+  const firstOpen = () => { const i = state.order.find((k) => state.cases[k].status === 'open'); return i == null ? state.order[CASES.length - 1] : i; };
+  const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, TEMPER[i] + state.cases[i].wrong));
+  function clockText(extra) {
+    const m = DAY_START + state.minutes + (extra || 0);
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  }
+  function advance(kind) { state.minutes += CLOCK[kind] || 0; }
+  function starterFor(i) {
+    const c = CASES[i];
+    if (posOf(i) === 0 && !state.history.length) {
+      return `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行\n-- まずは問い合わせてきたユーザーを探してみよう\nSELECT * FROM users WHERE public_id = '${c.user}';\n`;
+    }
+    return `-- #${posOf(i) + 1} ${c.label}（${c.user}）\n`;
+  }
 
   // ---------------------------------------------------------------- time helpers
   function shiftDt(dt, minutes) {
@@ -1684,7 +2165,13 @@ GROUP BY u.public_id, l.ip_address;`,
     state.shimatsu++;
     save(); renderHud();
     snd('shimatsu');
-    toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
+    const f = FXo();
+    if (f) {
+      f.siren(); f.flash('red'); f.shake($('.app'), true);
+      f.cutin('shimatsu', `始末書 ${state.shimatsu}枚目`, `−${SHIMATSU}点`);
+      f.floatText($('#score'), `−${SHIMATSU}`, 'minus');
+      say('bucho', `${esc(SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。')} ……始末書、${state.shimatsu}枚目だぞ。`, { interrupt: true });
+    } else toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
   }
 
   const MYSQL_TIPS = [
@@ -1715,6 +2202,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     const cs = state.cases[state.current];
     cs.queries++;
+    if (cs.status === 'open') advance('query');
     const blocks = [];
     let ok = true, totalRows = 0, heavy = false;
     for (let k = 0; k < stmts.length; k++) {
@@ -1741,13 +2229,16 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     out.innerHTML = blocks.join('');
     out.scrollTop = 0;
+    out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
     pushHistory(src, ok, ok ? `${totalRows.toLocaleString()}行` : 'エラー');
     snd('run');
     if (heavy && !cs.heavy) {
       cs.heavy = true;
       snd('warn');
-      toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
+      if (FXo()) { FXo().flash('amber'); say('infra', `いま重いクエリ流したの誰？ ${totalRows.toLocaleString()}行も引いたらDBが悲鳴あげるって。<code>WHERE</code> や <code>LIMIT</code> で絞ってくれ。`, { interrupt: true }); }
+      else toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
     } else snd(ok ? 'ok' : 'error');
+    renderClock();
     save();
   }
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
@@ -1769,7 +2260,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   function pushHistory(sql, ok, meta) {
-    state.history.unshift({ sql: sql.trim().slice(0, 2000), ok, meta, c: state.current + 1 });
+    state.history.unshift({ sql: sql.trim().slice(0, 2000), ok, meta, c: posOf(state.current) + 1 });
     state.history = state.history.slice(0, 40);
     renderHistory();
   }
@@ -1823,25 +2314,49 @@ GROUP BY u.public_id, l.ip_address;`,
 
   // ---------------------------------------------------------------- render
   function jstLabel(s) { const [d, t] = s.split(' '); const [, mo, da] = d.split('-'); return `${+mo}/${+da} ${t}`; }
+  let shownScore = null;
   function renderHud() {
-    $('#score').textContent = totalScore();
+    const total = totalScore();
+    const scoreEl = $('#score');
+    if (shownScore == null || !FXo()) scoreEl.textContent = total;
+    else if (shownScore !== total) FXo().countUp(scoreEl, shownScore, total, 800);
+    shownScore = total;
     $('#shimatsu').textContent = state.shimatsu;
     $('#stat-shimatsu').classList.toggle('warn', state.shimatsu > 0);
+    const comboEl = $('#stat-combo');
+    comboEl.hidden = state.combo < 2;
+    $('#combo').textContent = `×${state.combo}`;
+    renderClock();
     const q = $('#queue');
-    const unlocked = firstOpen();
-    q.innerHTML = CASES.map((c, i) => {
-      const st = state.cases[i].status;
-      const cls = ['chip', i === state.current ? 'is-current' : '', st === 'solved' ? 'is-solved' : '', st === 'gaveup' ? 'is-gaveup' : ''].join(' ');
-      const dis = i > unlocked && st === 'open' ? 'disabled' : '';
-      return `<button class="${cls}" data-case="${i}" ${dis} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${i + 1}</span>${esc(c.label)}</button>`;
-    }).join('') + (allDone() ? '<button class="chip is-current" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+    const unlockedPos = posOf(firstOpen());
+    q.innerHTML = state.order.map((i, p) => {
+      const c = CASES[i], st = state.cases[i];
+      const locked = p > unlockedPos && st.status === 'open';
+      const isNew = !locked && st.status === 'open' && !st.seen;
+      const cls = ['chip', i === state.current ? 'is-current' : '', st.status === 'solved' ? 'is-solved' : '', st.status === 'gaveup' ? 'is-gaveup' : '', isNew ? 'is-new' : ''].join(' ');
+      return `<button class="${cls}" data-case="${i}" ${locked ? 'disabled' : ''} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${p + 1}</span>${locked ? '<span class="lock">？？？</span>' : esc(c.label)}</button>`;
+    }).join('') + (allDone() ? '<button class="chip is-current is-final" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+  }
+  function renderClock() {
+    const el = $('#clock');
+    el.textContent = `11/13 ${clockText()}`;
+    el.parentElement.classList.toggle('warn', DAY_START + state.minutes >= DAY_END);
   }
 
-  function renderTicket() {
+  function angerHtml(i) {
+    const lv = angerOf(i), st = state.cases[i];
+    const face = st.status === 'solved' ? '鎮火' : lv >= 5 ? '激怒' : lv >= 4 ? '激おこ' : lv >= 3 ? 'イライラ' : 'ムッ';
+    return `<div class="anger lv-${lv}" aria-label="ユーザーの怒り ${lv}/5"><span class="anger-label">ユーザーの怒り</span><span class="anger-bar">${[1, 2, 3, 4, 5].map((k) => `<i class="${k <= lv ? 'on' : ''}"></i>`).join('')}</span><span class="anger-face">${face}</span></div>`;
+  }
+
+  function renderTicket(arrive) {
     const c = CASES[state.current], st = state.cases[state.current];
     const t = $('#ticket');
+    t.classList.remove('arrive');
+    if (arrive) { void t.offsetWidth; t.classList.add('arrive'); }
     t.innerHTML = `
       <div class="ticket-head"><h2>問い合わせ票</h2><span class="tno">No. ${esc(c.no)}</span></div>
+      ${angerHtml(state.current)}
       <dl class="ticket-grid">
         <dt>受付日時</dt><dd>2026/${esc(jstLabel(c.received + ':00').replace(/:00$/, ''))} JST</dd>
         <dt>公開ID</dt><dd>${esc(c.user)}</dd>
@@ -1888,7 +2403,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const solved = st.status === 'solved';
     const right = c.options.find((o) => o[0] === c.answer)[1];
     return `<div class="card resolution">
-      <div class="points"><b>${solved ? '+' + st.score : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回` : '先輩に聞いたので 0 点'}</span></div>
+      <div class="points"><b>${solved ? '+' + (st.score + (st.bonus || 0)) : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回${st.bonus ? `・コンボ +${st.bonus}` : ''}` : '先輩に聞いたので 0 点'}</span></div>
       <div><h3>正しい結論</h3><p class="explain">${esc(right)}</p></div>
       <div><h3>ユーザーへの回答</h3><p class="reply">${esc(c.reply)}</p></div>
       ${solved ? `<p class="reaction">ユーザーからの返信：「${esc(c.reaction)}」</p>` : ''}
@@ -1917,7 +2432,7 @@ GROUP BY u.public_id, l.ip_address;`,
   function renderAll() {
     renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderHistory();
     const draft = state.drafts[state.current];
-    setEditor(draft != null ? draft : (CASES[state.current].starter || `-- #${state.current + 1} ${CASES[state.current].label}（${CASES[state.current].user}）\n`));
+    setEditor(draft != null ? draft : starterFor(state.current));
     if (!$('#results').dataset.used) renderResultsEmpty();
   }
 
@@ -1946,104 +2461,215 @@ GROUP BY u.public_id, l.ip_address;`,
     if (okC && okE) {
       st.status = 'solved';
       st.score = Math.max(FLOOR, BASE - st.wrong * WRONG - st.hints * HINT);
+      const perfect = st.wrong === 0 && st.hints === 0;
+      state.combo = perfect ? state.combo + 1 : 0;
+      state.maxCombo = Math.max(state.maxCombo || 0, state.combo);
+      st.bonus = perfect && state.combo >= 2 ? (state.combo - 1) * COMBO : 0;
+      advance('solve');
       save();
       snd('solved');
       renderHud(); renderTicket(); renderAnswer();
       const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
       $('#ticket-scroll').scrollTop = 0;
+      const f = FXo();
+      if (f) {
+        const pts = st.score + st.bonus;
+        f.flash('white');
+        f.cutin('solve', perfect ? 'PERFECT!' : 'CASE CLOSED', `解決　+${pts}`);
+        setTimeout(() => f.burstFrom($('#ticket .stamp') || $('#ticket')), 120);
+        f.floatText($('#score'), `+${pts}`, 'plus');
+        if (st.bonus) setTimeout(() => { snd('combo'); f.cutin('combo', `${state.combo} COMBO`, `ボーナス +${st.bonus}`); }, 1500);
+        const line = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+        say('senpai', `${line}${state.combo >= 2 ? `ノーミス${state.combo}連続だ。` : ''}ユーザーからも返信が来てるぞ。`, { interrupt: true });
+      }
       return;
     }
     st.wrong++;
-    save(); renderHud();
+    if (state.combo) state.combo = 0;
+    advance('wrong');
+    save(); renderHud(); renderTicket();
     snd('reject');
-    const msg = !okC && !okE ? '先輩「結論も根拠も、もう一度ログを見直してみて」'
-      : !okC ? '先輩「根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？」'
-        : '先輩「結論はいい線。でも根拠の値が違う。どのログが決め手？」';
+    const line = !okC && !okE ? '結論も根拠も、もう一度ログを見直してみて。'
+      : !okC ? '根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？'
+        : '結論はいい線。でも根拠の値が違う。どのログが決め手？';
     fb.hidden = false; fb.className = 'feedback';
-    fb.textContent = `差し戻されました（−${WRONG}点）。${msg}`;
+    fb.textContent = `差し戻されました（−${WRONG}点）。先輩「${line}」`;
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const t = $('#ticket');
     t.querySelectorAll('.stamp.is-reject').forEach((x) => x.remove());
     t.insertAdjacentHTML('beforeend', stampHtml('差戻', 'is-reject fade'));
-    t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake');
+    const f = FXo();
+    if (f) { f.flash('red'); f.shake(t, true); f.cutin('reject', '差し戻し', `−${WRONG}点　ユーザーの怒りが上がった`); say('senpai', line, { interrupt: true }); }
+    else { t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
   }
   function showHint() {
     const i = state.current, c = CASES[i], st = state.cases[i];
     if (st.hints >= c.hints.length) return;
-    st.hints++; save(); renderHud();
+    st.hints++; advance('hint'); save(); renderHud();
     snd('hint');
     $('#hints').insertAdjacentHTML('beforeend', `<li><b>${st.hints}</b>${c.hints[st.hints - 1]}</li>`);
     if (st.hints >= c.hints.length) $('#btn-hint').disabled = true;
+    say('senpai', c.hints[st.hints - 1], { interrupt: true });
   }
   let giveupArmed = false;
   function giveUp(btn) {
     if (!giveupArmed) { giveupArmed = true; btn.textContent = '本当に聞く？（このチケットは0点）'; btn.classList.add('btn-danger'); snd('pop'); return; }
     giveupArmed = false;
     const st = state.cases[state.current];
-    st.status = 'gaveup'; st.score = 0; save();
+    st.status = 'gaveup'; st.score = 0; st.bonus = 0; state.combo = 0; advance('giveup'); save();
     snd('giveup');
     renderHud(); renderTicket(); renderAnswer();
     const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+    say('senpai', 'しょうがない、一緒に見ようか。解説と模範SQLを置いておくから、手を動かして確かめてみて。', { interrupt: true });
   }
-  function goto(i) {
-    if (i === state.current) return;
+  // 新しいチケットが届いたときの演出（電話 → 印字 → CS担当のひとこと）
+  function arrive(i) {
+    const st = state.cases[i], c = CASES[i];
+    st.seen = true; save();
+    snd('ring');
+    setTimeout(() => snd('print'), 520);
+    renderTicket(true);
+    renderHud();
+    const f = FXo();
+    if (f) {
+      f.cutin('incoming', 'INCOMING TICKET', `#${posOf(i) + 1}　${c.label}　${c.category}`);
+      const greet = posOf(i) === 0 ? ARRIVE[0] : ARRIVE[1 + Math.floor(Math.random() * (ARRIVE.length - 1))];
+      say('cs', `${greet}「${esc(c.label)}」の件、${esc(c.note)}`);
+    }
+  }
+  function goto(i, opts) {
+    if (i === state.current && !(opts && opts.force)) return;
     state.drafts[state.current] = $('#sql').value;
     state.current = i; giveupArmed = false; save();
     snd('page');
     renderHud(); renderTicket(); renderAnswer();
     const draft = state.drafts[i];
-    setEditor(draft != null ? draft : (CASES[i].starter || `-- #${i + 1} ${CASES[i].label}（${CASES[i].user}）\n`));
+    setEditor(draft != null ? draft : starterFor(i));
     $('#ticket-scroll').scrollTop = 0;
+    if (state.cases[i].status === 'open' && !state.cases[i].seen) arrive(i);
   }
   function next() {
-    if (allDone()) { snd('final'); showFinal(); } else goto(firstOpen());
+    if (allDone()) showFinal(true); else goto(firstOpen());
   }
 
   // ---------------------------------------------------------------- modals
-  function openModal(html) { $('#modal').innerHTML = html; $('#overlay').hidden = false; const b = $('#modal button'); if (b) b.focus(); }
-  function closeModal() { $('#overlay').hidden = true; }
+  function openModal(html, kind) {
+    const ov = $('#overlay');
+    ov.className = 'overlay' + (kind ? ` is-${kind}` : '');
+    $('#modal').innerHTML = html; ov.hidden = false;
+    const b = $('#modal .btn-primary') || $('#modal button'); if (b) b.focus({ preventScroll: true });
+  }
+  function closeModal() { $('#overlay').hidden = true; finalTimers.forEach(clearTimeout); finalTimers = []; }
   function showIntro() {
     const resume = state.started && !allDone();
+    const f = FXo();
+    const rain = f ? f.logRain(70) : '';
+    const cast = f ? ['senpai', 'cs', 'infra', 'bucho'].map((k) => `<figure class="cast-${k}">${f.avatar(k)}<figcaption>${esc(f.PEOPLE[k].name)}<small>${esc(f.PEOPLE[k].role)}</small></figcaption></figure>`).join('') : '';
     openModal(`
-      <p class="eyebrow">株式会社ノクトゲームス　運用チーム　配属初日</p>
-      <h1>ログは嘘をつかない<span class="cursor"></span></h1>
-      <p class="lead">サーバーエンジニア問い合わせ対応シミュレーター</p>
-      <p>あなたは運営中のMMORPG『クロノリア・オンライン』のサーバーエンジニア。CSチームから「キャラが消えた」「課金が反映されない」といった調査依頼のチケットが回ってきます。</p>
-      <p>本番DB（参照専用レプリカ）にSQLを投げてログを確かめ、事実にもとづいてユーザーへ回答してください。ユーザーの言い分が正しいとは限りません。</p>
-      <dl class="rules">
-        <dt>回答</dt><dd>調査結論を選び、決め手になった値（ログIDなど）を根拠として添える</dd>
-        <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}</dd>
-        <dt>禁止</dt><dd>更新系のSQL。流そうとすると始末書（−${SHIMATSU}）</dd>
-        <dt>日時</dt><dd>DBも問い合わせも日本時間（JST）</dd>
-        <dt>音</dt><dd>BGMと効果音が鳴ります。右上の BGM / SE で切り替え</dd>
-      </dl>
-      <div class="btn-row">
-        ${resume ? `<button class="btn btn-primary" type="button" data-act="resume">続きから（#${firstOpen() + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
-          : '<button class="btn btn-primary" type="button" data-act="start">出社する</button>'}
-      </div>`);
+      <div class="title-rain" aria-hidden="true"><pre>${rain}${rain}</pre></div>
+      <div class="title-inner">
+        <p class="eyebrow">NOCT GAMES ／ OPS TEAM ／ DAY 1</p>
+        <h1 class="logo"><span class="logo-ja" data-text="ログは嘘をつかない">ログは嘘をつかない</span><span class="cursor"></span></h1>
+        <p class="logo-en">LOGS DON'T LIE ── サーバーエンジニア問い合わせ対応シミュレーター</p>
+        <div class="cast">${cast}</div>
+        <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
+        <dl class="rules">
+          <dt>任務</dt><dd>ランダムな順番で届く7件のチケットを調査し、結論と決め手の値（ログIDなど）で回答</dd>
+          <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス</dd>
+          <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
+          <dt>時計</dt><dd>10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
+          <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
+        </dl>
+        <div class="btn-row title-actions">
+          ${resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
+            : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
+        </div>
+      </div>`, 'title');
   }
+  function beginDay(isResume) {
+    closeModal();
+    snd('start');
+    if (window.Sound) window.Sound.playBgm();
+    const first = () => {
+      const i = state.current;
+      if (state.cases[i].status === 'open' && !state.cases[i].seen) {
+        say('senpai', isResume ? 'おかえり。続きをやろう。' : `おはよう。今日の問い合わせは${CASES.length}件、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`);
+        arrive(i);
+      } else say('senpai', 'おかえり。続きをやろう。チケットは上のバーから選べるぞ。');
+      $('#sql').focus({ preventScroll: true });
+    };
+    const f = FXo();
+    if (isResume || !f) { first(); return; }
+    f.boot([
+      'NOCT GAMES  ops-terminal v2.6',
+      '> login ops-team ............ OK',
+      '> connect prod-replica-01 (READ ONLY) ... OK',
+      "> SELECT COUNT(*) FROM tickets WHERE status = 'OPEN';",
+      `  ${CASES.length}`,
+      '> 本日の業務を開始します',
+    ], first);
+  }
+
   function rankOf(score) { return RANKS.find((r) => score >= r[0]); }
-  function showFinal() {
+  function overtimeText() {
+    const end = DAY_START + state.minutes;
+    if (end <= DAY_END) return '定時退社';
+    const over = end - DAY_END;
+    return `残業 ${Math.floor(over / 60)}時間${over % 60}分`;
+  }
+  let finalTimers = [];
+  function showFinal(animate) {
+    const f = FXo();
+    if (f) f.closeSay();
+    if (animate) snd('final');
     const score = totalScore(); const [, title, line] = rankOf(score);
     const solved = state.cases.filter((c) => c.status === 'solved').length;
-    const rows = CASES.map((c, i) => { const s = state.cases[i]; return `<tr><td>#${i + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${s.status === 'solved' ? '解決' : s.status === 'gaveup' ? '先輩に聞いた' : '未対応'}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score}</td></tr>`; }).join('');
+    const rows = state.order.map((i, p) => {
+      const c = CASES[i], s = state.cases[i];
+      const res = s.status === 'solved' ? (s.wrong === 0 && s.hints === 0 ? 'PERFECT' : '解決') : s.status === 'gaveup' ? '先輩に聞いた' : '未対応';
+      return `<tr class="reveal-row"><td>#${p + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${res}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score + (s.bonus || 0)}</td></tr>`;
+    }).join('');
     openModal(`
-      <p class="eyebrow">本日の業務終了　2026.11.13</p>
-      <div class="final-score"><b>${score}</b><span>/ ${CASES.length * BASE} 点　${solved}件解決</span></div>
-      <p class="final-title"><span>称号</span>${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p>
-      <p>${esc(line)}</p>
+      <p class="eyebrow">本日の業務終了　2026.11.13　退勤 ${clockText()}</p>
+      <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${MAX_SCORE} 点　${solved}件解決</span></div>
+      <div class="badges"><span class="badge ${DAY_START + state.minutes <= DAY_END ? 'is-good' : 'is-bad'}">${overtimeText()}</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span></div>
       <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）</td><td class="r"></td></tr></tfoot></table>
+      <div class="final-rank" id="final-rank">
+        <div class="rank-stamp"><span>称号</span></div>
+        <div><p class="final-title">${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p><p class="final-line">${esc(line)}</p></div>
+      </div>
       <div class="btn-row">
         <button class="btn btn-primary" type="button" data-act="copy">結果をコピー</button>
         <button class="btn" type="button" data-act="review">チケットを見直す</button>
         <button class="btn btn-ghost" type="button" data-act="reset">最初から遊ぶ</button>
-      </div>`);
+      </div>`, 'final');
+    const modal = $('#modal');
+    if (!animate || !f || f.reduced()) { modal.classList.add('revealed'); return; }
+    // 1行ずつ判を押す → スコアのカウントアップ → 称号
+    modal.classList.add('revealing');
+    const rowsEl = [...modal.querySelectorAll('.reveal-row')];
+    let t = 700;
+    rowsEl.forEach((r) => { finalTimers.push(setTimeout(() => { r.classList.add('is-in'); snd('reveal'); }, t)); t += 300; });
+    finalTimers.push(setTimeout(() => f.countUp($('#final-score'), 0, score, 1300), t));
+    t += 1500;
+    finalTimers.push(setTimeout(() => {
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+      snd('rank'); f.burstFrom($('.rank-stamp'), { count: 50 });
+    }, t));
+    const skip = (e) => {
+      if (!modal.classList.contains('revealing') || e.target.closest('button')) return;
+      finalTimers.forEach(clearTimeout); finalTimers = [];
+      rowsEl.forEach((r) => r.classList.add('is-in'));
+      $('#final-score').textContent = score;
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+    };
+    modal.addEventListener('click', skip, { once: false });
   }
   function resultText() {
     const score = totalScore(); const [, title] = rankOf(score);
-    const marks = state.cases.map((c) => (c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×')).join('');
-    return `『ログは嘘をつかない』 ${score}/${CASES.length * BASE}点 ${marks} 称号「${title}」 始末書${state.shimatsu}枚`;
+    const marks = state.order.map((i) => { const c = state.cases[i]; return c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×'; }).join('');
+    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${marks} 称号「${title}」 最大${state.maxCombo || 0}コンボ 退勤${clockText()} 始末書${state.shimatsu}枚`;
   }
 
   // ---------------------------------------------------------------- toast
@@ -2079,7 +2705,7 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.id === 'btn-next') next();
       else if (b.id === 'btn-model') { setEditor(CASES[state.current].model, false); runSql(); }
       else if (b.dataset.case != null) goto(+b.dataset.case);
-      else if (b.dataset.final) { snd('final'); showFinal(); }
+      else if (b.dataset.final) showFinal(true);
       else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
@@ -2092,12 +2718,13 @@ GROUP BY u.public_id, l.ip_address;`,
         $('#tab-schema').hidden = hist; $('#tab-history').hidden = !hist;
       } else if (b.dataset.act) {
         const a = b.dataset.act;
-        if (a === 'start' || a === 'resume') { state.started = true; save(); closeModal(); snd('start'); if (window.Sound) window.Sound.playBgm(); $('#sql').focus(); }
+        if (a === 'start' || a === 'resume') { state.started = true; save(); beginDay(a === 'resume'); }
         else if (a === 'reset') {
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'もう一度押すと記録を消して最初から'; snd('pop'); return; }
           state = freshState(); state.started = true; save();
-          snd('start'); if (window.Sound) window.Sound.playBgm();
-          $('#results').dataset.used = ''; renderAll(); closeModal();
+          shownScore = null;
+          $('#results').dataset.used = ''; renderAll();
+          beginDay(false);
         } else if (a === 'review') closeModal();
         else if (a === 'copy') {
           const text = resultText();
@@ -2134,11 +2761,13 @@ GROUP BY u.public_id, l.ip_address;`,
     if (validState(saved)) {
       state = Object.assign(freshState(), saved);
       state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
+      // 順番を持たない古い保存データは、元の並び順のまま続ける
+      if (!validOrder(saved.order)) state.order = CASES.map((_, i) => i);
     }
     bind();
     bindSound();
     renderAll();
-    if (allDone() && state.started) { showFinal(); if (window.Sound) window.Sound.playBgm(); } else showIntro();
+    if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
     initDb();
   }
   const hot = window.claude && window.claude.hot;

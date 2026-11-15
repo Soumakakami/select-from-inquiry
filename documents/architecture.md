@@ -10,10 +10,11 @@
 
 | ファイル | 役割 |
 |---|---|
-| `src/index.html` | テンプレート。`/*__CSS__*/`、`/*__DATAGEN__*/`、`/*__AUDIO__*/`、`/*__GAME__*/` の位置に中身が埋め込まれる |
+| `src/index.html` | テンプレート。`/*__CSS__*/`、`/*__DATAGEN__*/`、`/*__AUDIO__*/`、`/*__FX__*/`、`/*__GAME__*/` の位置に中身が埋め込まれる |
 | `src/style.css` | 見た目。冒頭の `:root` に色とフォントのトークン |
 | `src/datagen.js` | ダミーDBの生成（[database.md](database.md)）。ブラウザでは `window.LogDB`、Node では `module.exports` |
 | `src/audio.js` | BGMと効果音（`window.Sound`）。Web Audio API で合成するので音声ファイルはない |
+| `src/fx.js` | 演出（`window.FX`）。ドット絵の登場人物（12×12の文字列からSVGを生成）、会話ウィンドウ、カットイン、フラッシュ、サイレン、紙吹雪、得点のポップアップとカウントアップ、起動ログ、タイトル背景のログ。画像ファイルはない |
 | `src/game.js` | ゲーム本体。資料（テーブル定義）、ケース定義、SQL実行、採点、画面描画、保存 |
 | `build.js` | `src/` を1枚の `docs/index.html` にまとめ、`node_modules/sql.js/dist` から3ファイルを `docs/` にコピー |
 | `docs/` | 公開物：`index.html`、`sql-wasm.js`、`sql-wasm.wasm`、`sql-asm.js`、`.nojekyll` |
@@ -38,7 +39,14 @@
 - 音声ファイルは使わず、`src/audio.js` が Web Audio API（オシレーターとノイズ）でその場で合成する。ダウンロードもライセンスも不要で、CSPにも引っかからない。
 - ブラウザの自動再生制限のため、最初のクリック／キー入力で `AudioContext` を作る。それまでは何も鳴らない。
 - BGM：78BPM のローファイ。コード進行 Fmaj7 → G6 → Em7 → Am9 にパッド、ベース、エレピ風の8小節メロディ、控えめなドラム。先読みスケジューラ（25msごとに0.15秒先まで予約）で鳴らす。「出社する」を押すと始まり、タブが隠れている間は止まる。
-- 効果音：SQL実行（`run` / `ok` / `error`）、正解（`solved`）、差し戻し（`reject`）、ヒント（`hint`）、始末書（`shimatsu`）、重いクエリ（`warn`）、チケット切り替え（`page`）、出社（`start`）、先輩に聞く（`giveup`）、結果発表（`final`）、小さな通知（`pop`）。`game.js` から `snd('名前')` で呼ぶ。
+- 効果音：SQL実行（`run` / `ok` / `error`）、正解（`solved`）、差し戻し（`reject`）、ヒント（`hint`）、始末書（`shimatsu`）、重いクエリ（`warn`）、チケット切り替え（`page`）、チケット着信（`ring` / `print`）、会話の文字送り（`type`）、コンボ（`combo`）、カットイン（`whoosh`）、スコア加算（`tick`）、起動ログ（`boot`）、出社（`start`）、先輩に聞く（`giveup`）、結果発表（`final` / `reveal` / `rank`）、小さな通知（`pop`）。`game.js` / `fx.js` から `snd('名前')` で呼ぶ。
+
+## 演出
+
+- `game.js` は `window.FX` があれば演出を出し、なければ従来のトーストなどで動く（`fx.js` が読めなくてもゲームは遊べる）。
+- 会話ウィンドウは右下に固定。キューに積んで順に表示し、差し戻しや始末書のような即時の反応は `interrupt` で割り込む。文字数に応じて自動で閉じ、ホバー中は閉じない。
+- カットイン・フラッシュ・紙吹雪は `#fx-layer`（`pointer-events: none`）に一時的に追加して、終わったら消す。紙吹雪は Web Animations API。
+- `prefers-reduced-motion: reduce` のときは揺れ・紙吹雪・文字送り・起動ログのアニメーションを省く。
 - HUD右上の「BGM」「SE」でオン／オフ。設定は `localStorage` のキー `logs-dont-lie:audio` に保存。
 
 ## 状態と保存

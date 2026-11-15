@@ -9,7 +9,7 @@ SQLite（[sql.js](https://github.com/sql-js/sql.js)）がブラウザ内で動�
 
 | パス | 内容 |
 |---|---|
-| `src/` | ソース（`index.html` テンプレート、`style.css`、`game.js`、`datagen.js`、`audio.js`） |
+| `src/` | ソース（`index.html` テンプレート、`style.css`、`game.js`、`datagen.js`、`audio.js`、`fx.js`） |
 | `docs/` | **ビルド済みの公開ファイル**。GitHub Pages はここを配信する（手で編集しない） |
 | `documents/` | 設計・仕様・運用のドキュメント（下記） |
 | `build.js` | `src/` を1枚の `index.html` にまとめ、sql.js を `docs/` にコピーする |
