@@ -5,6 +5,8 @@
 ゲーム会社のサーバーエンジニアになって、ユーザーからの問い合わせ（「キャラが消えた！」「課金が反映されない！」など）を、SQL でログテーブルを調べて事実確認し、回答するブラウザゲームです。
 SQLite（[sql.js](https://github.com/sql-js/sql.js)）がブラウザ内で動くので、サーバーは不要です。
 
+**▶ 遊ぶ：https://soumakakami.github.io/select-from-inquiry/**
+
 ## フォルダ構成
 
 | パス | 内容 |

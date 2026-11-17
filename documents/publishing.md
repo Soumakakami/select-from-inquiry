@@ -1,8 +1,9 @@
 # 公開
 
-## 現状（2026-11-15）
+## 現状（2026-11-17）
 
-- リポジトリ `Soumakakami/select-from-inquiry` は **非公開**。GitHub Pages も **まだ有効にしていない**。
+- リポジトリ `Soumakakami/select-from-inquiry` は **公開（Public）**。
+- **GitHub Pages で公開中**：https://soumakakami.github.io/select-from-inquiry/ （`main` ブランチの `/docs` から配信）
 - 開発中の確認用に、Claude のアーティファクトとしても同じ版を置いている（非公開。リンク共有で人に遊んでもらうこともできる）。
 
 ## 公開方法の検討結果
