@@ -22,7 +22,7 @@ SQLite（[sql.js](https://github.com/sql-js/sql.js)）がブラウザ内で動�
 ## ドキュメント
 
 - [documents/game-design.md](documents/game-design.md) … ゲーム仕様（遊び方、採点、演出、画面構成）
-- [documents/cases.md](documents/cases.md) … 問い合わせ7件の内容・正解・罠と、ケースの追加手順 **※ネタバレあり**
+- [documents/cases.md](documents/cases.md) … 問い合わせ100件（手作り7件＋自動生成93件）の内容・正解・罠と、ケースの追加手順 **※ネタバレあり**
 - [documents/database.md](documents/database.md) … テーブル定義とダミーデータの作り方
 - [documents/architecture.md](documents/architecture.md) … 技術構成、ビルド、テスト
 - [documents/publishing.md](documents/publishing.md) … 公開方針（GitHub Pages）と公開手順、公開前の注意点

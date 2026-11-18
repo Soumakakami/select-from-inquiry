@@ -29,6 +29,11 @@
       pal: { r: '#2f7d5b', h: '#3a3026', d: '#5a4030', c: '#556070' },
       px: ['...rrrrrr...', '..rrrrrrrr..', '.rrrrrrrrrrr', '..hssssssh..', '..sesssses..', '..ssssssss..', '..sssmmsss..', '..dddddddd..', '...dddddd...', '...cccccc...', '.cccccccccc.', 'cccccccccccc'],
     },
+    hacker: {
+      name: '影狼', role: 'U-90417',
+      pal: { h: '#3a3f5c', k: '#141625', r: '#e43b44', m: '#2a2d40' },
+      px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh', 'hhkkkkkkkkhh', 'hhkrkkkkrkhh', 'hhkkkkkkkkhh', 'hhkkkmmkkkhh', '.hhkkkkkkhh.', '.hhhkkkkhhh.', '..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh'],
+    },
     bucho: {
       name: '部長', role: '運用部',
       pal: { h: '#7a7a7a', d: '#3b3b3b', n: '#2b3240', t: '#d4361f' },
@@ -127,8 +132,9 @@
   function burst(x, y, opts) {
     if (reduced()) return;
     opts = opts || {};
-    const colors = opts.colors || ['#f7a823', '#63c74d', '#f4f1e4', '#e43b44', '#2ce8f5', '#fee761'];
+    const colors = opts.colors || (opts.fire ? ['#e43b44', '#f7a823', '#fee761', '#f77622'] : opts.smoke ? ['#8b8fa8', '#5d6182', '#c3c8e8'] : ['#f7a823', '#63c74d', '#f4f1e4', '#e43b44', '#2ce8f5', '#fee761']);
     const n = opts.count || 36;
+    const rising = opts.fire || opts.smoke;
     const layer = $('#fx-layer');
     for (let i = 0; i < n; i++) {
       const p = document.createElement('i');
@@ -137,13 +143,15 @@
       p.style.cssText = `left:${Math.round(x)}px;top:${Math.round(y)}px;width:${size}px;height:${size}px;background:${colors[i % colors.length]}`;
       layer.appendChild(p);
       const ang = Math.random() * Math.PI * 2, sp = 90 + Math.random() * 220;
-      const dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp - 120;
-      const rot = (Math.random() - 0.5) * 900;
+      const dx = rising ? (Math.random() - 0.5) * (opts.spread || 160) : Math.cos(ang) * sp;
+      const dy = rising ? -(80 + Math.random() * 260) : Math.sin(ang) * sp - 120;
+      const fall = rising ? 0 : 260;
+      const rot = rising ? 0 : (Math.random() - 0.5) * 900;
       const a = p.animate([
         { transform: 'translate(-50%,-50%) rotate(0deg)', opacity: 1 },
         { transform: `translate(calc(-50% + ${dx * 0.7}px), calc(-50% + ${dy * 0.6}px)) rotate(${rot * 0.6}deg)`, opacity: 1, offset: 0.55 },
-        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + 260}px)) rotate(${rot}deg)`, opacity: 0 },
-      ], { duration: 900 + Math.random() * 600, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + fall}px)) rotate(${rot}deg)`, opacity: 0 },
+      ], { duration: (rising ? 1200 : 900) + Math.random() * 600, delay: rising ? Math.random() * (opts.duration || 300) : 0, easing: rising ? 'steps(8, end)' : 'cubic-bezier(.2,.7,.4,1)', fill: 'both' });
       a.onfinish = () => p.remove();
     }
   }
@@ -215,7 +223,131 @@
     flame: ['...r....', '..rr..r.', '..rrr.r.', '.rroorr.', '.rooyor.', 'rroyyorr', '.royyor.', '..rrrr..'],
     search: ['.kkkk...', 'kcwcck..', 'kwccck..', 'kcccck..', '.kkkko..', '.....oo.', '......oo', '.......o'],
     ticket: ['........', 'kkkkkkkk', 'kwwwwwwk', 'kwkkkkwk', 'kwwwwwwk', 'kwkkwwwk', 'kkkkkkkk', '........'],
+    phone: ['........', '.kkkkkk.', 'kwwwwwwk', 'kwkkkkwk', '.kwwwwk.', 'kwwwwwwk', 'kwkwkwwk', 'kkkkkkkk'],
   };
+  // 大きめのスプライト（ハンマー 16×16、丸めた紙 8×8、ゴミ箱 12×12）
+  const SPRITES = {
+    hammer: { pal: { k: '#1c1f33', g: '#9aa3b8', w: '#e8ecf5', d: '#5d6578', b: '#9c5a2c' },
+      px: ['................', '..kkkkkkkkkkkk..', '..kwwgggggggdk..', '..kwggggggggdk..', '..kgggggggggdk..', '..kddddddddddk..', '..kkkkkkkkkkkk..',
+        '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kkkk......'] },
+    ball: { pal: { k: '#1c1f33', w: '#fbf7ea', p: '#d8d0b8', r: '#e43b44' },
+      px: ['..kkkk..', '.kwwpwk.', 'kwpwwrwk', 'kwwwpwpk', 'kpwrwwwk', 'kwwpwwwk', '.kwwwpk.', '..kkkk..'] },
+    bin: { pal: { k: '#1c1f33', g: '#9aa3b8', d: '#6b7388' },
+      px: ['..kkkkkkkk..', '.kggggggggk.', 'kkkkkkkkkkkk', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '..kkkkkkkk..'] },
+  };
+  function sprite(name, scale) {
+    const sp = SPRITES[name]; if (!sp) return '';
+    const s = scale || 4, w = sp.px[0].length, h = sp.px.length;
+    let rects = '';
+    sp.px.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = sp.pal[row[x]]; if (c) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; } });
+    return `<svg width="${w * s}" height="${h * s}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+  }
+
+  // ------------------------------------------------------------ 証拠のログを叩きつける
+  function evidence(cardHtml) {
+    const el = document.createElement('div');
+    el.className = 'evidence';
+    el.innerHTML = `<div class="evidence-card">${cardHtml}</div><p class="evidence-shout">ログは嘘をつかない！</p>`;
+    $('#fx-layer').appendChild(el);
+    snd('whoosh');
+    setTimeout(() => { snd('smash'); shake($('.app'), true); flash('white'); }, reduced() ? 0 : 260);
+    setTimeout(() => el.remove(), reduced() ? 900 : 1500);
+  }
+
+  // ------------------------------------------------------------ 禁断のDROP（夢オチ）
+  function dropSequence(sqlText, table, done) {
+    const el = document.createElement('div');
+    el.className = 'dropseq';
+    el.innerHTML = '<pre class="dropseq-term"></pre><div class="dropseq-dream" hidden><p class="dream-main">……という夢を見た。</p><p class="dream-sub">※現実の本番DBでは、絶対にやめましょう。</p></div>';
+    document.body.appendChild(el);
+    const term = $('.dropseq-term', el), dream = $('.dropseq-dream', el);
+    const desk = $('.desk');
+    const lines = [
+      `prod-replica-01> ${sqlText.replace(/\s+/g, ' ').trim()}`,
+      `OK. テーブル ${table} を削除しました。(0.01 sec)`,
+      '',
+      `[ALERT] GameAPI: no such table: ${table}`,
+      '[ALERT] ログイン成功率 99.8% → 0.0%',
+      '[ALERT] 同時接続 52,391 → 0',
+    ];
+    const timers = [];
+    const at = (ms, fn) => timers.push(setTimeout(fn, reduced() ? Math.min(ms, 300) : ms));
+    let finished = false;
+    const finish = () => {
+      if (finished) return; finished = true;
+      timers.forEach(clearTimeout);
+      desk.classList.remove('crumble');
+      el.classList.add('is-out');
+      setTimeout(() => { el.remove(); done(); }, 400);
+    };
+    lines.forEach((l, i) => at(250 + i * 260, () => { term.textContent += (i ? '\n' : '') + l; snd(i < 2 ? 'type' : 'warn'); }));
+    at(2000, () => {
+      el.classList.add('is-burning');
+      desk.classList.add('crumble');
+      snd('explode'); siren(); flash('red');
+      const r = desk.getBoundingClientRect();
+      for (let k = 0; k < 5; k++) setTimeout(() => burst(r.left + r.width * (0.1 + k * 0.2), r.bottom - 10, { fire: true, count: 26, spread: 120, duration: 600 }), k * 120);
+      say('infra', 'うわあああああ！！！ 本番のテーブルが消えた！！！ バックアップ！ バックアップどこ！？', { interrupt: true, hold: 2200 });
+      say('bucho', '…………（気絶）', { hold: 1600 });
+    });
+    at(5400, () => { term.hidden = true; dream.hidden = false; el.classList.add('is-dream'); desk.classList.remove('crumble'); });
+    at(8200, finish);
+    el.addEventListener('click', () => { if (!dream.hidden) finish(); else { timers.forEach(clearTimeout); term.hidden = true; dream.hidden = false; el.classList.add('is-dream'); desk.classList.remove('crumble'); timers.push(setTimeout(finish, 1800)); } });
+  }
+
+  // ------------------------------------------------------------ 始末書を丸めてゴミ箱へ
+  function trashThrow(onResult) {
+    if ($('.trash-game')) return;
+    const el = document.createElement('div');
+    el.className = 'trash-game';
+    el.innerHTML = `<p class="trash-tip">始末書を丸めた！　ゴミ箱が来たらクリックで投げろ</p>
+      <div class="trash-lane"><div class="trash-bin">${sprite('bin', 4)}</div></div>
+      <button class="trash-ball" type="button" aria-label="丸めた始末書を投げる">${sprite('ball', 4)}</button>`;
+    document.body.appendChild(el);
+    snd('crumple');
+    const ball = $('.trash-ball', el), bin = $('.trash-bin', el), lane = $('.trash-lane', el);
+    let done = false;
+    const end = (hit) => {
+      if (done) return; done = true;
+      setTimeout(() => { el.classList.add('is-out'); setTimeout(() => el.remove(), 300); onResult(hit); }, hit == null ? 0 : 700);
+    };
+    const timeout = setTimeout(() => end(null), 7000);
+    ball.addEventListener('click', () => {
+      if (done) return;
+      clearTimeout(timeout);
+      const lr = lane.getBoundingClientRect(), br = bin.getBoundingClientRect(), bl = ball.getBoundingClientRect();
+      const target = lr.left + lr.width / 2; // ボールは常にレーンの真ん中へ飛ぶ
+      const binCenter = br.left + br.width / 2;
+      const hit = Math.abs(binCenter - target) < 30;
+      bin.style.animationPlayState = 'paused';
+      snd('toss');
+      const dx = target - (bl.left + bl.width / 2), dy = (br.top + 8) - (bl.top + bl.height / 2);
+      ball.animate([
+        { transform: 'translate(0,0) rotate(0)' },
+        { transform: `translate(${dx * 0.5}px, ${dy - 90}px) rotate(180deg)`, offset: 0.5 },
+        { transform: `translate(${dx}px, ${hit ? dy : dy + 30}px) rotate(360deg)` },
+      ], { duration: 520, easing: 'steps(10, end)', fill: 'forwards' });
+      setTimeout(() => { snd(hit ? 'clang' : 'plop'); if (hit) burstFrom(bin, { count: 12 }); el.classList.add(hit ? 'is-hit' : 'is-miss'); }, 520);
+      end(hit);
+    });
+  }
+
+  // ------------------------------------------------------------ BANハンマー
+  function banHammer(done) {
+    const el = document.createElement('div');
+    el.className = 'ban';
+    el.innerHTML = `<div class="ban-card">${avatar('hacker')}<div><b>影狼</b><span>U-90417</span><em class="ban-status">ACTIVE</em></div></div>
+      <div class="ban-hammer">${sprite('hammer', 8)}</div><p class="ban-shout">BANNED!!</p>`;
+    document.body.appendChild(el);
+    const card = $('.ban-card', el);
+    setTimeout(() => {
+      snd('hammer'); shake($('.app'), true); flash('white');
+      el.classList.add('is-hit');
+      $('.ban-status', el).textContent = 'BANNED';
+      burstFrom(card, { count: 40 });
+    }, reduced() ? 100 : 700);
+    setTimeout(() => { el.classList.add('is-out'); setTimeout(() => { el.remove(); done && done(); }, 300); }, reduced() ? 1200 : 2600);
+  }
   function icon(name, scale) {
     const px = ICONS[name]; if (!px) return '';
     const s = scale || 3;
@@ -288,5 +420,5 @@
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" aria-hidden="true"><defs>${defs}</defs>${s}</svg>`;
   }
 
-  root.FX = { avatar, icon, skyline, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, reduced, PEOPLE };
+  root.FX = { avatar, icon, sprite, skyline, evidence, dropSequence, trashThrow, banHammer, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, reduced, PEOPLE };
 })(window);

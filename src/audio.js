@@ -162,6 +162,25 @@
     reveal(t) { thud(t, 0.25); },
     // 称号の発表
     rank(t) { thud(t, 0.6); [72, 79, 84, 88, 91].forEach((m, i) => bell(t + 0.12 + i * 0.07, m, 0.1, 1.2)); },
+    // 証拠を叩きつける「バンッ」
+    smash(t) { thud(t, 0.75); noise({ t, dur: 0.18, gain: 0.3, filter: 'lowpass', freq: 1800, q: 0.6 }); tone({ t, f: 90, f2: 40, glide: 0.2, dur: 0.3, gain: 0.4, type: 'triangle' }); },
+    // 紙を丸める
+    crumple(t) { for (let i = 0; i < 7; i++) noise({ t: t + i * 0.045 + Math.random() * 0.02, dur: 0.04, gain: 0.08, filter: 'bandpass', freq: 2500 + Math.random() * 2500, q: 1.5 }); },
+    // 投げる
+    toss(t) { noise({ t, dur: 0.25, gain: 0.08, filter: 'bandpass', freq: 600, freq2: 2400, q: 1, attack: 0.05 }); },
+    // ゴミ箱に入った「カコーン」
+    clang(t) { tone({ t, f: 1240, dur: 0.4, gain: 0.08, type: 'square', lp: 3000 }); tone({ t, f: 1870, dur: 0.3, gain: 0.05, type: 'triangle' }); thud(t, 0.2); },
+    // 外れた「ポテッ」
+    plop(t) { tone({ t, f: 220, f2: 110, glide: 0.1, dur: 0.12, gain: 0.12, type: 'triangle' }); },
+    // 爆発・崩壊
+    explode(t) { noise({ t, dur: 1.4, gain: 0.45, filter: 'lowpass', freq: 2400, freq2: 120, q: 0.4 }); tone({ t, f: 70, f2: 28, glide: 1.2, dur: 1.3, gain: 0.5, type: 'sine' }); thud(t, 0.8); },
+    // ハンマー
+    hammer(t) { thud(t, 0.9); tone({ t, f: 880, dur: 0.25, gain: 0.08, type: 'square', lp: 2500 }); noise({ t, dur: 0.3, gain: 0.3, filter: 'lowpass', freq: 1200 }); },
+    // 電話線を抜く／挿す
+    unplug(t) { tone({ t, f: 440, f2: 110, glide: 0.25, dur: 0.3, gain: 0.08, type: 'square', lp: 1500 }); },
+    plug(t) { tone({ t, f: 330, f2: 990, glide: 0.12, dur: 0.15, gain: 0.07, type: 'square', lp: 2500 }); SFX.ring(t + 0.25); },
+    // 炎上
+    enjo(t) { SFX.shimatsu(t); noise({ t: t + 0.1, dur: 1.2, gain: 0.15, filter: 'bandpass', freq: 800, freq2: 3000, q: 0.5 }); },
     // 結果発表：ファンファーレ
     final(t) {
       const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];

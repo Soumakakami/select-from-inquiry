@@ -6,6 +6,8 @@
   const STORE_KEY = 'logs-dont-lie:v1';
   const NOW_JST = '2026-11-13 10:00:00';
   const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20, COMBO = 10;
+  // 「ゲームだからいいよね」の機能
+  const SPEC_SCORE = 60, BACKDOOR_SCORE = 80, ENJO = 50, BIG_ROWS = 200000;
   // ゲーム内時計（10:00 出社からの経過分）の進み方
   const CLOCK = { query: 2, hint: 3, wrong: 8, solve: 10, giveup: 15 }, DAY_START = 10 * 60, DAY_END = 18 * 60;
   const snd = (name) => { if (window.Sound) window.Sound.sfx(name); };
@@ -38,18 +40,67 @@
     { name: 'log_login', desc: 'ログイン試行の記録（失敗も含む）。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ログイン先アカウント'], ['result', 'SUCCESS / FAILED'], ['ip_address', '接続元IP'],
       ['country', 'IPから推定した国コード'], ['device_id', '端末ID'], ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'log_item', desc: 'アイテムの増減・移動。', cols: [
+    { name: 'log_item', desc: 'アイテム（消耗品・素材・チケットなど）の増減・移動。装備は log_equip。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['item_id', 'アイテム → mst_items'],
-      ['item_uid', '装備の個体ID（消耗品はNULL）'],
-      ['action', 'GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE'],
-      ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'],
+      ['action', 'GET / USE / TRADE_OUT / TRADE_IN / EXPIRE'],
+      ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元（source）など'],
       ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'mst_items', desc: 'アイテムマスタ。', cols: [
-      ['item_id', 'アイテムID'], ['name', '名前'], ['category', '武器 / 防具 / 消耗品 など'], ['rarity', 'N / R / SR / SSR / UR'], ['tradable', '1 = トレード可、0 = 不可']] },
+    { name: 'mst_items', desc: 'アイテムマスタ（消耗品・素材・チケット・マウント）。', cols: [
+      ['item_id', 'アイテムID'], ['name', '名前'], ['category', '消耗品 / 素材 / マウント'], ['rarity', 'N / R / SR / SSR'], ['tradable', '1 = トレード可、0 = 不可']] },
+    { name: 'mst_equips', desc: '装備マスタ（武器・防具・アクセサリ）。', cols: [
+      ['equip_id', '装備ID'], ['name', '名前'], ['category', '武器 / 防具 / アクセサリ'], ['rarity', 'N / R / SR / SSR / UR'],
+      ['tradable', '1 = トレード可、0 = 不可'], ['attack', '攻撃力'], ['defense', '防御力']] },
+    { name: 'usr_equips', desc: 'いま持っている装備（1個体1行）。売却・消滅したものは消える。', cols: [
+      ['equip_uid', '装備の個体ID（例: EQ-1234-5678）'], ['user_id', '持ち主 → usr_users'], ['character_id', '装備しているキャラ'],
+      ['equip_id', '装備 → mst_equips'], ['level', '強化レベル（+n）'], ['in_storage', '1 = 倉庫の中'], ['obtained_at', '手に入れた日時 <em>JST</em>']] },
+    { name: 'log_equip', desc: '装備の入手・強化・倉庫・トレード・売却。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['equip_id', '装備 → mst_equips'], ['equip_uid', '装備の個体ID'],
+      ['action', 'GET / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / TRADE_OUT / TRADE_IN / SELL'],
+      ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'], ['created_at', '発生日時 <em>JST</em>']] },
     { name: 'log_currency', desc: 'ゴールド・ジェムの増減。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['currency', 'GOLD / GEM'], ['amount', '増減（マイナスは消費）'], ['balance_after', '変動後の残高'],
-      ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE'],
-      ['ref_id', '関連ID（ギルド、決済の transaction_id など）'], ['created_at', '発生日時 <em>JST</em>']] },
+      ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE / PRESENT / MISSION'],
+      ['ref_id', '関連ID（stage:〜、gacha:〜、present:〜、mission:〜、guild:〜、決済の transaction_id など）'], ['created_at', '発生日時 <em>JST</em>']] },
+    { name: 'mst_events', desc: 'イベント。', cols: [
+      ['event_id', 'イベントID（例: ev_halloween）'], ['name', 'イベント名'], ['event_type', 'SEASONAL / RAID / CAMPAIGN / RANKING / WORLD / LOGIN_BONUS'],
+      ['world_id', '対象ワールド（NULL = 全ワールド）'], ['start_at', '開始 <em>JST</em>'], ['end_at', '終了 <em>JST</em>'], ['description', '説明']] },
+    { name: 'mst_gachas', desc: 'ガチャ。log_currency の ref_id「gacha:〜」と同じID。', cols: [
+      ['gacha_id', 'ガチャID'], ['name', 'ガチャ名'], ['event_id', '関連イベント → mst_events'], ['gem_single', '1回のジェム'], ['gem_ten', '10連のジェム'],
+      ['start_at', '開始 <em>JST</em>'], ['end_at', '終了 <em>JST</em>（NULL = 常設）']] },
+    { name: 'mst_gacha_lineups', desc: 'ガチャの排出内容と確率。', cols: [
+      ['lineup_id', 'ID'], ['gacha_id', 'ガチャ → mst_gachas'], ['reward_type', 'ITEM / EQUIP'], ['reward_id', 'item_id か equip_id'],
+      ['rarity', 'N / R / SR / SSR'], ['rate', '確率（千分率。ガチャごとに合計 1000）']] },
+    { name: 'usr_gachas', desc: 'ユーザーごと・ガチャごとに回した回数（1ユーザー×1ガチャで1行）。', cols: [
+      ['user_id', 'ユーザー → usr_users'], ['gacha_id', 'ガチャ → mst_gachas'], ['draw_count', '回した回数の合計（10連は10回）'],
+      ['created_at', '初めて回した日時 <em>JST</em>'], ['updated_at', '最後に回した日時 <em>JST</em>']] },
+    { name: 'mst_gacha_ceilings', desc: 'ガチャの天井（交換型）。1回まわすごとに1ポイント。必要数に届くと、どれか1つと交換できる。', cols: [
+      ['ceiling_id', 'ID'], ['gacha_id', 'ガチャ → mst_gachas'], ['required_count', '交換に必要なポイント（回数）'],
+      ['reward_type', 'EQUIP'], ['reward_id', '交換できる装備 → mst_equips（同じガチャに複数行あれば選べる）']] },
+    { name: 'usr_gacha_ceilings', desc: 'ユーザーごと・ガチャごとの天井ポイント。', cols: [
+      ['user_id', 'ユーザー → usr_users'], ['gacha_id', 'ガチャ → mst_gachas'], ['ceiling_count', 'いまのポイント（交換すると必要数だけ減る）'],
+      ['exchanged_count', '交換した回数'], ['updated_at', '最終更新 <em>JST</em>']] },
+    { name: 'mst_missions', desc: 'ミッション。', cols: [
+      ['mission_id', 'ミッションID'], ['name', 'ミッション名'], ['mission_type', 'DAILY（毎日0時リセット）/ WEEKLY（毎週月曜0時リセット）/ EVENT / BEGINNER'],
+      ['event_id', '関連イベント → mst_events'], ['condition_type', 'LOGIN / STAGE_CLEAR / RAID_CLEAR / GACHA_DRAW / ENHANCE_SUCCESS / GUILD_DONATE / CHARACTER_CREATE'],
+      ['condition_value', '達成に必要な数（寄付はゴールド）'], ['reward_type', 'GEM / ITEM'], ['reward_id', 'item_id（ジェムはNULL）'], ['reward_quantity', '報酬の数']] },
+    { name: 'usr_missions', desc: 'ユーザーごとのミッションの進み具合。デイリー・ウィークリーは今の周期の分だけ。', cols: [
+      ['user_id', 'ユーザー → usr_users'], ['mission_id', 'ミッション → mst_missions'], ['progress', '進み具合（達成に必要な数で止まる）'],
+      ['cleared_at', '達成した日時 <em>JST</em>。NULLなら未達成'], ['received_at', '報酬を受け取った日時 <em>JST</em>。NULLなら未受け取り'], ['updated_at', '最終更新 <em>JST</em>']] },
+    { name: 'log_gacha', desc: 'ガチャで出たもの（1回1行。10連なら10行）。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['gacha_id', 'ガチャ → mst_gachas'], ['currency_log_id', 'ジェムを払ったログ → log_currency'],
+      ['reward_type', 'ITEM / EQUIP'], ['reward_id', 'item_id か equip_id'], ['rarity', 'レアリティ'], ['created_at', '発生日時 <em>JST</em>']] },
+    { name: 'mst_stages', desc: 'ステージ（通常・イベント・レイド）。', cols: [
+      ['stage_id', 'ステージID'], ['name', 'ステージ名'], ['area', 'エリア'], ['stage_type', 'NORMAL / EVENT / RAID'], ['event_id', '関連イベント → mst_events'],
+      ['recommended_level', '推奨レベル'], ['stamina', '消費スタミナ'], ['boss_name', 'ボス'], ['drop_item_id', '主なドロップ → mst_items']] },
+    { name: 'log_stage', desc: 'ステージの挑戦結果。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['stage_id', 'ステージ → mst_stages'], ['result', 'CLEAR / FAILED'],
+      ['score', 'スコア（レイドは与ダメージ）'], ['clear_time_sec', 'クリアまでの秒数'], ['created_at', '発生日時 <em>JST</em>']] },
+    { name: 'usr_rankings', desc: 'イベントのランキング。', cols: [
+      ['event_id', 'イベント → mst_events'], ['user_id', 'ユーザー'], ['score', 'スコア（与ダメージ、寄付額など）'], ['rank', '順位'], ['updated_at', '最終更新 <em>JST</em>']] },
+    { name: 'usr_presents', desc: 'プレゼントBOX（運営からの配布）。', cols: [
+      ['present_id', 'プレゼントID'], ['user_id', '受取人'], ['present_type', 'GEM / ITEM'], ['reward_id', 'item_id（ジェムはNULL）'], ['quantity', '個数'],
+      ['title', '件名'], ['source', 'LOGIN_BONUS / MAINTENANCE / EVENT'], ['created_at', '届いた日時 <em>JST</em>'], ['expires_at', '受け取り期限 <em>JST</em>'],
+      ['received_at', '受け取った日時 <em>JST</em>。NULLなら未受け取り']] },
     { name: 'log_payment', desc: 'ストア決済の記録。', cols: [
       ['payment_id', '決済ID'], ['user_id', 'ユーザー'], ['product_id', '商品 → mst_products'], ['price_jpy', '金額（円）'],
       ['store', 'GooglePlay / AppStore / WebShop'], ['transaction_id', 'ストアの取引ID'], ['status', 'SUCCESS / CANCELED'], ['created_at', '決済日時 <em>JST</em>']] },
@@ -75,7 +126,9 @@
         ['d', 'キャラクターは消えていない（表示の問題）'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', key: 'c1_delete' },
+      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', key: 'c1_delete', table: 'log_character' },
+      spec: true,
+      honest: '「何もしていません」とのことですが、11月3日 21:42 にあなたのiPhoneから、キャラ名をわざわざ手で入力して削除しています。消したのはあなたです。ちなみに『シルフィ』という名前は、もう別の方が使っています。',
       hints: [
         'usr_users テーブルで公開ID（U-38127）を検索すると、内部の <code>user_id</code> が分かります。ほかのテーブルは user_id で絞り込みます。',
         'usr_characters でそのユーザーのキャラを確認しましょう。<code>deleted_at</code> に日時が入っていれば削除済みです。',
@@ -112,21 +165,23 @@ GROUP BY ip_address, device_id;`,
         ['d', '倉庫の不具合による消失'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（log_item）', placeholder: '例: 1234', key: 'c2_destroy' },
+      evidence: { label: '決め手になったログの log_id（log_equip）', placeholder: '例: 1234', key: 'c2_destroy', table: 'log_equip' },
+      spec: true,
+      honest: '倉庫の不具合ではありません。保護の巻物をケチって +10 を狙い、ご自分で溶かしています。+9 で止めておけば、今も最強の大剣でした。倉庫は無実です。',
       hints: [
-        'アイテム名は <code>mst_items</code> にあります。item_id を調べて log_item を絞り込みましょう。',
-        'log_item をそのユーザー・そのアイテムで絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。',
+        '武器や防具は <code>mst_equips</code> にあります。equip_id を調べて log_equip を絞り込みましょう。',
+        'log_equip をそのユーザー・その装備で絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。いま持っているかは <code>usr_equips</code> でも分かります。',
         '最後のほうのログに注目。倉庫から出した後、何をしている？ detail の <code>protect</code> は保護の巻物を使ったかどうかです。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、『煌星の大剣』は11月11日 22:01 に倉庫から取り出され、22:03 に+9への強化に成功した後、22:05 に保護の巻物を使用せずに+10への強化を行い、強化失敗により消滅したことを確認いたしました。仕様どおりの挙動のため、補填はいたしかねます。何卒ご理解ください。',
       reaction: '……+9になった勢いでいけると思ったんです。巻物、ケチるんじゃなかった。',
-      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>mst_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
-      model: `SELECT * FROM mst_items WHERE name = '煌星の大剣';
+      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>mst_equips.tradable = 0</code>）なので、トレードの線はそもそもありません。<code>usr_equips</code> にもこの個体はもう残っていません。別ユーザーも同じ大剣を持っていますが、equip_uid が違う別の個体です。',
+      model: `SELECT * FROM mst_equips WHERE name = '煌星の大剣';
 
-SELECT log_id, action, item_uid, detail, created_at
-FROM log_item
+SELECT log_id, action, equip_uid, detail, created_at
+FROM log_equip
 WHERE user_id = ${sub('U-52904')}
-  AND item_id = (SELECT item_id FROM mst_items WHERE name = '煌星の大剣')
+  AND equip_id = (SELECT equip_id FROM mst_equips WHERE name = '煌星の大剣')
 ORDER BY created_at;`,
     },
     {
@@ -140,7 +195,9 @@ ORDER BY created_at;`,
         ['d', '該当時間帯にゴールド減少の記録はない'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（log_currency）', placeholder: '例: 1234', key: 'c3_donate' },
+      evidence: { label: '決め手になったログの log_id（log_currency）', placeholder: '例: 1234', key: 'c3_donate', table: 'log_currency' },
+      spec: true,
+      honest: '乗っ取りではありません。ゼロをひとつ多く押したのは、あなたの親指です。ギルドの皆さんは、きっと泣いて喜んでいると思います。',
       hints: [
         "log_currency をそのユーザーの <code>currency = 'GOLD'</code> で絞り込みましょう。",
         "11月8日に絞り込みましょう。<code>created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'</code> のように書けます。",
@@ -172,6 +229,8 @@ WHERE user_id = ${sub('U-27730')}
       ],
       answer: 'b',
       evidence: { label: '『漆黒の堕天使』が今いるワールド名', placeholder: '例: ベータ', accept: (v) => { const n = norm(v); return n.includes('ガンマ') || n === '3' || n === 'GAMMA' || n === 'WORLD3' || n === 'ワールド3'; } },
+      spec: true,
+      honest: '消えていません。あなたがご自分でジェムを払って、ガンマへお引っ越しされました。「!!」を2つ付ける前に、ほかのワールドを覗いてみてください。あと、キャラ名はもう少し何とかなりませんでしたか。',
       hints: [
         "usr_characters で <code>name = '漆黒の堕天使'</code> を検索すると……複数ヒットするかも。user_id で持ち主を確かめましょう。",
         'world_id は <code>mst_worlds</code> テーブルと対応しています。問い合わせのワールドと一致していますか？',
@@ -201,6 +260,9 @@ ORDER BY created_at;`,
       ],
       answer: 'c',
       evidence: { label: '該当する決済の transaction_id', placeholder: '例: GPA.0000-0000-0000-00000', accept: (v) => norm(v) === 'GPA.3391-0042-7781-55102' },
+      spec: false,
+      backdoor: true,
+      honest: '完全にこちらの不具合です。本当に、本当に申し訳ありません。デッドロックを起こすコードを書いた人には、私から強めに言っておきます。……たぶん、半年前の私です。',
       hints: [
         'log_payment をそのユーザーで見てみましょう。<code>status</code> にも注目。',
         "決済が SUCCESS なら、log_currency に <code>ref_id = transaction_id</code> の GEM 付与（reason = 'PURCHASE'）があるはずです。",
@@ -231,9 +293,12 @@ WHERE user_id = ${sub('U-73315')};`,
       ],
       answer: 'b',
       evidence: { label: 'アイテムの移動先アカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-90417') },
+      spec: false,
+      ban: true,
+      honest: 'ほかのサイトと同じパスワードを使い回すのは、今日でやめてください。犯人のアカウントは、今からこの手でハンマーで叩き潰します。',
       hints: [
         'log_login で直近のログインを見てみましょう。result・ip_address・country・device_id に注目。',
-        "log_item の <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> はアイテムを渡した相手の user_id です。",
+        "弓や防具は log_equip、エリクサーは log_item です。どちらも <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> は渡した相手の user_id です。",
         'target_user_id を usr_users と JOIN すると公開IDが分かります。いつ作られたアカウントかも見てみましょう。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月12日 12:10 に、お客様が普段ご利用の端末とは異なる海外の環境からログインがあり、その直後にアイテムが別のアカウントへ移動していたことを確認いたしました。第三者による不正ログインの可能性が高いため、至急パスワードの変更をお願いいたします。アイテムの扱いについては、担当部署で調査のうえ改めてご連絡いたします。',
@@ -245,6 +310,16 @@ WHERE user_id = ${sub('U-61458')}
   AND created_at >= '2026-11-10'
 ORDER BY created_at;
 
+-- 装備のトレード
+SELECT e.log_id, m.name, u.public_id AS to_public_id,
+       u.created_at AS to_created_at, e.created_at
+FROM log_equip e
+JOIN mst_equips m USING (equip_id)
+JOIN usr_users u ON u.user_id = e.target_user_id
+WHERE e.user_id = ${sub('U-61458')} AND e.action = 'TRADE_OUT'
+ORDER BY e.created_at;
+
+-- アイテムのトレード
 SELECT i.log_id, m.name, i.quantity, u.public_id AS to_public_id,
        u.created_at AS to_created_at, i.created_at
 FROM log_item i
@@ -265,6 +340,8 @@ ORDER BY i.created_at;`,
       ],
       answer: 'b',
       evidence: { label: '『ミルク』がいるアカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-31846') },
+      spec: true,
+      honest: '引き継ぎコードは「発行」しただけでは引き継げません。新しい端末で「入力」してください。説明画面に3回書いてあります。3回です。',
       hints: [
         '問い合わせアカウント（U-15562）の作成日時と、持っているキャラを確認しましょう。',
         "『ミルク』という名前のキャラは何人もいます。usr_characters を name で検索し、持ち主を洗い出しましょう。",
@@ -291,33 +368,39 @@ GROUP BY u.public_id, l.ip_address;`,
     },
   ];
 
-  // 満点 = 基本点 ×件数 ＋ ノーミス連続ボーナス（2件目から +10, +20, …）
-  const MAX_SCORE = CASES.length * BASE + COMBO * (CASES.length - 1) * CASES.length / 2;
+  // 元の7問：ユーザーの怒り（問い合わせ時点、5段階）と難しさ（1〜3）
+  [[4, 1], [3, 1], [4, 2], [5, 2], [3, 2], [4, 3], [2, 3]].forEach(([temper, tier], i) => Object.assign(CASES[i], { id: `b${i + 1}`, temper, tier }));
+  // 1日5件 × 20日 = 100件。残りの93件は DB ができてから casegen.js で作る
+  const DAY_SIZE = 5, TOTAL_CASES = 100, COMBO_CAP = 5;
+  const comboBonus = (combo) => Math.min(combo - 1, COMBO_CAP) * COMBO; // 2件目から +10、6件目以降は +50 で頭打ち
+  let MAX_SCORE = 0;
+  const maxScoreOf = (n) => { let s = n * BASE; for (let k = 1; k <= n; k++) s += Math.max(0, comboBonus(k)); return s; };
+  // 称号は満点に対する割合で決まる
   const RANKS = [
-    [860, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
-    [700, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
-    [520, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
-    [340, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
+    [0.9, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
+    [0.75, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
+    [0.55, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
+    [0.35, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
     [0, '研修やり直し', 'まずは usr_users テーブルから。焦らず WHERE を書きましょう。'],
   ];
-  // ユーザーの怒り（問い合わせ時点、5段階）
-  const TEMPER = [4, 3, 4, 5, 3, 4, 2];
+  // 1日の評価（その日の5件の得点）
+  const GRADES = [[560, 'S', '文句なし。明日もこの調子で。'], [450, 'A', 'いい一日だった。'], [320, 'B', 'まずまず。ヒントに頼りすぎないように。'], [0, 'C', '明日は取り返そう。']];
+  const DAY_LINES = ['おはよう。今日も5件だ。届いた順にさばいていこう。', 'おはよう。昨日の調子で頼む。', 'おはよう。コーヒーは淹れた？ 今日も5件いこう。', 'おはよう。CSから今日の分が届いてるぞ。'];
   const PRAISE = ['いいね、ログどおりだ。', 'ナイス。根拠もばっちり。', 'さすが。CSも助かるって。', 'その調子。次も頼んだ。', '完璧。もう一人で回せるな。'];
   const ARRIVE = ['新しいチケットです！', '次、お願いします！', 'こちらも急ぎでお願いします！', '問い合わせ、もう1件です！'];
 
   // ---------------------------------------------------------------- state
   let DB = null, KEYS = {}, COUNTS = {};
-  let state = freshState();
-  function shuffled(n) {
-    const a = Array.from({ length: n }, (_, i) => i);
-    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  }
+  let state = null; // 100件そろってから作る
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   function freshState() {
-    const order = shuffled(CASES.length); // チケットの届く順番は毎回ランダム
+    // 最初の1件はチュートリアル代わりの『キャラ消失』。あとは難しさの順に、同じ難しさの中ではランダム
+    const idx = CASES.map((_, i) => i);
+    const order = [0, ...[1, 2, 3].flatMap((t) => shuffle(idx.filter((i) => i !== 0 && CASES[i].tier === t)))];
     return {
-      started: false, current: order[0], shimatsu: 0, order, combo: 0, maxCombo: 0, minutes: 0,
-      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false })),
+      started: false, current: order[0], shimatsu: 0, order, day: 1, dayLog: {}, specDay: 0, combo: 0, maxCombo: 0, minutes: 0,
+      shimatsuIssued: 0, thrown: 0, penalty: 0, enjo: 0, heavyCount: 0, dropUsed: false, unplugged: false,
+      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false, via: null, specUsed: false, enjo: false, honest: false, banned: false })),
       drafts: {},
     };
   }
@@ -326,19 +409,24 @@ GROUP BY u.public_id, l.ip_address;`,
   function validState(s) { return s && Array.isArray(s.cases) && s.cases.length === CASES.length && typeof s.current === 'number'; }
   function validOrder(o) { return Array.isArray(o) && o.length === CASES.length && o.slice().sort((a, b) => a - b).every((v, i) => v === i); }
 
-  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score + (c.bonus || 0), 0) - state.shimatsu * SHIMATSU);
-  const allDone = () => state.cases.every((c) => c.status !== 'open');
-  const posOf = (i) => state.order.indexOf(i);
-  const firstOpen = () => { const i = state.order.find((k) => state.cases[k].status === 'open'); return i == null ? state.order[CASES.length - 1] : i; };
-  const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, TEMPER[i] + state.cases[i].wrong));
+  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score + (c.bonus || 0), 0) - state.shimatsu * SHIMATSU - (state.penalty || 0));
+  const DAYS = () => Math.ceil(CASES.length / DAY_SIZE);
+  const dayCases = (d) => state.order.slice((d - 1) * DAY_SIZE, d * DAY_SIZE);
+  const dayOf = (i) => Math.floor(state.order.indexOf(i) / DAY_SIZE) + 1;
+  const dayScore = (d) => dayCases(d).reduce((a, i) => a + state.cases[i].score + (state.cases[i].bonus || 0), 0);
+  const dayDone = () => dayCases(state.day).every((i) => state.cases[i].status !== 'open');
+  const allDone = () => state.day >= DAYS() && dayDone();
+  const posOf = (i) => state.order.indexOf(i) % DAY_SIZE; // その日の何件目か
+  const firstOpen = () => { const ds = dayCases(state.day); const i = ds.find((k) => state.cases[k].status === 'open'); return i == null ? ds[ds.length - 1] : i; };
+  const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, (CASES[i].temper || 3) + state.cases[i].wrong + (state.cases[i].enjo ? 2 : 0)));
   function clockText(extra) {
     const m = DAY_START + state.minutes + (extra || 0);
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   }
-  function advance(kind) { state.minutes += CLOCK[kind] || 0; }
+  function advance(kind) { state.minutes += (CLOCK[kind] || 0) * (state.unplugged ? 2 : 1); } // 電話線を抜いていると時間は倍速
   function starterFor(i) {
     const c = CASES[i];
-    if (posOf(i) === 0 && state.cases.every((c) => !c.queries)) {
+    if (state.order.indexOf(i) === 0 && state.cases.every((c) => !c.queries)) {
       return `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行\n-- まずは問い合わせてきたユーザーを探してみよう\nSELECT * FROM usr_users WHERE public_id = '${c.user}';\n`;
     }
     return `-- #${posOf(i) + 1} ${c.label}（${c.user}）\n`;
@@ -385,15 +473,20 @@ GROUP BY u.public_id, l.ip_address;`,
       DB = built.db; KEYS = built.keys; COUNTS = built.counts;
       DB.create_function('CONVERT_TZ', (dt, from, to) => { const a = tzOffset(from), b = tzOffset(to); return a == null || b == null ? null : shiftDt(dt, b - a); });
       DB.create_function('NOW', () => NOW_JST);
+      // 残りの問い合わせ票を、DBの実データから作る（書き込み禁止にする前に読むだけ）
+      if (window.CaseGen && CASES.length < TOTAL_CASES) CASES.push(...window.CaseGen.build(DB).slice(0, TOTAL_CASES - CASES.length));
+      MAX_SCORE = maxScoreOf(CASES.length);
       DB.run('PRAGMA query_only = 1');
       conn.classList.add('is-ready'); label.textContent = 'prod-replica-01';
       $('#run').disabled = false;
       renderSchema();
       if (!$('#results').dataset.used) renderResultsEmpty();
+      return true;
     } catch (e) {
       conn.classList.add('is-error');
       label.textContent = 'DBに接続できませんでした';
       $('#results').innerHTML = `<div class="rerr">データベースを読み込めませんでした: ${esc(e.message)}<small>ページを再読み込みしてください。ファイル単体で開いている場合は、sql-wasm.js / sql-wasm.wasm / sql-asm.js を同じフォルダに置き、Webサーバー経由で開いてください。</small></div>`;
+      return false;
     }
   }
 
@@ -436,6 +529,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   function issueShimatsu(word) {
     state.shimatsu++;
+    state.shimatsuIssued = (state.shimatsuIssued || 0) + 1;
     save(); renderHud();
     snd('shimatsu');
     const f = FXo();
@@ -444,7 +538,86 @@ GROUP BY u.public_id, l.ip_address;`,
       f.cutin('shimatsu', `始末書 ${state.shimatsu}枚目`, `−${SHIMATSU}点`);
       f.floatText($('#score'), `−${SHIMATSU}`, 'minus');
       say('bucho', `${esc(SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。')} ……始末書、${state.shimatsu}枚目だぞ。`, { interrupt: true });
+      // ゲームだからいいよね：始末書を丸めてゴミ箱へ。入れば取り消し
+      setTimeout(() => f.trashThrow((hit) => {
+        if (hit == null) return;
+        if (hit) {
+          state.shimatsu = Math.max(0, state.shimatsu - 1); state.thrown = (state.thrown || 0) + 1; save(); renderHud();
+          f.floatText($('#score'), `+${SHIMATSU}`, 'plus');
+          say('bucho', '…………見なかったことにする。（※現実の始末書は、ちゃんと書いて出しましょう）', { interrupt: true });
+        } else say('bucho', '外したな。拾って清書して、明日の朝イチで持ってくるように。', { interrupt: true });
+      }), 1700);
     } else toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
+  }
+
+  // ---------------------------------------------------------------- ゲームだからいいよね（禁断の操作）
+  // 禁断のDROP：1プレイに1回だけ、本当に消える（夢を見る）。始末書にはならない
+  function forbiddenDrop(stmt) {
+    state.dropUsed = true; save();
+    const m = stripComments(stmt).match(/DROP\s+(?:TABLE|DATABASE|SCHEMA|INDEX|VIEW)?\s*(?:IF\s+EXISTS\s+)?[`"]?([A-Za-z0-9_]+)/i);
+    const table = m ? m[1] : 'usr_users';
+    $('#results').innerHTML = `<div class="rerr">DROP ${esc(table)} … 実行中</div>`;
+    FXo().dropSequence(stmt, table, () => {
+      $('#results').innerHTML = '<p class="rnote">（夢から覚めた。DBは無事だ。もう一度DROPすると、今度は現実の始末書です）</p>';
+      say('senpai', '……おい、大丈夫か？ 机に突っ伏して寝てたぞ。本番でDROPするのは、夢の中だけにしておけ。', { interrupt: true });
+    });
+  }
+  // 直接UPDATEで補填（課金未反映のケースだけ）：即解決。ただし現実では監査で死ぬ
+  function backdoorFix() {
+    const i = state.current, st = state.cases[i];
+    st.status = 'solved'; st.via = 'update'; st.score = BACKDOOR_SCORE; st.bonus = 0;
+    state.combo = 0;
+    advance('solve'); save();
+    $('#results').innerHTML = `<div class="rblock"><div class="rmeta"><span class="rsql">-- 本番DB（直結）</span></div><div class="backdoor-ok">Query OK, 1 row affected<small>ジェム 1,800個を、ユーザーに直接付与しました。</small></div></div>`;
+    snd('solved');
+    renderHud(); renderTicket(); renderAnswer();
+    const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+    const f = FXo();
+    if (f) {
+      f.flash('amber');
+      f.cutin('backdoor', '裏ルート', `本番に直接UPDATE　+${BACKDOOR_SCORE}`);
+      f.floatText($('#score'), `+${BACKDOOR_SCORE}`, 'plus');
+      say('senpai', '……やりやがった。今回だけは見なかったことにする。現実でやったら監査で一発アウトだからな。', { interrupt: true });
+      say('bucho', '（遠くで部長がこちらを見ている）');
+    }
+  }
+  // わざと重いクエリ：数億行になる掛け合わせは、実行する前にHさんが止める
+  const BIG_TABLES = /\b(log_[a-z_]+|usr_[a-z_]+)\b/gi; // ログとユーザーデータは行数が多い
+  function isQueryBomb(stmt) {
+    const s = stripComments(stmt);
+    const from = s.split(/\bFROM\b/i).slice(1).join(' FROM ');
+    if (!from) return false;
+    const big = (from.match(BIG_TABLES) || []).length;
+    if (big < 2) return false;
+    const cross = /\bCROSS\s+JOIN\b/i.test(from) || /\bFROM\s+[A-Za-z0-9_]+(\s+(AS\s+)?[A-Za-z0-9_]+)?\s*,/i.test(' FROM ' + from) || (/\bJOIN\b/i.test(from) && !/\b(ON|USING)\b/i.test(from));
+    const filtered = /\b(WHERE|ON|USING)\b/i.test(from);
+    // LIMIT だけで済むのは、並べ替えや集計で全件を舐めない場合だけ
+    const fastLimit = /\bLIMIT\b/i.test(from) && !/\b(ORDER|GROUP)\s+BY\b|\bDISTINCT\b|\b(COUNT|SUM|MAX|MIN|AVG|TOTAL|GROUP_CONCAT)\s*\(/i.test(s);
+    return cross && !filtered && !fastLimit;
+  }
+  const HEAVY_LINES = [
+    (n) => `いま重いクエリ流したの誰？ ${n}行も引いたらDBが悲鳴あげるって。<code>WHERE</code> や <code>LIMIT</code> で絞ってくれ。`,
+    () => '……また？ DBのCPU、ずっと90%に張り付いてるんだけど。',
+    () => 'おい！！ サーバールームから焦げた匂いがする！！ 何流してんの！？',
+    () => 'もう知らん……。俺は帰る。（※現実の本番DBでは、重いクエリは事前に相談しましょう）',
+  ];
+  function heavyQuery(rows, bomb) {
+    state.heavyCount = (state.heavyCount || 0) + 1;
+    const stage = bomb ? 4 : Math.min(state.heavyCount, 4);
+    const f = FXo();
+    snd('warn');
+    if (!f) { toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。'); return; }
+    const screen = $('.screen');
+    if (stage >= 3) f.burstFrom(screen, { smoke: true, count: 30, spread: 300, duration: 800 });
+    if (stage >= 4) {
+      snd('explode'); f.flash('amber'); f.shake($('.app'), true);
+      f.burstFrom(screen, { fire: true, count: 40, spread: 360, duration: 600 });
+      f.cutin('smoke', 'サーバールーム 炎上', '※減点はありません');
+      say('infra', bomb ? '実行される前に、電源ごと引っこ抜いた。テーブル同士を条件なしで掛け合わせたら、何億行になると思ってんだ。' : HEAVY_LINES[3](), { interrupt: true });
+    } else {
+      f.flash('amber');
+      say('infra', HEAVY_LINES[stage - 1](rows.toLocaleString()), { interrupt: true });
+    }
   }
 
   const MYSQL_TIPS = [
@@ -468,8 +641,16 @@ GROUP BY u.public_id, l.ip_address;`,
     if (!stmts.length) { out.innerHTML = '<p class="rnote">実行するSQLがありません。</p>'; return; }
     const bad = stmts.find((s) => !isAllowed(s));
     if (bad) {
-      issueShimatsu(firstWord(bad));
-      out.innerHTML = `<div class="rerr">実行を止めました: ${esc(firstWord(bad) || 'この文')} は参照系ではありません。<small>このコンソールで使えるのは SELECT / WITH / EXPLAIN と PRAGMA table_info だけです。</small></div>`;
+      const w = firstWord(bad), c = CASES[state.current], st0 = state.cases[state.current];
+      if (w === 'DROP' && !state.dropUsed && FXo()) { forbiddenDrop(bad); return; }
+      if ((w === 'UPDATE' || w === 'INSERT') && c.backdoor && st0.status === 'open') { backdoorFix(); return; }
+      issueShimatsu(w);
+      out.innerHTML = `<div class="rerr">実行を止めました: ${esc(w || 'この文')} は参照系ではありません。<small>このコンソールで使えるのは SELECT / WITH / EXPLAIN と PRAGMA table_info だけです。</small></div>`;
+      return;
+    }
+    if (stmts.some(isQueryBomb)) {
+      out.innerHTML = '<div class="rerr">実行を止めました：インフラ担当が電源を引っこ抜きました。<small>大きなテーブル同士を条件なしで掛け合わせると、何億行にもなってDBが止まります。JOIN には ON、絞り込みには WHERE を付けましょう。</small></div>';
+      heavyQuery(0, true);
       return;
     }
     const cs = state.cases[state.current];
@@ -485,11 +666,11 @@ GROUP BY u.public_id, l.ip_address;`,
         st = DB.prepare(s);
         const cols = st.getColumnNames();
         const rows = [];
-        let count = 0;
-        while (st.step()) { if (count < 1000) rows.push(st.get()); count++; }
+        let count = 0, cut = false;
+        while (st.step()) { if (count < 1000) rows.push(st.get()); count++; if (count >= BIG_ROWS) { cut = true; break; } }
         const ms = performance.now() - t0;
         totalRows += count; if (count >= 2000) heavy = true;
-        blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms));
+        blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms, cut));
       } catch (e) {
         ok = false;
         const tip = /\bINTERVAL\b/i.test(s) ? "SQLite に INTERVAL はありません。datetime(created_at, '+1 day') のように書きます。"
@@ -503,17 +684,12 @@ GROUP BY u.public_id, l.ip_address;`,
     out.scrollTop = 0;
     out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
     snd('run');
-    if (heavy && !cs.heavy) {
-      cs.heavy = true;
-      snd('warn');
-      if (FXo()) { FXo().flash('amber'); say('infra', `いま重いクエリ流したの誰？ ${totalRows.toLocaleString()}行も引いたらDBが悲鳴あげるって。<code>WHERE</code> や <code>LIMIT</code> で絞ってくれ。`, { interrupt: true }); }
-      else toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
-    } else snd(ok ? 'ok' : 'error');
+    if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
     renderClock();
     save();
   }
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
-  function renderTable(k, n, sql, cols, rows, count, ms) {
+  function renderTable(k, n, sql, cols, rows, count, ms, cut) {
     const head = `<tr><th class="rn">#</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>`;
     const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v) => {
       if (v === null || v === undefined) return '<td class="null">NULL</td>';
@@ -523,7 +699,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }).join('')}</tr>`).join('');
     const more = count > rows.length ? `<span>（先頭 ${rows.length.toLocaleString()} 行を表示）</span>` : '';
     const label = n > 1 ? `<b>#${k + 1}</b>` : '';
-    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}</b> 行</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
+    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}${cut ? '+' : ''}</b> 行${cut ? '（数えきれないので打ち切り）' : ''}</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
       <div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
   }
   function renderResultsEmpty() {
@@ -553,6 +729,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   let draftTimer = null;
   function syncEditor() {
+    if (!state) { $('#hl').innerHTML = highlight($('#sql').value); return; }
     const ta = $('#sql');
     $('#hl').innerHTML = highlight(ta.value);
     syncScroll();
@@ -593,20 +770,24 @@ GROUP BY u.public_id, l.ip_address;`,
     comboEl.hidden = state.combo < 2;
     $('#combo').textContent = `x${state.combo}`;
     renderClock();
+    const phone = $('#btn-phone'); if (phone) phone.setAttribute('aria-pressed', String(!state.unplugged));
     const q = $('#queue');
     const unlockedPos = posOf(firstOpen());
-    q.innerHTML = state.order.map((i, p) => {
+    // 上のバーには、その日の5件だけを出す
+    q.innerHTML = dayCases(state.day).map((i, p) => {
       const c = CASES[i], st = state.cases[i];
       const locked = p > unlockedPos && st.status === 'open';
       const isNew = !locked && st.status === 'open' && !st.seen;
       const cls = ['chip', i === state.current ? 'is-current' : '', st.status === 'solved' ? 'is-solved' : '', st.status === 'gaveup' ? 'is-gaveup' : '', isNew ? 'is-new' : ''].join(' ');
       return `<button class="${cls}" data-case="${i}" ${locked ? 'disabled' : ''} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${p + 1}</span>${locked ? '<span class="lock">？？？</span>' : esc(c.label)}</button>`;
-    }).join('') + (allDone() ? '<button class="chip is-current is-final" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+    }).join('') + (allDone() ? '<button class="chip is-current is-final" data-final="1" type="button"><i class="lamp"></i>最終結果を見る</button>'
+      : dayDone() ? '<button class="chip is-current is-final" data-dayend="1" type="button"><i class="lamp"></i>本日の業務を終える</button>' : '');
   }
   function renderClock() {
     const el = $('#clock');
-    el.textContent = `11/13 ${clockText()}`;
-    el.parentElement.classList.toggle('warn', DAY_START + state.minutes >= DAY_END);
+    el.textContent = clockText();
+    el.parentElement.querySelector('span').textContent = `DAY ${state.day}`;
+    el.closest('.stat').classList.toggle('warn', DAY_START + state.minutes >= DAY_END);
   }
 
   function angerHtml(i) {
@@ -631,7 +812,7 @@ GROUP BY u.public_id, l.ip_address;`,
       </dl>
       <p class="ticket-body">${esc(c.body)}</p>
       <p class="ticket-note"><b>CS担当メモ：</b>${esc(c.note)}</p>
-      ${st.status === 'solved' ? stampHtml('解決', '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
+      ${st.status === 'solved' ? stampHtml(st.via === 'spec' ? '仕様' : st.via === 'update' ? '裏技' : '解決', st.via ? `is-${st.via}` : '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
   }
   function stampHtml(text, cls) {
     return `<div class="stamp ${cls}"><span><span class="s-main">${text}</span><span class="s-sub">2026.11.13</span></span></div>`;
@@ -659,6 +840,7 @@ GROUP BY u.public_id, l.ip_address;`,
           <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（−${HINT}）</button>
           <button class="btn btn-ghost" type="button" id="btn-giveup">先輩に聞く</button>
         </div>
+        <button class="btn btn-spec" type="button" id="btn-spec" ${st.specUsed || state.specDay === state.day ? 'disabled' : ''}>${st.specUsed ? '「仕様です」は使用済み（炎上中）' : state.specDay === state.day ? '「仕様です」は1日1回まで（今日は使用済み）' : '調べずに「仕様です」で即答する（1日1回）'}</button>
         <ol class="hints" id="hints">${c.hints.slice(0, st.hints).map((h, k) => `<li><b>${k + 1}</b>${h}</li>`).join('')}</ol>
         <p class="feedback" id="feedback" hidden></p>
       </form>`;
@@ -668,21 +850,125 @@ GROUP BY u.public_id, l.ip_address;`,
     const c = CASES[i], st = state.cases[i];
     const solved = st.status === 'solved';
     const right = c.options.find((o) => o[0] === c.answer)[1];
+    const via = st.via === 'spec' ? '<p class="via-note"><b>「仕様です」で即答した。</b>今回はたまたま当たっていた。<small>※現実では、ちゃんと調べてから答えましょう。</small></p>'
+      : st.via === 'update' ? '<p class="via-note"><b>本番DBに直接UPDATEしてジェムを配った。</b>確かに一瞬で終わった。<small>※現実でやると監査で一発アウトです。補填は必ず管理ツールから。</small></p>' : '';
+    const pointsNote = !solved ? '先輩に聞いたので 0 点' : st.via === 'spec' ? '「仕様です」で即答' : st.via === 'update' ? '裏ルート（直接UPDATE）'
+      : `誤答 ${st.wrong} 回・ヒント ${st.hints} 回${st.bonus ? `・コンボ +${st.bonus}` : ''}`;
+    const extras = solved ? `<div class="extras">
+        ${st.honest ? honestHtml(i, true) : '<button class="btn btn-honest" type="button" id="btn-honest">本音で返信する</button>'}
+        ${c.ban ? (st.banned ? '<p class="banned-note">U-90417 はBAN済み。いい音がした。</p>' : '<button class="btn btn-ban" type="button" id="btn-ban">BANハンマーを振り下ろす</button>') : ''}
+      </div>` : '';
     return `<div class="card resolution">
-      <div class="points"><b>${solved ? '+' + (st.score + (st.bonus || 0)) : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回${st.bonus ? `・コンボ +${st.bonus}` : ''}` : '先輩に聞いたので 0 点'}</span></div>
+      <div class="points"><b>${solved ? '+' + (st.score + (st.bonus || 0)) : '0'}</b><span>${pointsNote}</span></div>
+      ${via}
       <div><h3>正しい結論</h3><p class="explain">${esc(right)}</p></div>
       <div><h3>ユーザーへの回答</h3><p class="reply">${esc(c.reply)}</p></div>
       ${solved ? `<p class="reaction">ユーザーからの返信：「${esc(c.reaction)}」</p>` : ''}
+      ${extras}
       <div><h3>解説</h3><p class="explain">${c.explain}</p></div>
       <div><h3>模範SQL</h3><pre class="model">${highlight(c.model)}</pre>
         <div class="btn-row"><button class="btn" type="button" id="btn-model">エディタに貼って実行</button></div></div>
-      <div class="btn-row"><button class="btn btn-primary" type="button" id="btn-next">${allDone() ? '結果を見る' : '次のチケットへ'}</button></div>
+      <div class="btn-row"><button class="btn btn-primary" type="button" id="btn-next">${allDone() ? '最終結果を見る' : dayDone() ? '本日の業務を終える' : '次のチケットへ'}</button></div>
     </div>`;
   }
 
+  function honestHtml(i, done) {
+    return `<div class="honest${done ? ' is-done' : ''}" id="honest"><h3>本音の返信（下書き）</h3><p class="honest-text">${done ? esc(CASES[i].honest) : ''}</p>
+      ${done ? '<div class="stamp is-reject honest-stamp"><span><span class="s-main">破棄</span><span class="s-sub">by U</span></span></div><small>※現実のユーザーには送らないでください。</small>' : ''}</div>`;
+  }
+  // 本音で返信：打ち込むだけ打ち込んで、送信直前にUさんが止める
+  function honestReply() {
+    const i = state.current, st = state.cases[i];
+    if (st.honest) return;
+    const btn = $('#btn-honest'); if (!btn) return;
+    btn.outerHTML = honestHtml(i, false);
+    const p = $('#honest .honest-text'), text = CASES[i].honest;
+    let k = 0;
+    const tick = setInterval(() => {
+      k += 2; p.textContent = text.slice(0, k);
+      if (k % 6 === 0) snd('type');
+      if (k >= text.length) {
+        clearInterval(tick);
+        setTimeout(() => {
+          st.honest = true; save();
+          $('#honest').outerHTML = honestHtml(i, true);
+          const s = $('#honest .honest-stamp'); if (s) s.classList.add('slam');
+          snd('reject');
+          say('cs', '…………送信前に止めておきました。気持ちは、すごくわかります。', { interrupt: true });
+        }, 600);
+      }
+    }, FXo() && FXo().reduced() ? 1 : 28);
+  }
+  // 「仕様です」で即答：当たれば早いが、本物の不具合や乗っ取りに使うと炎上する
+  let specArmed = false;
+  function specAnswer(btn) {
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    if (st.status !== 'open' || st.specUsed || state.specDay === state.day) return;
+    if (!specArmed) { specArmed = true; btn.textContent = '本当に？（調べずに「仕様です」と返す）'; btn.classList.add('is-armed'); snd('pop'); return; }
+    specArmed = false;
+    st.specUsed = true; state.specDay = state.day;
+    const f = FXo();
+    if (c.spec) {
+      st.status = 'solved'; st.via = 'spec'; st.score = SPEC_SCORE; st.bonus = 0;
+      state.combo = 0; advance('solve'); save();
+      snd('hammer');
+      renderHud(); renderTicket(); renderAnswer();
+      const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+      $('#ticket-scroll').scrollTop = 0;
+      if (f) {
+        f.shake($('.app'), true);
+        f.cutin('spec', '仕様です', `たまたま当たった　+${SPEC_SCORE}`);
+        f.floatText($('#score'), `+${SPEC_SCORE}`, 'plus');
+        say('senpai', '……当たってるのが逆に怖い。次はちゃんとログを見ような。', { interrupt: true });
+      }
+      return;
+    }
+    st.enjo = true; state.enjo = (state.enjo || 0) + 1; state.penalty = (state.penalty || 0) + ENJO;
+    advance('wrong'); save();
+    snd('enjo');
+    renderHud(); renderTicket(); renderAnswer();
+    if (f) {
+      f.siren(); f.flash('red'); f.shake($('.app'), true);
+      f.burstFrom($('#ticket'), { fire: true, count: 50, spread: 300, duration: 700 });
+      f.cutin('enjo', '大炎上', `−${ENJO}点　SNSで拡散中`);
+      f.floatText($('#score'), `−${ENJO}`, 'minus');
+      say('cs', c.ban ? '乗っ取り被害の人に「仕様です」って返したの、スクショ付きで拡散されてます！！ トレンド1位です！！' : '「運営が不具合を仕様扱い」ってトレンド入りしてます！！ 電話が鳴りやみません！！', { interrupt: true });
+      say('senpai', '……ちゃんと調べよう。まだ間に合う。（※現実では、調べる前に「仕様です」と言わないこと）');
+    }
+  }
+  // BANハンマー：乗っ取り犯のアカウントを叩き潰す
+  function banHammer() {
+    const st = state.cases[state.current];
+    if (st.banned || !FXo()) return;
+    st.banned = true; save();
+    FXo().banHammer(() => {
+      renderAnswer();
+      say('infra', 'サーバー側でも凍結しておいた。……いい音したな。（※実際のBANは、調査とエスカレーションの手順を踏んでから）', { interrupt: true });
+    });
+  }
+  // 決め手の証拠カード（ログの行を引いて見せる）
+  function evidenceCardHtml(c, ev) {
+    const id = c.evidence.key ? KEYS[c.evidence.key] : c.evidence.id;
+    if (c.evidence.table && id != null && DB) {
+      const pk = c.evidence.table === 'usr_presents' ? 'present_id' : 'log_id';
+      try {
+        const r = DB.exec(`SELECT * FROM ${c.evidence.table} WHERE ${pk} = ${id}`);
+        if (r.length) {
+          const row = Object.fromEntries(r[0].columns.map((k, n) => [k, r[0].values[0][n]]));
+          const what = row.action || row.reason || row.result || row.title || '';
+          const extra = row.amount != null ? ` ${Number(row.amount).toLocaleString()}` : '';
+          return `<span class="ev-label">EVIDENCE</span><b>${esc(c.evidence.table)} #${id}</b><span class="ev-main">${esc(what)}${esc(extra)}</span><span class="ev-sub">${esc(row.created_at || '')}</span>`;
+        }
+      } catch (e) { /* fall through */ }
+    }
+    return `<span class="ev-label">EVIDENCE</span><b>${esc(c.evidence.label)}</b><span class="ev-main">${esc(String(ev).trim())}</span>`;
+  }
+
   function renderSchema() {
-    $('#tab-schema').innerHTML = TABLE_DOCS.map((t, k) => `
-      <details class="tbl" ${k < 2 ? 'open' : ''}>
+    // テーブルはアルファベット順。入口になる usr_users だけ最初から開いておく
+    const docs = TABLE_DOCS.slice().sort((a, b) => (a.name < b.name ? -1 : 1));
+    $('#tab-schema').innerHTML = docs.map((t) => `
+      <details class="tbl" ${t.name === 'usr_users' ? 'open' : ''}>
         <summary><span class="tbl-name">${t.name}</span><span class="tbl-count">${COUNTS[t.name] != null ? COUNTS[t.name].toLocaleString() + '行' : ''}</span></summary>
         <p class="tbl-desc">${t.desc}</p>
         <ul class="cols">${t.cols.map(([n, d]) => `<li><button type="button" data-col="${n}">${n}</button><span class="cmt">${d}</span></li>`).join('')}</ul>
@@ -728,7 +1014,7 @@ GROUP BY u.public_id, l.ip_address;`,
       const perfect = st.wrong === 0 && st.hints === 0;
       state.combo = perfect ? state.combo + 1 : 0;
       state.maxCombo = Math.max(state.maxCombo || 0, state.combo);
-      st.bonus = perfect && state.combo >= 2 ? (state.combo - 1) * COMBO : 0;
+      st.bonus = perfect && state.combo >= 2 ? comboBonus(state.combo) : 0;
       advance('solve');
       save();
       snd('solved');
@@ -738,11 +1024,14 @@ GROUP BY u.public_id, l.ip_address;`,
       const f = FXo();
       if (f) {
         const pts = st.score + st.bonus;
-        f.flash('white');
-        f.cutin('solve', perfect ? 'PERFECT!' : 'CASE CLOSED', `解決　+${pts}`);
-        setTimeout(() => f.burstFrom($('#ticket .stamp') || $('#ticket')), 120);
-        f.floatText($('#score'), `+${pts}`, 'plus');
-        if (st.bonus) setTimeout(() => { snd('combo'); f.cutin('combo', `${state.combo} COMBO`, `ボーナス +${st.bonus}`); }, 1500);
+        // まず決め手のログを叩きつけてから、CASE CLOSED
+        f.evidence(evidenceCardHtml(c, ev));
+        setTimeout(() => {
+          f.cutin('solve', perfect ? 'PERFECT!' : 'CASE CLOSED', `解決　+${pts}`);
+          f.burstFrom($('#ticket .stamp') || $('#ticket'));
+          f.floatText($('#score'), `+${pts}`, 'plus');
+        }, 1250);
+        if (st.bonus) setTimeout(() => { snd('combo'); f.cutin('combo', `${state.combo} COMBO`, `ボーナス +${st.bonus}`); }, 2750);
         const line = PRAISE[Math.floor(Math.random() * PRAISE.length)];
         say('senpai', `${line}${state.combo >= 2 ? `ノーミス${state.combo}連続だ。` : ''}ユーザーからも返信が来てるぞ。`, { interrupt: true });
       }
@@ -799,12 +1088,26 @@ GROUP BY u.public_id, l.ip_address;`,
       f.cutin('incoming', 'INCOMING TICKET', `#${posOf(i) + 1}　${c.label}　${c.category}`);
       const greet = posOf(i) === 0 ? ARRIVE[0] : ARRIVE[1 + Math.floor(Math.random() * (ARRIVE.length - 1))];
       say('cs', `${greet}「${esc(c.label)}」の件、${esc(c.note)}`);
+      if (c.backdoor) say('senpai', '補填の管理ツール、今日もめちゃくちゃ重いんだよな……。本番に直接 <code>UPDATE</code> したくなるけど、絶対にやるなよ。絶対だぞ。');
     }
   }
+  // 電話線を抜く：新しいチケットは届かないが、時間は倍速で過ぎる
+  function togglePhone() {
+    state.unplugged = !state.unplugged; save(); renderHud();
+    if (state.unplugged) {
+      snd('unplug');
+      say('senpai', 'おい、電話線抜いたな……。チケットは来なくなるけど、時計は倍速で進むぞ。（※現実ではやめましょう）', { interrupt: true });
+    } else {
+      snd('plug');
+      say('cs', 'やっとつながった！！ 電話、ずっと鳴りっぱなしでしたよ！？', { interrupt: true });
+    }
+  }
+  const blockedByPhone = (i) => state.unplugged && state.cases[i].status === 'open' && !state.cases[i].seen;
   function goto(i, opts) {
     if (i === state.current && !(opts && opts.force)) return;
+    if (blockedByPhone(i)) { snd('error'); say('senpai', '電話線が抜けてるから、次のチケットが届かない。右上の TEL で戻せるぞ。', { interrupt: true }); return; }
     state.drafts[state.current] = $('#sql').value;
-    state.current = i; giveupArmed = false; save();
+    state.current = i; giveupArmed = false; specArmed = false; save();
     snd('page');
     renderHud(); renderTicket(); renderAnswer();
     const draft = state.drafts[i];
@@ -813,7 +1116,9 @@ GROUP BY u.public_id, l.ip_address;`,
     if (state.cases[i].status === 'open' && !state.cases[i].seen) arrive(i);
   }
   function next() {
-    if (allDone()) showFinal(true); else goto(firstOpen());
+    if (allDone()) showFinal(true);
+    else if (dayDone()) showDayEnd(true);
+    else goto(firstOpen()); // 電話線が抜けていれば goto 側で止まる
   }
 
   // ---------------------------------------------------------------- modals
@@ -825,7 +1130,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   function closeModal() { $('#overlay').hidden = true; finalTimers.forEach(clearTimeout); finalTimers = []; }
   function showIntro() {
-    const resume = state.started && !allDone();
+    const resume = state && state.started && !allDone();
     const f = FXo();
     const sky = f ? f.skyline() : '';
     const cast = f ? ['senpai', 'cs', 'infra', 'bucho'].map((k) => `<figure class="cast-${k}">${f.avatar(k)}<figcaption>${esc(f.PEOPLE[k].name)}<small>${esc(f.PEOPLE[k].role)}</small></figcaption></figure>`).join('') : '';
@@ -840,15 +1145,16 @@ GROUP BY u.public_id, l.ip_address;`,
           <div class="cast">${cast}</div>
           <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
           <dl class="rules">
-            <dt>任務</dt><dd>ランダムな順番で届く7件のチケットを調査し、結論と決め手の値（ログIDなど）で回答</dd>
-            <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス</dd>
+            <dt>任務</dt><dd>1日に5件届くチケットを調査し、結論と決め手の値（ログIDなど）で回答。全${DAYS()}日・${CASES.length}件。日を追うごとに手強くなる</dd>
+            <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス（最大 +${COMBO * COMBO_CAP}）</dd>
             <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
-            <dt>時計</dt><dd>10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
+            <dt>時計</dt><dd>毎朝 10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
             <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
           </dl>
           <div class="btn-row title-actions">
-            ${resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
-              : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
+            ${!DB ? '<button class="btn btn-primary btn-start" type="button" disabled>データベースを準備中…</button>'
+              : resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（DAY ${state.day}・#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
+                : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
           </div>
         </div>
       </div>`, 'title');
@@ -857,29 +1163,107 @@ GROUP BY u.public_id, l.ip_address;`,
     closeModal();
     snd('start');
     if (window.Sound) window.Sound.playBgm();
-    const first = () => {
+    if (isResume) {
       const i = state.current;
-      if (state.cases[i].status === 'open' && !state.cases[i].seen) {
-        say('senpai', isResume ? 'おかえり。続きをやろう。' : `おはよう。今日の問い合わせは${CASES.length}件、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`);
-        arrive(i);
-      } else say('senpai', 'おかえり。続きをやろう。チケットは上のバーから選べるぞ。');
+      if (dayDone()) say('senpai', 'おかえり。今日の分は終わってるぞ。上のバーから業務を締めよう。');
+      else if (state.cases[i].status === 'open' && !state.cases[i].seen) { say('senpai', 'おかえり。続きをやろう。'); arrive(i); }
+      else say('senpai', 'おかえり。続きをやろう。チケットは上のバーから選べるぞ。');
       $('#sql').focus({ preventScroll: true });
-    };
+      return;
+    }
     const f = FXo();
-    if (isResume || !f) { first(); return; }
+    if (!f) { startDay(); return; }
+    const open = state.cases.filter((c) => c.status === 'open').length;
     f.boot([
       'NOCT GAMES  ops-terminal v2.6',
       '> login ops-team ............ OK',
       '> connect prod-replica-01 (READ ONLY) ... OK',
       "> SELECT COUNT(*) FROM tickets WHERE status = 'OPEN';",
-      `  ${CASES.length}`,
-      '> 本日の業務を開始します',
-    ], first);
+      `  ${open}`,
+      `> DAY ${state.day} の業務を開始します（本日分 ${DAY_SIZE} 件）`,
+    ], startDay);
+  }
+  // 1日の始まり：DAY n のカットイン → 先輩のあいさつ → 1件目が届く
+  function startDay() {
+    const d = state.day, f = FXo();
+    const tiers = dayCases(d).map((i) => CASES[i].tier);
+    const prevTiers = d > 1 ? dayCases(d - 1).map((i) => CASES[i].tier) : [1];
+    let line = d === 1 ? `おはよう。配属初日だな。問い合わせは毎日${DAY_SIZE}件ずつ、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`
+      : d === DAYS() ? '今日で最終日だ。最後まで気を抜くなよ。'
+        : Math.max(...tiers) > Math.max(...prevTiers) ? (Math.max(...tiers) === 3 ? 'おはよう。そろそろ一人前だな。今日からは手強いのが混ざるぞ。' : 'おはよう。今日からは、少し調べる量が多いチケットも回ってくる。')
+          : DAY_LINES[d % DAY_LINES.length];
+    if (f) f.cutin('day', `DAY ${d}`, `本日の問い合わせ ${DAY_SIZE}件`);
+    snd('boot');
+    say('senpai', line);
+    setTimeout(() => { arrive(state.current); $('#sql').focus({ preventScroll: true }); }, f && !f.reduced() ? 1600 : 0);
+  }
+  // 翌日へ：時計を 10:00 に戻し、次の5件を届ける
+  function goNextDay() {
+    if (state.day >= DAYS()) { showFinal(true); return; }
+    state.drafts[state.current] = $('#sql').value;
+    state.day += 1; state.minutes = 0; state.current = dayCases(state.day)[0];
+    save(); closeModal();
+    $('#results').dataset.used = ''; renderAll();
+    snd('start');
+    startDay();
+  }
+  const gradeOf = (score) => GRADES.find((g) => score >= g[0]);
+  const resultLabel = (s) => (s.status === 'solved' ? (s.via === 'spec' ? '仕様です' : s.via === 'update' ? '裏ルート' : s.wrong === 0 && s.hints === 0 ? 'PERFECT' : '解決') : s.status === 'gaveup' ? '先輩に聞いた' : '未対応');
+  // 1日の終わり：その日の5件を1行ずつ判を押して見せ、評価（S〜C）を出す
+  function showDayEnd(animate) {
+    const f = FXo();
+    if (f) f.closeSay();
+    const d = state.day, score = dayScore(d), [, grade, gline] = gradeOf(score);
+    if (!state.dayLog[d]) { state.dayLog[d] = { score, minutes: state.minutes }; save(); }
+    if (animate) snd('final');
+    const perfect = dayCases(d).filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length;
+    const rows = dayCases(d).map((i, p) => {
+      const c = CASES[i], s = state.cases[i];
+      return `<tr class="reveal-row"><td>#${p + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${resultLabel(s)}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score + (s.bonus || 0)}</td></tr>`;
+    }).join('');
+    const last = d >= DAYS();
+    openModal(`
+      <p class="eyebrow">DAY ${d} / ${DAYS()}　本日の業務終了　退勤 ${clockText()}</p>
+      <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${DAY_SIZE * BASE} 点　累計 ${totalScore()} 点</span></div>
+      <div class="badges"><span class="badge ${DAY_START + state.minutes <= DAY_END ? 'is-good' : 'is-bad'}">${overtimeText()}</span><span class="badge ${perfect === DAY_SIZE ? 'is-good' : ''}">PERFECT ${perfect} / ${DAY_SIZE}</span>${state.combo >= 2 ? `<span class="badge is-good">${state.combo} COMBO 継続中</span>` : ''}<span class="badge">残り ${state.cases.filter((c) => c.status === 'open').length} 件</span></div>
+      <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="final-rank" id="final-rank">
+        <div class="rank-stamp"><span>${grade}</span></div>
+        <div><p class="final-title">本日の評価 ${grade}</p><p class="final-line">Kさん「${esc(gline)}」</p></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" type="button" data-act="${last ? 'show-final' : 'next-day'}">${last ? '最終結果を見る' : `翌日へ（DAY ${d + 1}）`}</button>
+        <button class="btn" type="button" data-act="review">今日のチケットを見直す</button>
+      </div>
+      ${(state.shimatsuIssued || 0) >= 3 ? '<div class="btn-row"><button class="btn btn-resign" type="button" data-act="resign">辞表を叩きつけて定時退社する</button></div>' : ''}`, 'final');
+    reveal(animate, score, 'grade');
+  }
+  // 結果画面の演出：1行ずつ判を押す → 点数のカウントアップ → 称号・評価の印鑑
+  function reveal(animate, score) {
+    const f = FXo(), modal = $('#modal');
+    if (!animate || !f || f.reduced()) { modal.classList.add('revealed'); return; }
+    modal.classList.add('revealing');
+    const rowsEl = [...modal.querySelectorAll('.reveal-row')];
+    let t = 600;
+    rowsEl.forEach((r) => { finalTimers.push(setTimeout(() => { r.classList.add('is-in'); snd('reveal'); }, t)); t += rowsEl.length > 10 ? 120 : 300; });
+    finalTimers.push(setTimeout(() => f.countUp($('#final-score'), 0, score, 1300), t));
+    t += 1500;
+    finalTimers.push(setTimeout(() => {
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+      snd('rank'); f.burstFrom($('.rank-stamp'), { count: 50 });
+    }, t));
+    modal.addEventListener('click', (e) => {
+      if (!modal.classList.contains('revealing') || e.target.closest('button')) return;
+      finalTimers.forEach(clearTimeout); finalTimers = [];
+      rowsEl.forEach((r) => r.classList.add('is-in'));
+      $('#final-score').textContent = score;
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+    });
   }
 
-  function rankOf(score) { return RANKS.find((r) => score >= r[0]); }
-  function overtimeText() {
-    const end = DAY_START + state.minutes;
+  function rankOf(score) { return RANKS.find((r) => score >= r[0] * MAX_SCORE); }
+  function overtimeText(minutes) {
+    const end = DAY_START + (minutes == null ? state.minutes : minutes);
     if (end <= DAY_END) return '定時退社';
     const over = end - DAY_END;
     return `残業 ${Math.floor(over / 60)}時間${over % 60}分`;
@@ -891,17 +1275,22 @@ GROUP BY u.public_id, l.ip_address;`,
     if (animate) snd('final');
     const score = totalScore(); const [, title, line] = rankOf(score);
     const solved = state.cases.filter((c) => c.status === 'solved').length;
-    const rows = state.order.map((i, p) => {
-      const c = CASES[i], s = state.cases[i];
-      const res = s.status === 'solved' ? (s.wrong === 0 && s.hints === 0 ? 'PERFECT' : '解決') : s.status === 'gaveup' ? '先輩に聞いた' : '未対応';
-      return `<tr class="reveal-row"><td>#${p + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${res}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score + (s.bonus || 0)}</td></tr>`;
+    if (!state.dayLog[state.day] && dayDone()) { state.dayLog[state.day] = { score: dayScore(state.day), minutes: state.minutes }; save(); }
+    const ontime = Object.values(state.dayLog).filter((x) => DAY_START + x.minutes <= DAY_END).length;
+    // 20日分を1行ずつ
+    const rows = Array.from({ length: DAYS() }, (_, k) => {
+      const d = k + 1, ids = dayCases(d), log = state.dayLog[d];
+      const ok = ids.filter((i) => state.cases[i].status === 'solved').length;
+      const perfect = ids.filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length;
+      const sc = dayScore(d);
+      return `<tr class="reveal-row"><td>DAY ${d}</td><td class="${ok === ids.length ? 'ok' : 'ng'}">${ok}/${ids.length} 解決</td><td class="r">${perfect}</td><td class="r">${log ? clockText(-state.minutes + log.minutes) : '-'}</td><td class="r">${gradeOf(sc)[1]}</td><td class="r">${sc}</td></tr>`;
     }).join('');
     openModal(`
-      <p class="eyebrow">本日の業務終了　2026.11.13　退勤 ${clockText()}</p>
+      <p class="eyebrow">全${DAYS()}日の業務終了　${CASES.length}件</p>
       <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${MAX_SCORE} 点　${solved}件解決</span></div>
-      <div class="badges"><span class="badge ${DAY_START + state.minutes <= DAY_END ? 'is-good' : 'is-bad'}">${overtimeText()}</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span></div>
-      <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）</td><td class="r"></td></tr></tfoot></table>
+      <div class="badges"><span class="badge ${ontime === DAYS() ? 'is-good' : ''}">定時退社 ${ontime} / ${DAYS()}日</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span>${state.thrown ? `<span class="badge">ゴミ箱に捨てた始末書 ${state.thrown}枚</span>` : ''}${state.enjo ? `<span class="badge is-bad">炎上 ${state.enjo}回</span>` : ''}${state.dropUsed ? '<span class="badge">DROPした（夢）</span>' : ''}${state.cases.some((c) => c.banned) ? '<span class="badge is-good">BAN執行</span>' : ''}</div>
+      <div class="summary-wrap"><table class="summary"><thead><tr><th>日</th><th>結果</th><th class="r">PERFECT</th><th class="r">退勤</th><th class="r">評価</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）${state.penalty ? `　炎上（−${state.penalty}）` : ''}</td><td class="r"></td></tr></tfoot></table></div>
       <div class="final-rank" id="final-rank">
         <div class="rank-stamp"><span>称号</span></div>
         <div><p class="final-title">${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p><p class="final-line">${esc(line)}</p></div>
@@ -910,33 +1299,39 @@ GROUP BY u.public_id, l.ip_address;`,
         <button class="btn btn-primary" type="button" data-act="copy">結果をコピー</button>
         <button class="btn" type="button" data-act="review">チケットを見直す</button>
         <button class="btn btn-ghost" type="button" data-act="reset">最初から遊ぶ</button>
-      </div>`, 'final');
-    const modal = $('#modal');
-    if (!animate || !f || f.reduced()) { modal.classList.add('revealed'); return; }
-    // 1行ずつ判を押す → スコアのカウントアップ → 称号
-    modal.classList.add('revealing');
-    const rowsEl = [...modal.querySelectorAll('.reveal-row')];
-    let t = 700;
-    rowsEl.forEach((r) => { finalTimers.push(setTimeout(() => { r.classList.add('is-in'); snd('reveal'); }, t)); t += 300; });
-    finalTimers.push(setTimeout(() => f.countUp($('#final-score'), 0, score, 1300), t));
-    t += 1500;
-    finalTimers.push(setTimeout(() => {
-      modal.classList.add('revealed'); modal.classList.remove('revealing');
-      snd('rank'); f.burstFrom($('.rank-stamp'), { count: 50 });
-    }, t));
-    const skip = (e) => {
-      if (!modal.classList.contains('revealing') || e.target.closest('button')) return;
-      finalTimers.forEach(clearTimeout); finalTimers = [];
-      rowsEl.forEach((r) => r.classList.add('is-in'));
-      $('#final-score').textContent = score;
-      modal.classList.add('revealed'); modal.classList.remove('revealing');
-    };
-    modal.addEventListener('click', skip, { once: false });
+      </div>
+      ${(state.shimatsuIssued || 0) >= 3 ? '<div class="btn-row"><button class="btn btn-resign" type="button" data-act="resign">辞表を叩きつけて定時退社する</button></div>' : ''}`, 'final');
+    reveal(animate, score);
+  }
+  // 隠しエンディング：始末書を3枚以上もらうと、辞表を叩きつけて退職できる
+  function showResign() {
+    const f = FXo();
+    if (f) f.closeSay();
+    snd('smash');
+    openModal(`
+      <div class="title-sky" aria-hidden="true">${f ? f.skyline() : ''}</div>
+      <div class="title-inner resign">
+        <div class="resign-letter"><span>辞</span><span>表</span></div>
+        <p class="eyebrow">ENDING : RESIGNED</p>
+        <h1 class="logo"><span class="logo-ja" data-text="自由の身">自由の身</span></h1>
+        <div class="title-card">
+          <p>あなたは部長の机に辞表を叩きつけ、17:59 にオフィスを出た。夕焼けがやけにきれいだ。</p>
+          <p>翌朝、CSチームのUさんから「チケット、まだ来てますよ」とだけ連絡が来た。返信はしなかった。</p>
+          <dl class="rules"><dt>始末書</dt><dd>もらった枚数 ${state.shimatsuIssued || 0} 枚</dd><dt>称号</dt><dd>退職エンド「自由の身」</dd><dt>スコア</dt><dd>${totalScore()} / ${MAX_SCORE} 点</dd></dl>
+          <p class="resign-note">※現実では、辞表を叩きつける前に、まず有給を使い切りましょう。</p>
+          <div class="btn-row title-actions">
+            <button class="btn btn-primary" type="button" data-act="back-final">結果画面に戻る</button>
+            <button class="btn" type="button" data-act="reset">再就職する（最初から）</button>
+          </div>
+        </div>
+      </div>`, 'title');
+    if (f) setTimeout(() => { f.shake($('.app'), true); snd('rank'); }, 350);
   }
   function resultText() {
     const score = totalScore(); const [, title] = rankOf(score);
-    const marks = state.order.map((i) => { const c = state.cases[i]; return c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×'; }).join('');
-    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${marks} 称号「${title}」 最大${state.maxCombo || 0}コンボ 退勤${clockText()} 始末書${state.shimatsu}枚`;
+    const perfect = state.cases.filter((c) => resultLabel(c) === 'PERFECT').length;
+    const grades = Array.from({ length: DAYS() }, (_, k) => gradeOf(dayScore(k + 1))[1]).join('');
+    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${CASES.length}件中PERFECT ${perfect}件 毎日の評価 ${grades} 称号「${title}」 最大${state.maxCombo || 0}コンボ 始末書${state.shimatsu}枚`;
   }
 
   // ---------------------------------------------------------------- toast
@@ -973,8 +1368,13 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.id === 'btn-model') { setEditor(CASES[state.current].model, false); runSql(); }
       else if (b.dataset.case != null) goto(+b.dataset.case);
       else if (b.dataset.final) showFinal(true);
+      else if (b.dataset.dayend) showDayEnd(true);
       else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
+      else if (b.id === 'btn-phone') togglePhone();
+      else if (b.id === 'btn-spec') specAnswer(b);
+      else if (b.id === 'btn-honest') honestReply();
+      else if (b.id === 'btn-ban') banHammer();
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
       else if (b.dataset.col) insertAtCursor(b.dataset.col);
       else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-notes') {
@@ -992,6 +1392,10 @@ GROUP BY u.public_id, l.ip_address;`,
           $('#results').dataset.used = ''; renderAll();
           beginDay(false);
         } else if (a === 'review') closeModal();
+        else if (a === 'next-day') goNextDay();
+        else if (a === 'show-final') showFinal(true);
+        else if (a === 'resign') showResign();
+        else if (a === 'back-final') showFinal(false);
         else if (a === 'copy') {
           const text = resultText();
           const done = () => { b.textContent = 'コピーしました'; snd('pop'); };
@@ -999,6 +1403,7 @@ GROUP BY u.public_id, l.ip_address;`,
         }
       }
       if (b.id !== 'btn-giveup' && giveupArmed) { giveupArmed = false; const g = $('#btn-giveup'); if (g) { g.textContent = '先輩に聞く'; g.classList.remove('btn-danger'); } }
+      if (b.id !== 'btn-spec' && specArmed) { specArmed = false; const g = $('#btn-spec'); if (g) { g.textContent = '調べずに「仕様です」で即答する（1日1回）'; g.classList.remove('is-armed'); } }
     });
     document.addEventListener('dblclick', (e) => {
       const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn')) return;
@@ -1009,7 +1414,7 @@ GROUP BY u.public_id, l.ip_address;`,
       snd('pop');
       toast('根拠欄に入力しました', td.textContent);
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state.started) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state && state.started) closeModal(); });
   }
 
   // ---------------------------------------------------------------- sound toggles
@@ -1022,13 +1427,16 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   // ---------------------------------------------------------------- boot
-  function start(data) {
+  // 100件そろってから、保存データを読む（7件だった頃の保存データは合わないので最初から）
+  function loadState(data) {
     const saved = validState(data) ? data : loadLocal();
-    if (validState(saved)) {
-      state = Object.assign(freshState(), saved);
+    state = freshState();
+    if (validState(saved) && validOrder(saved.order)) {
+      const fresh = freshState();
+      state = Object.assign(fresh, saved);
       state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
-      // 順番を持たない古い保存データは、元の並び順のまま続ける
-      if (!validOrder(saved.order)) state.order = CASES.map((_, i) => i);
+      if (!state.day) state.day = 1;
+      if (!state.dayLog) state.dayLog = {};
       delete state.history; // 実行履歴の機能は削除済み
       // 命名規則の変更前に保存された下書きのテーブル名を、新しい名前に置き換える
       const RENAMED = [['character_logs', 'log_character'], ['item_logs', 'log_item'], ['login_logs', 'log_login'], ['currency_logs', 'log_currency'],
@@ -1040,12 +1448,18 @@ GROUP BY u.public_id, l.ip_address;`,
         state.drafts[k] = s;
       });
     }
+  }
+  function start(data) {
     bind();
     bindSound();
     if (FXo()) document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = FXo().icon(el.dataset.icon, +el.dataset.scale || 3); });
-    renderAll();
-    if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
-    initDb();
+    showIntro(); // DBの準備中は「出社する」を押せない
+    initDb().then((ok) => {
+      if (!ok) return;
+      loadState(data);
+      renderAll();
+      if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
+    });
   }
   const hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) { try { hot.snapshot(() => state); } catch (e) { /* ignore */ } }

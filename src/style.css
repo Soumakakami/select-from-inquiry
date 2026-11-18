@@ -137,6 +137,8 @@ svg { image-rendering: pixelated; }
 .chip.is-new { box-shadow: inset 0 0 0 2px var(--ok), inset -2px -2px 0 2px rgba(0,0,0,.25); color: var(--ink); }
 .chip.is-new::after { content: "NEW"; font-family: var(--font-px); font-size: 8px; line-height: 8px; color: var(--outline); background: var(--ok); padding: 2px 4px; animation: blink 1s steps(1) infinite; }
 .chip.is-final { background: var(--yellow); color: var(--amber-ink); }
+.chip.is-current:hover:not(:disabled) { background: var(--paper-2); }
+.chip.is-final:hover:not(:disabled) { background: #fff08a; }
 .chip.is-final .lamp { background: var(--shu); animation: blink .5s steps(1) infinite; }
 
 .stats { display: flex; gap: 16px; align-items: center; flex: none; }
@@ -519,6 +521,11 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .cutin.is-reject .cutin-band, .cutin.is-shimatsu .cutin-band { --edge: var(--shu); --band: #2a0c18; }
 .cutin.is-combo { top: 56%; }
 .cutin.is-combo .cutin-band { --edge: var(--yellow); }
+.cutin.is-day { top: 30%; }
+.cutin.is-day .cutin-band { --edge: var(--amber-hi); }
+.cutin.is-day .cutin-band b { font-size: 64px; line-height: 72px; }
+.summary-wrap { max-height: 46vh; overflow-y: auto; border: 2px solid var(--line); }
+.summary-wrap table.summary thead th { position: sticky; top: 0; background: var(--outline); }
 .cutin.is-incoming { top: 20%; }
 .cutin.is-incoming .cutin-band { --edge: var(--cyan); }
 .cutin.is-incoming .cutin-band b { font-size: 32px; line-height: 40px; }
@@ -633,6 +640,122 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .final-rank .final-title { font-size: 32px; line-height: 40px; margin: 0 0 4px; color: var(--p-accent); }
 .final-line { margin: 0 !important; color: var(--paper-mute); }
 
+/* =====================================================================
+   ゲームだからいいよね（現実ではやってはいけない機能）
+   ===================================================================== */
+/* 「仕様です」ボタンと印鑑 */
+.btn-spec { width: 100%; margin-top: 10px; background: #ece6cf; color: var(--paper-ink); box-shadow: inset -4px -4px 0 #c9c1a6, inset 4px 4px 0 #fffdf5; }
+.btn-spec:hover:not(:disabled) { background: #f4eedb; }
+.btn-spec.is-armed { background: var(--shu); color: #fff; box-shadow: inset -4px -4px 0 var(--shu-dk), inset 4px 4px 0 #ff7a80; }
+.btn-spec.is-armed:hover:not(:disabled) { background: #f0545c; color: #fff; }
+.stamp.is-spec { border-color: #2858a8; color: #2858a8; }
+.stamp.is-spec::before { border-color: #2858a8; }
+.stamp.is-update { border-color: #7a3db0; color: #7a3db0; }
+.stamp.is-update::before { border-color: #7a3db0; }
+.via-note { margin: 0; padding: 6px 10px; background: #efe7ff; border: 2px solid #7a3db0; color: #3d1e60; }
+.via-note b { font-weight: 400; display: block; }
+.via-note small { display: block; color: var(--p-accent); }
+
+/* 本音で返信・BANハンマー */
+.extras { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 0; border-top: 2px dashed var(--paper-line); }
+.btn-honest { background: var(--pink); color: #3a0f14; box-shadow: inset -4px -4px 0 #b84a52, inset 4px 4px 0 #ffb0b4; }
+.btn-honest:hover:not(:disabled) { background: #ff8a8f; }
+.btn-ban { background: #3a3f5c; color: var(--yellow); box-shadow: inset -4px -4px 0 #1c1f33, inset 4px 4px 0 #6b7190; }
+.btn-ban:hover:not(:disabled) { background: #4a5070; }
+.honest { position: relative; padding: 8px 12px 10px; background: #fff; border: 2px solid var(--paper-ink); }
+.honest h3 { border: 0; padding: 0; margin: 0 0 4px; color: var(--paper-mute); }
+.honest h3::before { content: "✉ "; }
+.honest-text { margin: 0; min-height: 48px; color: #7a1520; }
+.honest small { display: block; margin-top: 6px; color: var(--paper-mute); }
+.honest .honest-stamp { position: absolute; top: 8px; right: 12px; width: 96px; height: 56px; }
+.honest-stamp .s-main { font-size: 32px; line-height: 32px; }
+.honest-stamp .s-sub { margin-top: 4px; }
+.banned-note { margin: 0; color: var(--p-green); }
+.backdoor-ok { padding: 10px 12px; border: 2px solid var(--purple); background: #241838; color: var(--purple); font-family: var(--font-px); font-size: 16px; line-height: 24px; }
+.backdoor-ok small { display: block; font-family: var(--font-jp); font-size: 16px; color: var(--screen-ink); margin-top: 6px; }
+
+/* HUD の電話線 */
+.snd-phone[aria-pressed="false"] { background: var(--shu-dk); color: #ffd3d0; }
+.snd-phone[aria-pressed="false"] i { background: var(--shu); animation: blink .5s steps(1) infinite; }
+
+/* カットインの種類を追加 */
+.cutin.is-spec .cutin-band { --edge: #8fb8ff; }
+.cutin.is-backdoor .cutin-band { --edge: var(--purple); --band: #1e1430; }
+.cutin.is-enjo .cutin-band, .cutin.is-smoke .cutin-band { --edge: #f77622; --band: #2a1008; }
+
+/* 証拠のログを叩きつける */
+.evidence { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 16px; }
+.evidence-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-width: min(520px, 90vw); padding: 16px 24px 20px;
+  background: var(--paper-2); color: var(--paper-ink);
+  border: 4px solid var(--paper-ink); box-shadow: 8px 8px 0 rgba(0,0,0,.45), inset 0 0 0 4px #fff;
+  transform: rotate(-3deg);
+  animation: evSlam 1.5s steps(1, end) both;
+}
+.evidence-card .ev-label { font-family: var(--font-px); font-size: 8px; line-height: 16px; color: #fff; background: var(--shu); padding: 0 6px; }
+.evidence-card b { font-weight: 400; font-size: 16px; color: var(--paper-mute); }
+.evidence-card .ev-main { font-size: 48px; line-height: 56px; color: var(--p-accent); text-shadow: 4px 4px 0 #f2d6cf; }
+.evidence-card .ev-sub { font-size: 16px; color: var(--paper-mute); }
+.evidence-shout { margin: 0; font-size: 32px; line-height: 40px; color: var(--yellow); text-shadow: 4px 4px 0 var(--outline), -2px -2px 0 var(--outline), 2px -2px 0 var(--outline), -2px 2px 0 var(--outline); animation: evShout 1.5s steps(1, end) both; }
+@keyframes evSlam {
+  0% { transform: rotate(-12deg) scale(3.2); opacity: 0; } 6% { transform: rotate(-9deg) scale(2.2); opacity: 1; } 12% { transform: rotate(-5deg) scale(1.3); }
+  17% { transform: rotate(-3deg) scale(.94); } 21% { transform: rotate(-3deg) scale(1); } 85% { opacity: 1; transform: rotate(-3deg) scale(1); } 92% { opacity: .5; } 100% { opacity: 0; transform: rotate(-3deg) scale(1); }
+}
+@keyframes evShout { 0%, 18% { opacity: 0; transform: scale(.6); } 22% { opacity: 1; transform: scale(1.15); } 26%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+/* 禁断のDROP */
+.dropseq { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 24px; cursor: pointer; background: rgba(10,6,16,.55); }
+.dropseq-term { margin: 0; width: min(760px, 100%); padding: 16px 20px; background: #0b0d18; border: 4px solid var(--shu); box-shadow: 8px 8px 0 rgba(0,0,0,.5); font-family: var(--font-jp); font-size: 16px; line-height: 28px; color: #ffb4a6; white-space: pre-wrap; }
+.dropseq.is-burning { animation: burnBg .6s steps(2) infinite; }
+@keyframes burnBg { 50% { background: rgba(120,20,10,.55); } }
+.dropseq.is-dream { background: #000; animation: none; }
+.dropseq-dream { text-align: center; }
+.dream-main { margin: 0 0 16px; font-size: 48px; line-height: 64px; color: #fff; animation: dreamIn 1.4s steps(7, end) both; }
+.dream-sub { margin: 0; color: var(--muted); animation: dreamIn 1.4s steps(7, end) .8s both; }
+@keyframes dreamIn { from { opacity: 0; } to { opacity: 1; } }
+.dropseq.is-out { animation: fadeout .4s steps(4, end) forwards; }
+.desk.crumble .pane { animation: crumble 1.6s steps(8, end) forwards; }
+.desk.crumble .pane:nth-child(2) { animation-delay: .2s; }
+.desk.crumble .pane:nth-child(3) { animation-delay: .4s; }
+@keyframes crumble { 0% { transform: none; } 20% { transform: translate(4px, -8px) rotate(1deg); } 100% { transform: translate(-12px, 110vh) rotate(-14deg); } }
+
+/* 始末書をゴミ箱へ */
+.trash-game { position: fixed; left: 16px; bottom: 16px; z-index: 35; width: min(420px, calc(100% - 32px)); padding: 12px 14px 14px; background: var(--panel); border: 4px solid var(--ink); box-shadow: inset 0 0 0 4px var(--outline); clip-path: var(--notch); }
+.trash-tip { margin: 0 0 8px; color: var(--yellow); }
+.trash-lane { position: relative; height: 56px; margin: 0 0 8px 64px; background: repeating-linear-gradient(90deg, var(--raise) 0 8px, var(--panel) 8px 16px); border-bottom: 4px solid var(--outline); }
+.trash-lane::after { content: "▼"; position: absolute; left: 50%; top: -14px; transform: translateX(-50%); color: var(--yellow); font-size: 16px; line-height: 16px; }
+.trash-bin { position: absolute; bottom: 0; left: 0; line-height: 0; animation: binSlide 1.4s steps(14) infinite alternate; }
+@keyframes binSlide { from { left: 0; } to { left: calc(100% - 48px); } }
+.trash-ball { position: absolute; left: 14px; bottom: 18px; border: 0; background: none; padding: 0; line-height: 0; animation: ballBob .6s steps(2) infinite; }
+@keyframes ballBob { 50% { transform: translateY(-4px); } }
+.trash-game.is-hit { border-color: var(--ok); }
+.trash-game.is-miss { border-color: var(--shu); }
+.trash-game.is-out { animation: fadeout .3s steps(3, end) forwards; }
+
+/* BANハンマー */
+.ban { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; background: rgba(10,6,16,.5); pointer-events: none; }
+.ban-card { position: relative; display: flex; gap: 16px; align-items: center; padding: 16px 24px; background: var(--paper); color: var(--paper-ink); border: 4px solid var(--outline); box-shadow: 8px 8px 0 rgba(0,0,0,.5); }
+.ban-card svg { width: 96px; height: 96px; background: #2a2d40; border: 4px solid var(--outline); }
+.ban-card b { display: block; font-weight: 400; font-size: 32px; line-height: 40px; }
+.ban-card span { display: block; font-family: var(--font-px); font-size: 16px; line-height: 24px; color: var(--paper-mute); }
+.ban-status { display: inline-block; margin-top: 6px; padding: 2px 8px; font-family: var(--font-px); font-size: 16px; line-height: 24px; background: var(--ok); color: var(--outline); }
+.ban.is-hit .ban-card { animation: squash .3s steps(3) forwards; }
+.ban.is-hit .ban-status { background: var(--shu); color: #fff; }
+@keyframes squash { 0% { transform: scaleY(1); } 40% { transform: scaleY(.6) scaleX(1.15); } 100% { transform: scaleY(.85) scaleX(1.05); } }
+.ban-hammer { position: absolute; left: 50%; top: 50%; margin: -260px 0 0 40px; transform-origin: 70% 90%; transform: rotate(-60deg); line-height: 0; animation: hammerDown .7s steps(1, end) forwards; }
+@keyframes hammerDown { 0% { transform: rotate(-60deg) translateY(-40px); } 60% { transform: rotate(-70deg) translateY(-60px); } 80% { transform: rotate(-20deg); } 100% { transform: rotate(10deg) translate(-40px, 40px); } }
+.ban-shout { position: absolute; left: 0; right: 0; top: calc(50% + 90px); margin: 0; text-align: center; font-family: var(--font-px); font-size: 48px; line-height: 56px; color: var(--shu); text-shadow: 4px 4px 0 var(--outline); opacity: 0; }
+.ban.is-hit .ban-shout { animation: evShout 1.9s steps(1, end) both; }
+.ban.is-out { animation: fadeout .3s steps(3, end) forwards; }
+
+/* 辞表エンド */
+.btn-resign { width: 100%; background: var(--paper); color: var(--p-accent); box-shadow: inset -4px -4px 0 #c9c1a6, inset 4px 4px 0 #fff, inset 0 0 0 2px var(--p-accent); }
+.btn-resign:hover:not(:disabled) { background: #fff; color: var(--p-accent); }
+.resign-letter { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 96px; height: 152px; margin: 0 auto 12px; background: #fff; color: var(--paper-ink); border: 4px solid var(--outline); box-shadow: 8px 8px 0 rgba(0,0,0,.4); font-size: 48px; line-height: 56px; animation: slam .4s steps(4, end) .2s both; }
+.resign .logo { font-size: 48px; line-height: 64px; }
+.resign-note { color: var(--yellow); }
+
 /* ---------- responsive ---------- */
 @media (max-width: 1280px) {
   .desk { grid-template-columns: minmax(340px, 380px) minmax(0, 1fr) minmax(260px, 300px); }
@@ -671,6 +794,13 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
   .btn-start { font-size: 16px !important; line-height: 24px !important; padding: 12px 32px !important; }
   .final-score b { font-size: 32px; line-height: 32px; }
   .final-rank .final-title { font-size: 16px; line-height: 24px; }
+  .evidence-card .ev-main { font-size: 32px; line-height: 40px; }
+  .evidence-shout { font-size: 16px; line-height: 24px; }
+  .dream-main { font-size: 32px; line-height: 48px; }
+  .ban-card svg { width: 64px; height: 64px; }
+  .ban-card b { font-size: 16px; line-height: 24px; }
+  .ban-hammer { transform: scale(.6); margin: -200px 0 0 0; }
+  .ban-shout { font-size: 32px; line-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }

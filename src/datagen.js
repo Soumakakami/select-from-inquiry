@@ -85,12 +85,160 @@ CREATE TABLE log_item (
   user_id INTEGER NOT NULL,
   character_id INTEGER,
   item_id INTEGER NOT NULL,
-  item_uid TEXT,
   action TEXT NOT NULL,
   quantity INTEGER NOT NULL,
   target_user_id INTEGER,
   detail TEXT,
   created_at TEXT NOT NULL
+);
+CREATE TABLE mst_equips (
+  equip_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  rarity TEXT NOT NULL,
+  tradable INTEGER NOT NULL,
+  attack INTEGER NOT NULL,
+  defense INTEGER NOT NULL
+);
+CREATE TABLE usr_equips (
+  equip_uid TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  equip_id INTEGER NOT NULL,
+  level INTEGER NOT NULL,
+  in_storage INTEGER NOT NULL,
+  obtained_at TEXT NOT NULL
+);
+CREATE TABLE log_equip (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  equip_id INTEGER NOT NULL,
+  equip_uid TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_user_id INTEGER,
+  detail TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE mst_events (
+  event_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  world_id INTEGER,
+  start_at TEXT NOT NULL,
+  end_at TEXT NOT NULL,
+  description TEXT
+);
+CREATE TABLE mst_gachas (
+  gacha_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  event_id TEXT,
+  gem_single INTEGER NOT NULL,
+  gem_ten INTEGER NOT NULL,
+  start_at TEXT NOT NULL,
+  end_at TEXT
+);
+CREATE TABLE mst_gacha_lineups (
+  lineup_id INTEGER PRIMARY KEY,
+  gacha_id TEXT NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER NOT NULL,
+  rarity TEXT NOT NULL,
+  rate INTEGER NOT NULL
+);
+CREATE TABLE usr_gachas (
+  user_id INTEGER NOT NULL,
+  gacha_id TEXT NOT NULL,
+  draw_count INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, gacha_id)
+);
+CREATE TABLE mst_gacha_ceilings (
+  ceiling_id INTEGER PRIMARY KEY,
+  gacha_id TEXT NOT NULL,
+  required_count INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER NOT NULL
+);
+CREATE TABLE usr_gacha_ceilings (
+  user_id INTEGER NOT NULL,
+  gacha_id TEXT NOT NULL,
+  ceiling_count INTEGER NOT NULL,
+  exchanged_count INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, gacha_id)
+);
+CREATE TABLE mst_missions (
+  mission_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  mission_type TEXT NOT NULL,
+  event_id TEXT,
+  condition_type TEXT NOT NULL,
+  condition_value INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER,
+  reward_quantity INTEGER NOT NULL
+);
+CREATE TABLE usr_missions (
+  user_id INTEGER NOT NULL,
+  mission_id INTEGER NOT NULL,
+  progress INTEGER NOT NULL,
+  cleared_at TEXT,
+  received_at TEXT,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, mission_id)
+);
+CREATE TABLE log_gacha (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  gacha_id TEXT NOT NULL,
+  currency_log_id INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER NOT NULL,
+  rarity TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE mst_stages (
+  stage_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  area TEXT NOT NULL,
+  stage_type TEXT NOT NULL,
+  event_id TEXT,
+  recommended_level INTEGER NOT NULL,
+  stamina INTEGER NOT NULL,
+  boss_name TEXT NOT NULL,
+  drop_item_id INTEGER
+);
+CREATE TABLE log_stage (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  stage_id INTEGER NOT NULL,
+  result TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  clear_time_sec INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE usr_rankings (
+  event_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  score INTEGER NOT NULL,
+  rank INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (event_id, user_id)
+);
+CREATE TABLE usr_presents (
+  present_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  present_type TEXT NOT NULL,
+  reward_id INTEGER,
+  quantity INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  received_at TEXT
 );
 CREATE TABLE log_currency (
   log_id INTEGER PRIMARY KEY,
@@ -126,6 +274,12 @@ CREATE INDEX idx_charlog_user ON log_character(user_id, created_at);
 CREATE INDEX idx_item_user ON log_item(user_id, created_at);
 CREATE INDEX idx_cur_user ON log_currency(user_id, created_at);
 CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
+CREATE INDEX idx_equip_user ON log_equip(user_id, created_at);
+CREATE INDEX idx_equip_uid ON log_equip(equip_uid);
+CREATE INDEX idx_usr_equip_user ON usr_equips(user_id);
+CREATE INDEX idx_gacha_user ON log_gacha(user_id, created_at);
+CREATE INDEX idx_stage_user ON log_stage(user_id, created_at);
+CREATE INDEX idx_present_user ON usr_presents(user_id, created_at);
 `;
 
   const ITEMS = [
@@ -142,6 +296,91 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     [5012, '煌星の大剣', '武器', 'UR', 0], [5020, '天穹の弓', '武器', 'UR', 1], [5031, '竜鱗の外套', '防具', 'SSR', 1],
     [5040, '星詠みの耳飾り', 'アクセサリ', 'SSR', 1],
   ];
+  // 武器・防具・アクセサリは mst_equips に分ける（ID はそのまま）
+  const EQUIP_CATS = ['武器', '防具', 'アクセサリ'];
+  const MST_ITEMS = ITEMS.filter((i) => !EQUIP_CATS.includes(i[2]));
+  const MST_EQUIPS = ITEMS.filter((i) => EQUIP_CATS.includes(i[2])).map(([id, name, cat, rar, trad]) => {
+    const base = { N: 10, R: 25, SR: 45, SSR: 80, UR: 120 }[rar];
+    const atk = cat === '武器' ? base * 2 : cat === 'アクセサリ' ? Math.round(base / 2) : 0;
+    const def = cat === '防具' ? base * 2 : cat === 'アクセサリ' ? Math.round(base / 2) : 0;
+    return [id, name, cat, rar, trad, atk, def];
+  });
+  const EQUIP_IDS = new Set(MST_EQUIPS.map((e) => e[0]));
+
+  // イベント（日時は JST の文字列。DBにそのまま入れる）
+  const EVENTS = [
+    ['ev_halloween', 'ハロウィンイベント', 'SEASONAL', null, '2026-10-15 12:00:00', '2026-10-31 23:59:59', '期間限定ステージ「かぼちゃ畑の大騒動」とハロウィンガチャを開催'],
+    ['ev_raid_star', '星喰いの竜 討伐戦', 'RAID', null, '2026-10-25 12:00:00', '2026-11-08 23:59:59', 'レイドボス「星喰いの竜」の与ダメージを競うランキングイベント'],
+    ['ev_autumn', '秋の大感謝祭', 'CAMPAIGN', null, '2026-11-01 12:00:00', '2026-11-15 23:59:59', '大感謝祭ガチャと特設ステージ「大感謝祭の宝物庫」を開催'],
+    ['ev_guild', 'ギルド貢献ランキング', 'RANKING', null, '2026-11-01 00:00:00', '2026-11-14 23:59:59', 'ギルドへのゴールド寄付額を競うランキング'],
+    ['ev_gamma', 'ガンマ開拓祭', 'WORLD', 3, '2026-11-05 12:00:00', '2026-11-19 23:59:59', 'ワールド「ガンマ」限定のイベント。ワールド移動チケットをジェムショップで販売'],
+    ['ev_login_11', '11月ログインボーナス', 'LOGIN_BONUS', null, '2026-11-01 00:00:00', '2026-11-30 23:59:59', '毎日のログインでプレゼントBOXに報酬が届く'],
+  ];
+  // ガチャ（gacha_id は log_currency.ref_id の 'gacha:〜' と同じ）
+  const GACHAS = [
+    ['standard', '常設ガチャ', null, 300, 3000, '2024-04-01 12:00:00', null],
+    ['halloween', 'ハロウィンガチャ', 'ev_halloween', 300, 3000, '2026-10-15 12:00:00', '2026-10-31 23:59:59'],
+    ['2026_autumn', '秋の大感謝祭ガチャ', 'ev_autumn', 300, 3000, '2026-11-01 12:00:00', '2026-11-15 23:59:59'],
+  ];
+  // 排出テーブル（rate は千分率。各ガチャで合計 1000）
+  const GACHA_POOL = [
+    ['ITEM', 1001, 'N', 180], ['ITEM', 1101, 'N', 170], ['EQUIP', 2001, 'N', 50], ['EQUIP', 2003, 'N', 50], ['EQUIP', 2101, 'N', 50],
+    ['ITEM', 1002, 'R', 90], ['ITEM', 1003, 'R', 80], ['ITEM', 1102, 'R', 80], ['EQUIP', 2002, 'R', 30], ['EQUIP', 2005, 'R', 25], ['EQUIP', 2102, 'R', 25], ['EQUIP', 2201, 'R', 20],
+    ['ITEM', 1004, 'SR', 40], ['ITEM', 1103, 'SR', 30], ['EQUIP', 2004, 'SR', 17], ['EQUIP', 2006, 'SR', 17], ['EQUIP', 2202, 'SR', 16],
+    ['EQUIP', 2103, 'SSR', 10], ['EQUIP', 5001, 'SSR', 10], ['EQUIP', 5002, 'SSR', 10],
+  ];
+  const PICKUP = { halloween: 5002, '2026_autumn': 5001 }; // 限定ガチャはピックアップのSSRだけ確率アップ
+  const LINEUPS = [];
+  GACHAS.forEach(([gid]) => GACHA_POOL.forEach(([type, id, rar, rate]) => {
+    let r = rate;
+    if (rar === 'SSR' && PICKUP[gid]) r = id === PICKUP[gid] ? 20 : 5;
+    LINEUPS.push([LINEUPS.length + 1, gid, type, id, rar, r]);
+  }));
+  // 天井（交換型）：1回まわすごとに1ポイント。required_count に届くと、どれか1つと交換できる。交換するとポイントは0に戻る
+  const CEILINGS = [
+    [1, 'standard', 200, 'EQUIP', 2103], [2, 'standard', 200, 'EQUIP', 5001], [3, 'standard', 200, 'EQUIP', 5002],
+    [4, 'halloween', 100, 'EQUIP', 5002],
+    [5, '2026_autumn', 100, 'EQUIP', 5001],
+  ];
+  // ミッション。DAILY は今日（11/13）、WEEKLY は今週（11/9 月曜〜）、EVENT はイベント期間、BEGINNER は 11/1 以降に作ったアカウントが対象
+  const MISSIONS = [
+    [1, 'ログインする', 'DAILY', null, 'LOGIN', 1, 'ITEM', 1001, 3],
+    [2, 'ステージを3回クリアする', 'DAILY', null, 'STAGE_CLEAR', 3, 'ITEM', 1101, 3],
+    [3, 'ガチャを1回まわす', 'DAILY', null, 'GACHA_DRAW', 1, 'GEM', null, 10],
+    [11, '5日ログインする', 'WEEKLY', null, 'LOGIN', 5, 'GEM', null, 50],
+    [12, 'ステージを15回クリアする', 'WEEKLY', null, 'STAGE_CLEAR', 15, 'ITEM', 1102, 3],
+    [13, 'レイドを3回クリアする', 'WEEKLY', null, 'RAID_CLEAR', 3, 'ITEM', 1303, 1],
+    [21, '大感謝祭：ガチャを30回まわす', 'EVENT', 'ev_autumn', 'GACHA_DRAW', 30, 'GEM', null, 300],
+    [22, '大感謝祭：ステージを20回クリアする', 'EVENT', 'ev_autumn', 'STAGE_CLEAR', 20, 'ITEM', 1004, 1],
+    [23, '大感謝祭：強化を10回成功させる', 'EVENT', 'ev_autumn', 'ENHANCE_SUCCESS', 10, 'ITEM', 1103, 1],
+    [24, 'ギルドに合計10万ゴールド寄付する', 'EVENT', 'ev_guild', 'GUILD_DONATE', 100000, 'GEM', null, 100],
+    [31, 'はじめて：キャラクターを作成する', 'BEGINNER', null, 'CHARACTER_CREATE', 1, 'GEM', null, 100],
+    [32, 'はじめて：ステージをクリアする', 'BEGINNER', null, 'STAGE_CLEAR', 1, 'ITEM', 1001, 5],
+  ];
+  // ステージ
+  const STAGES = [
+    [101, '1-1 草原の入口', 'はじまりの草原', 'NORMAL', null, 1, 5, 'スライム', 1301],
+    [102, '1-2 風の丘', 'はじまりの草原', 'NORMAL', null, 4, 5, 'ワイルドボア', 1301],
+    [103, '1-3 古い風車', 'はじまりの草原', 'NORMAL', null, 8, 6, 'ゴブリン隊長', 1101],
+    [201, '2-1 森の小道', 'ささやきの森', 'NORMAL', null, 12, 8, 'フォレストウルフ', 1301],
+    [202, '2-2 精霊の泉', 'ささやきの森', 'NORMAL', null, 16, 8, 'ウンディーネ', 1302],
+    [203, '2-3 大樹の根元', 'ささやきの森', 'NORMAL', null, 20, 9, 'トレント', 1302],
+    [301, '3-1 砂丘', '灼熱の砂漠', 'NORMAL', null, 26, 10, 'サンドワーム', 1101],
+    [302, '3-2 オアシス', '灼熱の砂漠', 'NORMAL', null, 31, 10, 'デザートスコーピオン', 1302],
+    [303, '3-3 王家の墓', '灼熱の砂漠', 'NORMAL', null, 36, 12, 'ファラオ', 1303],
+    [401, '4-1 氷柱の回廊', '氷結の洞窟', 'NORMAL', null, 45, 12, 'アイスゴーレム', 1102],
+    [402, '4-2 凍てつく湖', '氷結の洞窟', 'NORMAL', null, 52, 14, 'フロストサーペント', 1303],
+    [403, '4-3 氷晶の玉座', '氷結の洞窟', 'NORMAL', null, 58, 15, '氷の女王', 1303],
+    [501, '5-1 魔王城の門', '魔王城', 'NORMAL', null, 68, 16, 'ガーゴイル', 1102],
+    [502, '5-2 血の回廊', '魔王城', 'NORMAL', null, 78, 18, 'デスナイト', 1303],
+    [503, '5-3 玉座の間', '魔王城', 'NORMAL', null, 88, 20, '魔王ヴァルガス', 1303],
+    [801, 'かぼちゃ畑の大騒動', 'ハロウィン特設', 'EVENT', 'ev_halloween', 20, 10, 'ジャック・オ・ランタン', 1302],
+    [802, '大感謝祭の宝物庫', '秋の大感謝祭', 'EVENT', 'ev_autumn', 30, 10, 'ゴールデンミミック', 1102],
+    [901, 'レイド:星喰いの竜', 'レイド', 'RAID', 'ev_raid_star', 80, 30, '星喰いの竜', 1303],
+    [902, 'レイド:天空の覇者', 'レイド', 'RAID', null, 75, 30, '天空の覇者', 1303],
+    [903, 'レイド:竜王の巣', 'レイド', 'RAID', null, 85, 30, '竜王', 1303],
+  ];
+
   const PRODUCTS = [
     ['gem_pack_120', 'ジェム 60個', 120, 60], ['gem_pack_610', 'ジェム 330個', 610, 330], ['gem_pack_980', 'ジェム 560個', 980, 560],
     ['gem_pack_3000', 'ジェム 1,800個', 3000, 1800], ['gem_pack_5000', 'ジェム 3,100個', 5000, 3100], ['gem_pack_10000', 'ジェム 6,500個', 10000, 6500],
@@ -336,6 +575,8 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     const inv = new Map();
     for (const u of noiseUsers) inv.set(u, Array.from({ length: int(2, 4) }, () => ({ uid: newUid(), item: pick(EQUIPS), lvl: int(0, 6) })));
     for (const k of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7old']) inv.set(S[k], Array.from({ length: 3 }, () => ({ uid: newUid(), item: pick(EQUIPS), lvl: int(0, 5) })));
+    // ログ期間の前から持っていた装備（usr_equips の組み立てに使う。乱数は使わない）
+    const invInitial = new Map([...inv].map(([u, arr]) => [u, arr.map((e) => Object.assign({}, e))]));
 
     const blocked = (u, t) => u.blackout.some(([a, b]) => t >= toT(a) && t <= toT(b));
     const liveCharAt = (u, t) => { const cs = u.chars.filter((c) => c.createdT < t && (!c.deletedT || c.deletedT > t)); return cs.length ? pick(cs) : null; };
@@ -570,6 +811,195 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     login(S.c7, T('2026-11-12 13:41:09'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
     login(S.c7, T('2026-11-12 23:48:55'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
 
+    // ================= 追加テーブル（装備・ガチャ・ステージ・ランキング・プレゼント） =================
+    // ここまでのデータ（と問題の答え）を変えないよう、ここからは別の乱数列を使う
+    const rnd2 = mulberry32((seed || 20261113) + 7);
+    const int2 = (a, b) => a + Math.floor(rnd2() * (b - a + 1));
+    const pick2 = (a) => a[Math.floor(rnd2() * a.length)];
+    const chance2 = (p) => rnd2() < p;
+    const TJ = (s) => toT(s) - JST_OFFSET; // JST の文字列 → 内部の UTC 秒
+    const uById = new Map(users.map((u) => [u.id, u]));
+    const liveChar2 = (u, t) => { const cs = u.chars.filter((c) => c.createdT < t && (!c.deletedT || c.deletedT > t)); return cs.length ? cs[Math.floor(rnd2() * cs.length)] : null; };
+    const newUid2 = () => { let s; do { s = `EQ-${int2(1000, 9999)}-${int2(1000, 9999)}`; } while (usedUid.has(s)); usedUid.add(s); return s; };
+    const itemName = Object.fromEntries(ITEMS.map((i) => [i[0], i[1]]));
+
+    // --- 装備のログを log_item から log_equip に分ける
+    L.equip = L.item.filter((r) => EQUIP_IDS.has(r.item_id));
+    L.item = L.item.filter((r) => !EQUIP_IDS.has(r.item_id));
+    L.gacha = []; L.stage = [];
+
+    // --- ガチャ：既存の GACHA（ジェム消費）1件ごとに、引いた結果を記録する
+    //     150 = 初回限定の半額1回、300 = 1回、3000 = 10連。期間外のガチャIDは期間内のものに直す
+    const lineupOf = (gid) => LINEUPS.filter((l) => l[1] === gid);
+    const draw = (gid) => { const ls = lineupOf(gid); let x = int2(1, 1000); for (const l of ls) { x -= l[5]; if (x <= 0) return l; } return ls[0]; };
+    for (const r of L.cur) {
+      if (r.reason !== 'GACHA') continue;
+      let gid = String(r.ref_id || '').replace('gacha:', '') || 'standard';
+      if (gid === 'halloween' && r._t > TJ('2026-10-31 23:59:59')) gid = chance2(0.6) ? '2026_autumn' : 'standard';
+      if (gid === '2026_autumn' && r._t < TJ('2026-11-01 12:00:00')) gid = chance2(0.6) ? 'halloween' : 'standard';
+      r.ref_id = `gacha:${gid}`;
+      const u = uById.get(r.user_id);
+      const n = r.amount <= -3000 ? 10 : 1;
+      const c = liveChar2(u, r._t);
+      for (let k = 0; k < n; k++) {
+        const l = draw(gid);
+        push('gacha', r._t, { user_id: u.id, gacha_id: gid, curRow: r, reward_type: l[2], reward_id: l[3], rarity: l[4] });
+        const src = JSON.stringify({ source: `ガチャ:${GACHAS.find((g) => g[0] === gid)[1]}` });
+        if (l[2] === 'EQUIP') push('equip', r._t, { user_id: u.id, character_id: c ? c.id : null, item_id: l[3], item_uid: newUid2(), action: 'GET', quantity: 1, target_user_id: null, detail: src });
+        else push('item', r._t, { user_id: u.id, character_id: c ? c.id : null, item_id: l[3], item_uid: null, action: 'GET', quantity: 1, target_user_id: null, detail: src });
+      }
+    }
+
+    // --- ユーザーごと・ガチャごとの回数（usr_gachas）と天井ポイント（usr_gacha_ceilings）：log_gacha から数える
+    //     交換はプレイヤーが好きなときに行う。天井（100 / 200回）まで回した人はまだいないので、ポイント = 回した回数、交換回数は 0
+    const UG = new Map();
+    for (const r of [...L.gacha].sort((a, b) => a._t - b._t || a._s - b._s)) {
+      const k = `${r.user_id}:${r.gacha_id}`;
+      if (!UG.has(k)) UG.set(k, { user_id: r.user_id, gacha_id: r.gacha_id, draws: 0, point: 0, exchanged: 0, first: r._t, last: r._t });
+      const g = UG.get(k);
+      g.draws++; g.point++; g.last = r._t;
+    }
+
+    // --- ステージ：クエスト報酬（QUEST_REWARD）の直前にクリア記録。イベント期間は特設ステージも遊ぶ
+    const stageById = Object.fromEntries(STAGES.map((s) => [s[0], s]));
+    const normal = STAGES.filter((s) => s[3] === 'NORMAL');
+    const within = (t, a, b) => t >= TJ(a) && t <= TJ(b);
+    const stageFor = (lv, t) => {
+      if (within(t, '2026-10-15 12:00:00', '2026-10-31 23:59:59') && chance2(0.3)) return stageById[801];
+      if (within(t, '2026-11-01 12:00:00', '2026-11-15 23:59:59') && chance2(0.3)) return stageById[802];
+      const ok = normal.filter((s) => s[5] <= lv + 3);
+      return ok.length ? pick2(ok.slice(-4)) : normal[0];
+    };
+    for (const r of L.cur) {
+      if (r.reason !== 'QUEST_REWARD') continue;
+      const u = uById.get(r.user_id), c = liveChar2(u, r._t);
+      const st = stageFor(c ? c.level : 30, r._t);
+      if (chance2(0.15)) push('stage', r._t - int2(300, 900), { user_id: u.id, character_id: c ? c.id : null, stage_id: st[0], result: 'FAILED', score: int2(200, 3000), clear_time_sec: null });
+      push('stage', r._t - int2(3, 40), { user_id: u.id, character_id: c ? c.id : null, stage_id: st[0], result: 'CLEAR', score: int2(3000, 30000), clear_time_sec: int2(60, 600) });
+      r.ref_id = `stage:${st[0]}`;
+    }
+    // レイドで手に入れたアイテム・装備には、そのレイドのクリア記録を付ける
+    const raidByName = Object.fromEntries(STAGES.filter((s) => s[3] === 'RAID').map((s) => [s[1], s]));
+    for (const r of [...L.equip, ...L.item]) {
+      const src = r.detail ? (JSON.parse(r.detail).source || '') : '';
+      if (r.action === 'GET' && raidByName[src]) push('stage', r._t - int2(30, 120), { user_id: r.user_id, character_id: r.character_id, stage_id: raidByName[src][0], result: 'CLEAR', score: int2(800000, 2400000), clear_time_sec: int2(300, 1200) });
+    }
+    // 星喰いの竜 討伐戦：レベルの高いキャラを持つユーザーが挑む（与ダメージ = score）
+    for (const u of noiseUsers) {
+      const strong = u.chars.filter((c) => !c.deletedT && c.level >= 60);
+      if (!strong.length || !chance2(0.55)) continue;
+      const n = int2(1, 8);
+      for (let k = 0; k < n; k++) {
+        const t = int2(Math.max(T0, TJ('2026-10-25 12:00:00')), TJ('2026-11-08 23:59:59'));
+        const c = pick2(strong), win = chance2(0.7);
+        push('stage', t, { user_id: u.id, character_id: c.id, stage_id: 901, result: win ? 'CLEAR' : 'FAILED', score: win ? int2(300000, 2600000) : int2(20000, 300000), clear_time_sec: win ? int2(300, 1500) : null });
+      }
+    }
+
+    // --- ランキング：星喰いの竜（与ダメージの合計）と、ギルド貢献（寄付ゴールドの合計）
+    const RANK = [];
+    const rankUp = (eventId, rows) => {
+      const sum = new Map();
+      for (const [uid, v, t] of rows) { const s = sum.get(uid) || { v: 0, t: 0 }; s.v += v; s.t = Math.max(s.t, t); sum.set(uid, s); }
+      [...sum.entries()].sort((a, b) => b[1].v - a[1].v || a[0] - b[0]).forEach(([uid, s], i) => RANK.push({ event_id: eventId, user_id: uid, score: s.v, rank: i + 1, _t: s.t }));
+    };
+    rankUp('ev_raid_star', L.stage.filter((r) => r.stage_id === 901 && r.result === 'CLEAR' && within(r._t, '2026-10-25 12:00:00', '2026-11-08 23:59:59')).map((r) => [r.user_id, r.score, r._t]));
+    rankUp('ev_guild', L.cur.filter((r) => r.reason === 'GUILD_DONATE' && within(r._t, '2026-11-01 00:00:00', '2026-11-14 23:59:59')).map((r) => [r.user_id, -r.amount, r._t]));
+
+    // --- プレゼントBOX：ログインボーナス、メンテナンスのお詫び、討伐戦の順位報酬
+    //     受け取りはそのユーザーのログインのついで。ジェムは log_currency に PRESENT、アイテムは log_item に GET
+    const loginsOf = new Map();
+    for (const r of L.login) if (r.result === 'SUCCESS') { if (!loginsOf.has(r.user_id)) loginsOf.set(r.user_id, []); loginsOf.get(r.user_id).push(r._t); }
+    const nextLoginAfter = (uid, t, within2) => { const ls = loginsOf.get(uid) || []; const x = ls.find((v) => v > t && v - t <= within2); return x == null ? null : x + int2(5, 300); };
+    const PRES = [];
+    const DAY = 86400, nov1 = TJ('2026-11-01 00:00:00');
+    for (const [uid, ls] of loginsOf) {
+      const seenDay = new Set();
+      for (const t of ls) {
+        const d = Math.floor((t - nov1) / DAY) + 1;
+        if (d < 1 || seenDay.has(d)) continue;
+        seenDay.add(d);
+        const gift = d % 7 === 0 ? ['GEM', null, 50] : d % 3 === 0 ? ['ITEM', 1101, 5] : ['ITEM', 1001, 3];
+        PRES.push({ user_id: uid, type: gift[0], reward_id: gift[1], qty: gift[2], title: `11月ログインボーナス ${d}日目`, source: 'LOGIN_BONUS', _t: t + 1, exp: t + 30 * DAY, recv: chance2(0.85) ? t + int2(10, 600) : null });
+      }
+    }
+    const maint = TJ('2026-11-06 16:00:00');
+    for (const u of users) {
+      if (u.status !== 'ACTIVE' || u.scriptedOnly || u.createdT > maint) continue;
+      PRES.push({ user_id: u.id, type: 'GEM', reward_id: null, qty: 300, title: '11/6 臨時メンテナンスのお詫び', source: 'MAINTENANCE', _t: maint, exp: maint + 14 * DAY, recv: nextLoginAfter(u.id, maint, 7 * DAY) });
+    }
+    const raidEnd = TJ('2026-11-09 12:00:00');
+    for (const r of RANK.filter((x) => x.event_id === 'ev_raid_star')) {
+      const g = r.rank <= 3 ? ['GEM', null, 3000] : r.rank <= 10 ? ['GEM', null, 1000] : r.rank <= 30 ? ['GEM', null, 300] : ['ITEM', 1303, 1];
+      PRES.push({ user_id: r.user_id, type: g[0], reward_id: g[1], qty: g[2], title: `星喰いの竜 討伐戦 ${r.rank}位 報酬`, source: 'EVENT', _t: raidEnd, exp: raidEnd + 30 * DAY, recv: nextLoginAfter(r.user_id, raidEnd, 4 * DAY) });
+    }
+    PRES.sort((a, b) => a._t - b._t || a.user_id - b.user_id);
+    PRES.forEach((p, i) => {
+      p.id = i + 1;
+      if (p.recv != null && p.recv >= T1) p.recv = null;
+      if (p.recv == null) return;
+      if (p.type === 'GEM') cur(uById.get(p.user_id), p.recv, 'GEM', p.qty, 'PRESENT', `present:${p.id}`);
+      else { const c = liveChar2(uById.get(p.user_id), p.recv); push('item', p.recv, { user_id: p.user_id, character_id: c ? c.id : null, item_id: p.reward_id, item_uid: null, action: 'GET', quantity: p.qty, target_user_id: null, detail: JSON.stringify({ source: 'プレゼントBOX', present_id: p.id }) }); }
+    });
+
+    // --- ミッション（usr_missions）：実際のログから進み具合を数える。デイリー・ウィークリーは今の周期だけを持つ
+    //     受け取った報酬は、ジェムなら log_currency の MISSION、アイテムなら log_item の GET（source = ミッション報酬）
+    const evOf = new Map(); // user_id → { 条件の種類: [[時刻, 増える量], ...] }
+    const addEv = (uid, type, t, v) => { if (!evOf.has(uid)) evOf.set(uid, {}); const m = evOf.get(uid); (m[type] = m[type] || []).push([t, v]); };
+    const loginDay = new Set();
+    for (const r of [...L.login].sort((a, b) => a._t - b._t)) {
+      if (r.result !== 'SUCCESS') continue;
+      const k = `${r.user_id}:${Math.floor((r._t + JST_OFFSET) / DAY)}`;
+      if (!loginDay.has(k)) { loginDay.add(k); addEv(r.user_id, 'LOGIN', r._t, 1); }
+    }
+    for (const r of L.stage) if (r.result === 'CLEAR') { addEv(r.user_id, 'STAGE_CLEAR', r._t, 1); if (stageById[r.stage_id][3] === 'RAID') addEv(r.user_id, 'RAID_CLEAR', r._t, 1); }
+    for (const r of L.gacha) addEv(r.user_id, 'GACHA_DRAW', r._t, 1);
+    for (const r of L.equip) if (r.action === 'ENHANCE_SUCCESS') addEv(r.user_id, 'ENHANCE_SUCCESS', r._t, 1);
+    for (const r of L.cur) if (r.reason === 'GUILD_DONATE') addEv(r.user_id, 'GUILD_DONATE', r._t, -r.amount);
+    for (const c of chars) addEv(c.user.id, 'CHARACTER_CREATE', c.createdT, 1);
+    const evById = Object.fromEntries(EVENTS.map((e) => [e[0], e]));
+    const periodOf = (m, u) => {
+      if (m[2] === 'DAILY') return [TJ('2026-11-13 00:00:00'), T1];
+      if (m[2] === 'WEEKLY') return [TJ('2026-11-09 00:00:00'), T1];
+      if (m[2] === 'EVENT') { const e = evById[m[3]]; return [TJ(e[4]), Math.min(TJ(e[5]), T1)]; }
+      if (m[2] === 'BEGINNER') return u.createdT >= TJ('2026-11-01 00:00:00') ? [u.createdT, T1] : null;
+      return null;
+    };
+    const UM = [];
+    for (const u of users) {
+      for (const m of MISSIONS) {
+        const p = periodOf(m, u); if (!p) continue;
+        const evs = ((evOf.get(u.id) || {})[m[4]] || []).filter(([t]) => t >= p[0] && t <= p[1]).sort((a, b) => a[0] - b[0]);
+        if (!evs.length) continue;
+        let sum = 0, cleared = null;
+        for (const [t, v] of evs) { sum += v; if (cleared == null && sum >= m[5]) cleared = t; }
+        let recv = cleared != null && chance2(0.85) ? cleared + int2(5, 300) : null;
+        if (recv != null && recv >= T1) recv = null;
+        UM.push({ user_id: u.id, mission_id: m[0], progress: Math.min(sum, m[5]), cleared, recv, updated: Math.max(evs[evs.length - 1][0], recv || 0) });
+        if (recv == null) continue;
+        if (m[6] === 'GEM') cur(u, recv, 'GEM', m[8], 'MISSION', `mission:${m[0]}`);
+        else { const c = liveChar2(u, recv); push('item', recv, { user_id: u.id, character_id: c ? c.id : null, item_id: m[7], item_uid: null, action: 'GET', quantity: m[8], target_user_id: null, detail: JSON.stringify({ source: 'ミッション報酬', mission_id: m[0] }) }); }
+      }
+    }
+
+    // --- 今持っている装備（usr_equips）：期間前の手持ちに、log_equip を時系列で当てはめて組み立てる
+    const owned = new Map();
+    for (const [u, arr] of invInitial) {
+      const c = u.chars.find((x) => !x.deletedT) || u.chars[0];
+      for (const e of arr) owned.set(e.uid, { uid: e.uid, user_id: u.id, character_id: c ? c.id : null, equip_id: e.item, level: e.lvl, in_storage: 0, _t: int2(Math.max(u.createdT, T0 - DAY * 200), T0 - 3600) });
+    }
+    for (const r of [...L.equip].sort((a, b) => a._t - b._t || a._s - b._s)) {
+      const d = r.detail ? JSON.parse(r.detail) : {};
+      const o = owned.get(r.item_uid);
+      if (r.action === 'GET') owned.set(r.item_uid, { uid: r.item_uid, user_id: r.user_id, character_id: r.character_id, equip_id: r.item_id, level: 0, in_storage: 0, _t: r._t });
+      else if (!o) continue;
+      else if (r.action === 'ENHANCE_SUCCESS') o.level = d.to;
+      else if (r.action === 'ENHANCE_DESTROY' || r.action === 'SELL') owned.delete(r.item_uid);
+      else if (r.action === 'STORAGE_IN') o.in_storage = 1;
+      else if (r.action === 'STORAGE_OUT') o.in_storage = 0;
+      else if (r.action === 'TRADE_IN') { o.user_id = r.user_id; o.character_id = r.character_id; o.in_storage = 0; }
+    }
+
     // ================= finalize =================
     const order = (a, b) => a._t - b._t || a._s - b._s;
     for (const k of Object.keys(L)) {
@@ -597,13 +1027,26 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     return {
       schema: SCHEMA,
       worlds: [[1, 'アルファ'], [2, 'ベータ'], [3, 'ガンマ']],
-      items: ITEMS, products: PRODUCTS,
+      items: MST_ITEMS, products: PRODUCTS, equips: MST_EQUIPS,
+      events: EVENTS, gachas: GACHAS, lineups: LINEUPS, stages: STAGES,
       // ここで JST に変換して書き出す
       users: users.map((u) => [u.id, u.pub, u.platform, u.status, toJ(u.created)]),
       characters: chars.map((c) => [c.id, c.user.id, c.world, c.name, c.job, c.level, toJ(c.created), toJ(c.deleted)]),
       login: L.login.map((r) => [r.id, r.user_id, r.result, r.ip_address, r.country, r.device_id, fmtJ(r._t)]),
       charlog: L.charlog.map((r) => [r.id, r.user_id, r.character_id, r.action, r.detail, r.ip_address, r.device_id, fmtJ(r._t)]),
-      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.quantity, r.target_user_id, r.detail, fmtJ(r._t)]),
+      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.action, r.quantity, r.target_user_id, r.detail, fmtJ(r._t)]),
+      equip: L.equip.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.target_user_id, r.detail, fmtJ(r._t)]),
+      usrEquips: [...owned.values()].sort((a, b) => a.user_id - b.user_id || a._t - b._t).map((o) => [o.uid, o.user_id, o.character_id, o.equip_id, o.level, o.in_storage, fmtJ(o._t)]),
+      gacha: L.gacha.map((r) => [r.id, r.user_id, r.gacha_id, r.curRow.id, r.reward_type, r.reward_id, r.rarity, fmtJ(r._t)]),
+      usrGachas: [...UG.values()].sort((a, b) => a.user_id - b.user_id || (a.gacha_id < b.gacha_id ? -1 : 1))
+        .map((g) => [g.user_id, g.gacha_id, g.draws, fmtJ(g.first), fmtJ(g.last)]),
+      usrCeilings: [...UG.values()].sort((a, b) => a.user_id - b.user_id || (a.gacha_id < b.gacha_id ? -1 : 1))
+        .map((g) => [g.user_id, g.gacha_id, g.point, g.exchanged, fmtJ(g.last)]),
+      ceilings: CEILINGS, missions: MISSIONS,
+      usrMissions: UM.map((m) => [m.user_id, m.mission_id, m.progress, m.cleared == null ? null : fmtJ(m.cleared), m.recv == null ? null : fmtJ(m.recv), fmtJ(m.updated)]),
+      stage: L.stage.map((r) => [r.id, r.user_id, r.character_id, r.stage_id, r.result, r.score, r.clear_time_sec, fmtJ(r._t)]),
+      rankings: RANK.map((r) => [r.event_id, r.user_id, r.score, r.rank, fmtJ(r._t)]),
+      presents: PRES.map((p) => [p.id, p.user_id, p.type, p.reward_id, p.qty, p.title, p.source, fmtJ(p._t), fmtJ(p.exp), p.recv == null ? null : fmtJ(p.recv)]),
       cur: L.cur.map((r) => [r.id, r.user_id, r.currency, r.amount, r.balance_after, r.reason, r.ref_id, fmtJ(r._t)]),
       pay: L.pay.map((r) => [r.id, r.user_id, r.product_id, r.price_jpy, r.store, r.transaction_id, r.status, fmtJ(r._t)]),
       err: L.err.map((r) => [r.id, r.level, r.service, typeof r.message === 'function' ? r.message() : r.message, r.user_id, fmtJ(r._t)]),
@@ -622,12 +1065,18 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
       for (const r of rows) st.run(r);
       st.free();
     };
-    ins('mst_worlds', g.worlds); ins('mst_items', g.items); ins('mst_products', g.products);
-    ins('usr_users', g.users); ins('usr_characters', g.characters);
-    ins('log_login', g.login); ins('log_character', g.charlog); ins('log_item', g.item);
-    ins('log_currency', g.cur); ins('log_payment', g.pay); ins('log_error', g.err);
+    const data = {
+      mst_worlds: g.worlds, mst_items: g.items, mst_products: g.products, mst_equips: g.equips,
+      mst_events: g.events, mst_gachas: g.gachas, mst_gacha_lineups: g.lineups, mst_stages: g.stages,
+      mst_gacha_ceilings: g.ceilings, mst_missions: g.missions,
+      usr_users: g.users, usr_characters: g.characters, usr_equips: g.usrEquips, usr_gachas: g.usrGachas, usr_gacha_ceilings: g.usrCeilings,
+      usr_missions: g.usrMissions, usr_rankings: g.rankings, usr_presents: g.presents,
+      log_login: g.login, log_character: g.charlog, log_item: g.item, log_equip: g.equip, log_currency: g.cur,
+      log_payment: g.pay, log_error: g.err, log_gacha: g.gacha, log_stage: g.stage,
+    };
+    for (const [t, rows] of Object.entries(data)) ins(t, rows);
     db.run('COMMIT');
-    return { db, keys: g.keys, counts: { usr_users: g.users.length, usr_characters: g.characters.length, log_login: g.login.length, log_character: g.charlog.length, log_item: g.item.length, log_currency: g.cur.length, log_payment: g.pay.length, log_error: g.err.length } };
+    return { db, keys: g.keys, counts: Object.fromEntries(Object.entries(data).map(([t, rows]) => [t, rows.length])) };
   }
 
   const api = { buildDatabase, generate, toT, fmt, fmtJ, WEND };

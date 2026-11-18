@@ -4,7 +4,8 @@
   "description": "ゲーム会社のサーバーエンジニアになって、問い合わせをSQLとログで調査するブラウザゲーム",
   "scripts": {
     "build": "node build.js",
-    "verify": "node test/verify.js"
+    "verify": "node test/verify.js",
+    "cases": "node test/cases.js"
   },
   "dependencies": {
     "sql.js": "1.10.3"

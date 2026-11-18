@@ -148,6 +148,8 @@ svg { image-rendering: pixelated; }
 .chip.is-new { box-shadow: inset 0 0 0 2px var(--ok), inset -2px -2px 0 2px rgba(0,0,0,.25); color: var(--ink); }
 .chip.is-new::after { content: "NEW"; font-family: var(--font-px); font-size: 8px; line-height: 8px; color: var(--outline); background: var(--ok); padding: 2px 4px; animation: blink 1s steps(1) infinite; }
 .chip.is-final { background: var(--yellow); color: var(--amber-ink); }
+.chip.is-current:hover:not(:disabled) { background: var(--paper-2); }
+.chip.is-final:hover:not(:disabled) { background: #fff08a; }
 .chip.is-final .lamp { background: var(--shu); animation: blink .5s steps(1) infinite; }
 
 .stats { display: flex; gap: 16px; align-items: center; flex: none; }
@@ -530,6 +532,11 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .cutin.is-reject .cutin-band, .cutin.is-shimatsu .cutin-band { --edge: var(--shu); --band: #2a0c18; }
 .cutin.is-combo { top: 56%; }
 .cutin.is-combo .cutin-band { --edge: var(--yellow); }
+.cutin.is-day { top: 30%; }
+.cutin.is-day .cutin-band { --edge: var(--amber-hi); }
+.cutin.is-day .cutin-band b { font-size: 64px; line-height: 72px; }
+.summary-wrap { max-height: 46vh; overflow-y: auto; border: 2px solid var(--line); }
+.summary-wrap table.summary thead th { position: sticky; top: 0; background: var(--outline); }
 .cutin.is-incoming { top: 20%; }
 .cutin.is-incoming .cutin-band { --edge: var(--cyan); }
 .cutin.is-incoming .cutin-band b { font-size: 32px; line-height: 40px; }
@@ -644,6 +651,122 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .final-rank .final-title { font-size: 32px; line-height: 40px; margin: 0 0 4px; color: var(--p-accent); }
 .final-line { margin: 0 !important; color: var(--paper-mute); }
 
+/* =====================================================================
+   ゲームだからいいよね（現実ではやってはいけない機能）
+   ===================================================================== */
+/* 「仕様です」ボタンと印鑑 */
+.btn-spec { width: 100%; margin-top: 10px; background: #ece6cf; color: var(--paper-ink); box-shadow: inset -4px -4px 0 #c9c1a6, inset 4px 4px 0 #fffdf5; }
+.btn-spec:hover:not(:disabled) { background: #f4eedb; }
+.btn-spec.is-armed { background: var(--shu); color: #fff; box-shadow: inset -4px -4px 0 var(--shu-dk), inset 4px 4px 0 #ff7a80; }
+.btn-spec.is-armed:hover:not(:disabled) { background: #f0545c; color: #fff; }
+.stamp.is-spec { border-color: #2858a8; color: #2858a8; }
+.stamp.is-spec::before { border-color: #2858a8; }
+.stamp.is-update { border-color: #7a3db0; color: #7a3db0; }
+.stamp.is-update::before { border-color: #7a3db0; }
+.via-note { margin: 0; padding: 6px 10px; background: #efe7ff; border: 2px solid #7a3db0; color: #3d1e60; }
+.via-note b { font-weight: 400; display: block; }
+.via-note small { display: block; color: var(--p-accent); }
+
+/* 本音で返信・BANハンマー */
+.extras { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 0; border-top: 2px dashed var(--paper-line); }
+.btn-honest { background: var(--pink); color: #3a0f14; box-shadow: inset -4px -4px 0 #b84a52, inset 4px 4px 0 #ffb0b4; }
+.btn-honest:hover:not(:disabled) { background: #ff8a8f; }
+.btn-ban { background: #3a3f5c; color: var(--yellow); box-shadow: inset -4px -4px 0 #1c1f33, inset 4px 4px 0 #6b7190; }
+.btn-ban:hover:not(:disabled) { background: #4a5070; }
+.honest { position: relative; padding: 8px 12px 10px; background: #fff; border: 2px solid var(--paper-ink); }
+.honest h3 { border: 0; padding: 0; margin: 0 0 4px; color: var(--paper-mute); }
+.honest h3::before { content: "✉ "; }
+.honest-text { margin: 0; min-height: 48px; color: #7a1520; }
+.honest small { display: block; margin-top: 6px; color: var(--paper-mute); }
+.honest .honest-stamp { position: absolute; top: 8px; right: 12px; width: 96px; height: 56px; }
+.honest-stamp .s-main { font-size: 32px; line-height: 32px; }
+.honest-stamp .s-sub { margin-top: 4px; }
+.banned-note { margin: 0; color: var(--p-green); }
+.backdoor-ok { padding: 10px 12px; border: 2px solid var(--purple); background: #241838; color: var(--purple); font-family: var(--font-px); font-size: 16px; line-height: 24px; }
+.backdoor-ok small { display: block; font-family: var(--font-jp); font-size: 16px; color: var(--screen-ink); margin-top: 6px; }
+
+/* HUD の電話線 */
+.snd-phone[aria-pressed="false"] { background: var(--shu-dk); color: #ffd3d0; }
+.snd-phone[aria-pressed="false"] i { background: var(--shu); animation: blink .5s steps(1) infinite; }
+
+/* カットインの種類を追加 */
+.cutin.is-spec .cutin-band { --edge: #8fb8ff; }
+.cutin.is-backdoor .cutin-band { --edge: var(--purple); --band: #1e1430; }
+.cutin.is-enjo .cutin-band, .cutin.is-smoke .cutin-band { --edge: #f77622; --band: #2a1008; }
+
+/* 証拠のログを叩きつける */
+.evidence { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 16px; }
+.evidence-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-width: min(520px, 90vw); padding: 16px 24px 20px;
+  background: var(--paper-2); color: var(--paper-ink);
+  border: 4px solid var(--paper-ink); box-shadow: 8px 8px 0 rgba(0,0,0,.45), inset 0 0 0 4px #fff;
+  transform: rotate(-3deg);
+  animation: evSlam 1.5s steps(1, end) both;
+}
+.evidence-card .ev-label { font-family: var(--font-px); font-size: 8px; line-height: 16px; color: #fff; background: var(--shu); padding: 0 6px; }
+.evidence-card b { font-weight: 400; font-size: 16px; color: var(--paper-mute); }
+.evidence-card .ev-main { font-size: 48px; line-height: 56px; color: var(--p-accent); text-shadow: 4px 4px 0 #f2d6cf; }
+.evidence-card .ev-sub { font-size: 16px; color: var(--paper-mute); }
+.evidence-shout { margin: 0; font-size: 32px; line-height: 40px; color: var(--yellow); text-shadow: 4px 4px 0 var(--outline), -2px -2px 0 var(--outline), 2px -2px 0 var(--outline), -2px 2px 0 var(--outline); animation: evShout 1.5s steps(1, end) both; }
+@keyframes evSlam {
+  0% { transform: rotate(-12deg) scale(3.2); opacity: 0; } 6% { transform: rotate(-9deg) scale(2.2); opacity: 1; } 12% { transform: rotate(-5deg) scale(1.3); }
+  17% { transform: rotate(-3deg) scale(.94); } 21% { transform: rotate(-3deg) scale(1); } 85% { opacity: 1; transform: rotate(-3deg) scale(1); } 92% { opacity: .5; } 100% { opacity: 0; transform: rotate(-3deg) scale(1); }
+}
+@keyframes evShout { 0%, 18% { opacity: 0; transform: scale(.6); } 22% { opacity: 1; transform: scale(1.15); } 26%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+/* 禁断のDROP */
+.dropseq { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 24px; cursor: pointer; background: rgba(10,6,16,.55); }
+.dropseq-term { margin: 0; width: min(760px, 100%); padding: 16px 20px; background: #0b0d18; border: 4px solid var(--shu); box-shadow: 8px 8px 0 rgba(0,0,0,.5); font-family: var(--font-jp); font-size: 16px; line-height: 28px; color: #ffb4a6; white-space: pre-wrap; }
+.dropseq.is-burning { animation: burnBg .6s steps(2) infinite; }
+@keyframes burnBg { 50% { background: rgba(120,20,10,.55); } }
+.dropseq.is-dream { background: #000; animation: none; }
+.dropseq-dream { text-align: center; }
+.dream-main { margin: 0 0 16px; font-size: 48px; line-height: 64px; color: #fff; animation: dreamIn 1.4s steps(7, end) both; }
+.dream-sub { margin: 0; color: var(--muted); animation: dreamIn 1.4s steps(7, end) .8s both; }
+@keyframes dreamIn { from { opacity: 0; } to { opacity: 1; } }
+.dropseq.is-out { animation: fadeout .4s steps(4, end) forwards; }
+.desk.crumble .pane { animation: crumble 1.6s steps(8, end) forwards; }
+.desk.crumble .pane:nth-child(2) { animation-delay: .2s; }
+.desk.crumble .pane:nth-child(3) { animation-delay: .4s; }
+@keyframes crumble { 0% { transform: none; } 20% { transform: translate(4px, -8px) rotate(1deg); } 100% { transform: translate(-12px, 110vh) rotate(-14deg); } }
+
+/* 始末書をゴミ箱へ */
+.trash-game { position: fixed; left: 16px; bottom: 16px; z-index: 35; width: min(420px, calc(100% - 32px)); padding: 12px 14px 14px; background: var(--panel); border: 4px solid var(--ink); box-shadow: inset 0 0 0 4px var(--outline); clip-path: var(--notch); }
+.trash-tip { margin: 0 0 8px; color: var(--yellow); }
+.trash-lane { position: relative; height: 56px; margin: 0 0 8px 64px; background: repeating-linear-gradient(90deg, var(--raise) 0 8px, var(--panel) 8px 16px); border-bottom: 4px solid var(--outline); }
+.trash-lane::after { content: "▼"; position: absolute; left: 50%; top: -14px; transform: translateX(-50%); color: var(--yellow); font-size: 16px; line-height: 16px; }
+.trash-bin { position: absolute; bottom: 0; left: 0; line-height: 0; animation: binSlide 1.4s steps(14) infinite alternate; }
+@keyframes binSlide { from { left: 0; } to { left: calc(100% - 48px); } }
+.trash-ball { position: absolute; left: 14px; bottom: 18px; border: 0; background: none; padding: 0; line-height: 0; animation: ballBob .6s steps(2) infinite; }
+@keyframes ballBob { 50% { transform: translateY(-4px); } }
+.trash-game.is-hit { border-color: var(--ok); }
+.trash-game.is-miss { border-color: var(--shu); }
+.trash-game.is-out { animation: fadeout .3s steps(3, end) forwards; }
+
+/* BANハンマー */
+.ban { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; background: rgba(10,6,16,.5); pointer-events: none; }
+.ban-card { position: relative; display: flex; gap: 16px; align-items: center; padding: 16px 24px; background: var(--paper); color: var(--paper-ink); border: 4px solid var(--outline); box-shadow: 8px 8px 0 rgba(0,0,0,.5); }
+.ban-card svg { width: 96px; height: 96px; background: #2a2d40; border: 4px solid var(--outline); }
+.ban-card b { display: block; font-weight: 400; font-size: 32px; line-height: 40px; }
+.ban-card span { display: block; font-family: var(--font-px); font-size: 16px; line-height: 24px; color: var(--paper-mute); }
+.ban-status { display: inline-block; margin-top: 6px; padding: 2px 8px; font-family: var(--font-px); font-size: 16px; line-height: 24px; background: var(--ok); color: var(--outline); }
+.ban.is-hit .ban-card { animation: squash .3s steps(3) forwards; }
+.ban.is-hit .ban-status { background: var(--shu); color: #fff; }
+@keyframes squash { 0% { transform: scaleY(1); } 40% { transform: scaleY(.6) scaleX(1.15); } 100% { transform: scaleY(.85) scaleX(1.05); } }
+.ban-hammer { position: absolute; left: 50%; top: 50%; margin: -260px 0 0 40px; transform-origin: 70% 90%; transform: rotate(-60deg); line-height: 0; animation: hammerDown .7s steps(1, end) forwards; }
+@keyframes hammerDown { 0% { transform: rotate(-60deg) translateY(-40px); } 60% { transform: rotate(-70deg) translateY(-60px); } 80% { transform: rotate(-20deg); } 100% { transform: rotate(10deg) translate(-40px, 40px); } }
+.ban-shout { position: absolute; left: 0; right: 0; top: calc(50% + 90px); margin: 0; text-align: center; font-family: var(--font-px); font-size: 48px; line-height: 56px; color: var(--shu); text-shadow: 4px 4px 0 var(--outline); opacity: 0; }
+.ban.is-hit .ban-shout { animation: evShout 1.9s steps(1, end) both; }
+.ban.is-out { animation: fadeout .3s steps(3, end) forwards; }
+
+/* 辞表エンド */
+.btn-resign { width: 100%; background: var(--paper); color: var(--p-accent); box-shadow: inset -4px -4px 0 #c9c1a6, inset 4px 4px 0 #fff, inset 0 0 0 2px var(--p-accent); }
+.btn-resign:hover:not(:disabled) { background: #fff; color: var(--p-accent); }
+.resign-letter { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 96px; height: 152px; margin: 0 auto 12px; background: #fff; color: var(--paper-ink); border: 4px solid var(--outline); box-shadow: 8px 8px 0 rgba(0,0,0,.4); font-size: 48px; line-height: 56px; animation: slam .4s steps(4, end) .2s both; }
+.resign .logo { font-size: 48px; line-height: 64px; }
+.resign-note { color: var(--yellow); }
+
 /* ---------- responsive ---------- */
 @media (max-width: 1280px) {
   .desk { grid-template-columns: minmax(340px, 380px) minmax(0, 1fr) minmax(260px, 300px); }
@@ -682,6 +805,13 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
   .btn-start { font-size: 16px !important; line-height: 24px !important; padding: 12px 32px !important; }
   .final-score b { font-size: 32px; line-height: 32px; }
   .final-rank .final-title { font-size: 16px; line-height: 24px; }
+  .evidence-card .ev-main { font-size: 32px; line-height: 40px; }
+  .evidence-shout { font-size: 16px; line-height: 24px; }
+  .dream-main { font-size: 32px; line-height: 48px; }
+  .ban-card svg { width: 64px; height: 64px; }
+  .ban-card b { font-size: 16px; line-height: 24px; }
+  .ban-hammer { transform: scale(.6); margin: -200px 0 0 0; }
+  .ban-shout { font-size: 32px; line-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
@@ -702,6 +832,7 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
       <div class="sound" role="group" aria-label="サウンド">
         <button class="snd" id="btn-bgm" type="button" aria-pressed="true" title="BGMのオン／オフ"><i></i>BGM</button>
         <button class="snd" id="btn-sfx" type="button" aria-pressed="true" title="効果音のオン／オフ"><i></i>SE</button>
+        <button class="snd snd-phone" id="btn-phone" type="button" aria-pressed="true" title="電話線（抜くとチケットが届かなくなる。時間は倍速）"><i></i>TEL</button>
       </div>
     </div>
   </header>
@@ -836,12 +967,160 @@ CREATE TABLE log_item (
   user_id INTEGER NOT NULL,
   character_id INTEGER,
   item_id INTEGER NOT NULL,
-  item_uid TEXT,
   action TEXT NOT NULL,
   quantity INTEGER NOT NULL,
   target_user_id INTEGER,
   detail TEXT,
   created_at TEXT NOT NULL
+);
+CREATE TABLE mst_equips (
+  equip_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  rarity TEXT NOT NULL,
+  tradable INTEGER NOT NULL,
+  attack INTEGER NOT NULL,
+  defense INTEGER NOT NULL
+);
+CREATE TABLE usr_equips (
+  equip_uid TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  equip_id INTEGER NOT NULL,
+  level INTEGER NOT NULL,
+  in_storage INTEGER NOT NULL,
+  obtained_at TEXT NOT NULL
+);
+CREATE TABLE log_equip (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  equip_id INTEGER NOT NULL,
+  equip_uid TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_user_id INTEGER,
+  detail TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE mst_events (
+  event_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  world_id INTEGER,
+  start_at TEXT NOT NULL,
+  end_at TEXT NOT NULL,
+  description TEXT
+);
+CREATE TABLE mst_gachas (
+  gacha_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  event_id TEXT,
+  gem_single INTEGER NOT NULL,
+  gem_ten INTEGER NOT NULL,
+  start_at TEXT NOT NULL,
+  end_at TEXT
+);
+CREATE TABLE mst_gacha_lineups (
+  lineup_id INTEGER PRIMARY KEY,
+  gacha_id TEXT NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER NOT NULL,
+  rarity TEXT NOT NULL,
+  rate INTEGER NOT NULL
+);
+CREATE TABLE usr_gachas (
+  user_id INTEGER NOT NULL,
+  gacha_id TEXT NOT NULL,
+  draw_count INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, gacha_id)
+);
+CREATE TABLE mst_gacha_ceilings (
+  ceiling_id INTEGER PRIMARY KEY,
+  gacha_id TEXT NOT NULL,
+  required_count INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER NOT NULL
+);
+CREATE TABLE usr_gacha_ceilings (
+  user_id INTEGER NOT NULL,
+  gacha_id TEXT NOT NULL,
+  ceiling_count INTEGER NOT NULL,
+  exchanged_count INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, gacha_id)
+);
+CREATE TABLE mst_missions (
+  mission_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  mission_type TEXT NOT NULL,
+  event_id TEXT,
+  condition_type TEXT NOT NULL,
+  condition_value INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER,
+  reward_quantity INTEGER NOT NULL
+);
+CREATE TABLE usr_missions (
+  user_id INTEGER NOT NULL,
+  mission_id INTEGER NOT NULL,
+  progress INTEGER NOT NULL,
+  cleared_at TEXT,
+  received_at TEXT,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, mission_id)
+);
+CREATE TABLE log_gacha (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  gacha_id TEXT NOT NULL,
+  currency_log_id INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  reward_id INTEGER NOT NULL,
+  rarity TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE mst_stages (
+  stage_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  area TEXT NOT NULL,
+  stage_type TEXT NOT NULL,
+  event_id TEXT,
+  recommended_level INTEGER NOT NULL,
+  stamina INTEGER NOT NULL,
+  boss_name TEXT NOT NULL,
+  drop_item_id INTEGER
+);
+CREATE TABLE log_stage (
+  log_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER,
+  stage_id INTEGER NOT NULL,
+  result TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  clear_time_sec INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE usr_rankings (
+  event_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  score INTEGER NOT NULL,
+  rank INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (event_id, user_id)
+);
+CREATE TABLE usr_presents (
+  present_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  present_type TEXT NOT NULL,
+  reward_id INTEGER,
+  quantity INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  received_at TEXT
 );
 CREATE TABLE log_currency (
   log_id INTEGER PRIMARY KEY,
@@ -877,6 +1156,12 @@ CREATE INDEX idx_charlog_user ON log_character(user_id, created_at);
 CREATE INDEX idx_item_user ON log_item(user_id, created_at);
 CREATE INDEX idx_cur_user ON log_currency(user_id, created_at);
 CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
+CREATE INDEX idx_equip_user ON log_equip(user_id, created_at);
+CREATE INDEX idx_equip_uid ON log_equip(equip_uid);
+CREATE INDEX idx_usr_equip_user ON usr_equips(user_id);
+CREATE INDEX idx_gacha_user ON log_gacha(user_id, created_at);
+CREATE INDEX idx_stage_user ON log_stage(user_id, created_at);
+CREATE INDEX idx_present_user ON usr_presents(user_id, created_at);
 `;
 
   const ITEMS = [
@@ -893,6 +1178,91 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     [5012, '煌星の大剣', '武器', 'UR', 0], [5020, '天穹の弓', '武器', 'UR', 1], [5031, '竜鱗の外套', '防具', 'SSR', 1],
     [5040, '星詠みの耳飾り', 'アクセサリ', 'SSR', 1],
   ];
+  // 武器・防具・アクセサリは mst_equips に分ける（ID はそのまま）
+  const EQUIP_CATS = ['武器', '防具', 'アクセサリ'];
+  const MST_ITEMS = ITEMS.filter((i) => !EQUIP_CATS.includes(i[2]));
+  const MST_EQUIPS = ITEMS.filter((i) => EQUIP_CATS.includes(i[2])).map(([id, name, cat, rar, trad]) => {
+    const base = { N: 10, R: 25, SR: 45, SSR: 80, UR: 120 }[rar];
+    const atk = cat === '武器' ? base * 2 : cat === 'アクセサリ' ? Math.round(base / 2) : 0;
+    const def = cat === '防具' ? base * 2 : cat === 'アクセサリ' ? Math.round(base / 2) : 0;
+    return [id, name, cat, rar, trad, atk, def];
+  });
+  const EQUIP_IDS = new Set(MST_EQUIPS.map((e) => e[0]));
+
+  // イベント（日時は JST の文字列。DBにそのまま入れる）
+  const EVENTS = [
+    ['ev_halloween', 'ハロウィンイベント', 'SEASONAL', null, '2026-10-15 12:00:00', '2026-10-31 23:59:59', '期間限定ステージ「かぼちゃ畑の大騒動」とハロウィンガチャを開催'],
+    ['ev_raid_star', '星喰いの竜 討伐戦', 'RAID', null, '2026-10-25 12:00:00', '2026-11-08 23:59:59', 'レイドボス「星喰いの竜」の与ダメージを競うランキングイベント'],
+    ['ev_autumn', '秋の大感謝祭', 'CAMPAIGN', null, '2026-11-01 12:00:00', '2026-11-15 23:59:59', '大感謝祭ガチャと特設ステージ「大感謝祭の宝物庫」を開催'],
+    ['ev_guild', 'ギルド貢献ランキング', 'RANKING', null, '2026-11-01 00:00:00', '2026-11-14 23:59:59', 'ギルドへのゴールド寄付額を競うランキング'],
+    ['ev_gamma', 'ガンマ開拓祭', 'WORLD', 3, '2026-11-05 12:00:00', '2026-11-19 23:59:59', 'ワールド「ガンマ」限定のイベント。ワールド移動チケットをジェムショップで販売'],
+    ['ev_login_11', '11月ログインボーナス', 'LOGIN_BONUS', null, '2026-11-01 00:00:00', '2026-11-30 23:59:59', '毎日のログインでプレゼントBOXに報酬が届く'],
+  ];
+  // ガチャ（gacha_id は log_currency.ref_id の 'gacha:〜' と同じ）
+  const GACHAS = [
+    ['standard', '常設ガチャ', null, 300, 3000, '2024-04-01 12:00:00', null],
+    ['halloween', 'ハロウィンガチャ', 'ev_halloween', 300, 3000, '2026-10-15 12:00:00', '2026-10-31 23:59:59'],
+    ['2026_autumn', '秋の大感謝祭ガチャ', 'ev_autumn', 300, 3000, '2026-11-01 12:00:00', '2026-11-15 23:59:59'],
+  ];
+  // 排出テーブル（rate は千分率。各ガチャで合計 1000）
+  const GACHA_POOL = [
+    ['ITEM', 1001, 'N', 180], ['ITEM', 1101, 'N', 170], ['EQUIP', 2001, 'N', 50], ['EQUIP', 2003, 'N', 50], ['EQUIP', 2101, 'N', 50],
+    ['ITEM', 1002, 'R', 90], ['ITEM', 1003, 'R', 80], ['ITEM', 1102, 'R', 80], ['EQUIP', 2002, 'R', 30], ['EQUIP', 2005, 'R', 25], ['EQUIP', 2102, 'R', 25], ['EQUIP', 2201, 'R', 20],
+    ['ITEM', 1004, 'SR', 40], ['ITEM', 1103, 'SR', 30], ['EQUIP', 2004, 'SR', 17], ['EQUIP', 2006, 'SR', 17], ['EQUIP', 2202, 'SR', 16],
+    ['EQUIP', 2103, 'SSR', 10], ['EQUIP', 5001, 'SSR', 10], ['EQUIP', 5002, 'SSR', 10],
+  ];
+  const PICKUP = { halloween: 5002, '2026_autumn': 5001 }; // 限定ガチャはピックアップのSSRだけ確率アップ
+  const LINEUPS = [];
+  GACHAS.forEach(([gid]) => GACHA_POOL.forEach(([type, id, rar, rate]) => {
+    let r = rate;
+    if (rar === 'SSR' && PICKUP[gid]) r = id === PICKUP[gid] ? 20 : 5;
+    LINEUPS.push([LINEUPS.length + 1, gid, type, id, rar, r]);
+  }));
+  // 天井（交換型）：1回まわすごとに1ポイント。required_count に届くと、どれか1つと交換できる。交換するとポイントは0に戻る
+  const CEILINGS = [
+    [1, 'standard', 200, 'EQUIP', 2103], [2, 'standard', 200, 'EQUIP', 5001], [3, 'standard', 200, 'EQUIP', 5002],
+    [4, 'halloween', 100, 'EQUIP', 5002],
+    [5, '2026_autumn', 100, 'EQUIP', 5001],
+  ];
+  // ミッション。DAILY は今日（11/13）、WEEKLY は今週（11/9 月曜〜）、EVENT はイベント期間、BEGINNER は 11/1 以降に作ったアカウントが対象
+  const MISSIONS = [
+    [1, 'ログインする', 'DAILY', null, 'LOGIN', 1, 'ITEM', 1001, 3],
+    [2, 'ステージを3回クリアする', 'DAILY', null, 'STAGE_CLEAR', 3, 'ITEM', 1101, 3],
+    [3, 'ガチャを1回まわす', 'DAILY', null, 'GACHA_DRAW', 1, 'GEM', null, 10],
+    [11, '5日ログインする', 'WEEKLY', null, 'LOGIN', 5, 'GEM', null, 50],
+    [12, 'ステージを15回クリアする', 'WEEKLY', null, 'STAGE_CLEAR', 15, 'ITEM', 1102, 3],
+    [13, 'レイドを3回クリアする', 'WEEKLY', null, 'RAID_CLEAR', 3, 'ITEM', 1303, 1],
+    [21, '大感謝祭：ガチャを30回まわす', 'EVENT', 'ev_autumn', 'GACHA_DRAW', 30, 'GEM', null, 300],
+    [22, '大感謝祭：ステージを20回クリアする', 'EVENT', 'ev_autumn', 'STAGE_CLEAR', 20, 'ITEM', 1004, 1],
+    [23, '大感謝祭：強化を10回成功させる', 'EVENT', 'ev_autumn', 'ENHANCE_SUCCESS', 10, 'ITEM', 1103, 1],
+    [24, 'ギルドに合計10万ゴールド寄付する', 'EVENT', 'ev_guild', 'GUILD_DONATE', 100000, 'GEM', null, 100],
+    [31, 'はじめて：キャラクターを作成する', 'BEGINNER', null, 'CHARACTER_CREATE', 1, 'GEM', null, 100],
+    [32, 'はじめて：ステージをクリアする', 'BEGINNER', null, 'STAGE_CLEAR', 1, 'ITEM', 1001, 5],
+  ];
+  // ステージ
+  const STAGES = [
+    [101, '1-1 草原の入口', 'はじまりの草原', 'NORMAL', null, 1, 5, 'スライム', 1301],
+    [102, '1-2 風の丘', 'はじまりの草原', 'NORMAL', null, 4, 5, 'ワイルドボア', 1301],
+    [103, '1-3 古い風車', 'はじまりの草原', 'NORMAL', null, 8, 6, 'ゴブリン隊長', 1101],
+    [201, '2-1 森の小道', 'ささやきの森', 'NORMAL', null, 12, 8, 'フォレストウルフ', 1301],
+    [202, '2-2 精霊の泉', 'ささやきの森', 'NORMAL', null, 16, 8, 'ウンディーネ', 1302],
+    [203, '2-3 大樹の根元', 'ささやきの森', 'NORMAL', null, 20, 9, 'トレント', 1302],
+    [301, '3-1 砂丘', '灼熱の砂漠', 'NORMAL', null, 26, 10, 'サンドワーム', 1101],
+    [302, '3-2 オアシス', '灼熱の砂漠', 'NORMAL', null, 31, 10, 'デザートスコーピオン', 1302],
+    [303, '3-3 王家の墓', '灼熱の砂漠', 'NORMAL', null, 36, 12, 'ファラオ', 1303],
+    [401, '4-1 氷柱の回廊', '氷結の洞窟', 'NORMAL', null, 45, 12, 'アイスゴーレム', 1102],
+    [402, '4-2 凍てつく湖', '氷結の洞窟', 'NORMAL', null, 52, 14, 'フロストサーペント', 1303],
+    [403, '4-3 氷晶の玉座', '氷結の洞窟', 'NORMAL', null, 58, 15, '氷の女王', 1303],
+    [501, '5-1 魔王城の門', '魔王城', 'NORMAL', null, 68, 16, 'ガーゴイル', 1102],
+    [502, '5-2 血の回廊', '魔王城', 'NORMAL', null, 78, 18, 'デスナイト', 1303],
+    [503, '5-3 玉座の間', '魔王城', 'NORMAL', null, 88, 20, '魔王ヴァルガス', 1303],
+    [801, 'かぼちゃ畑の大騒動', 'ハロウィン特設', 'EVENT', 'ev_halloween', 20, 10, 'ジャック・オ・ランタン', 1302],
+    [802, '大感謝祭の宝物庫', '秋の大感謝祭', 'EVENT', 'ev_autumn', 30, 10, 'ゴールデンミミック', 1102],
+    [901, 'レイド:星喰いの竜', 'レイド', 'RAID', 'ev_raid_star', 80, 30, '星喰いの竜', 1303],
+    [902, 'レイド:天空の覇者', 'レイド', 'RAID', null, 75, 30, '天空の覇者', 1303],
+    [903, 'レイド:竜王の巣', 'レイド', 'RAID', null, 85, 30, '竜王', 1303],
+  ];
+
   const PRODUCTS = [
     ['gem_pack_120', 'ジェム 60個', 120, 60], ['gem_pack_610', 'ジェム 330個', 610, 330], ['gem_pack_980', 'ジェム 560個', 980, 560],
     ['gem_pack_3000', 'ジェム 1,800個', 3000, 1800], ['gem_pack_5000', 'ジェム 3,100個', 5000, 3100], ['gem_pack_10000', 'ジェム 6,500個', 10000, 6500],
@@ -1087,6 +1457,8 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     const inv = new Map();
     for (const u of noiseUsers) inv.set(u, Array.from({ length: int(2, 4) }, () => ({ uid: newUid(), item: pick(EQUIPS), lvl: int(0, 6) })));
     for (const k of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7old']) inv.set(S[k], Array.from({ length: 3 }, () => ({ uid: newUid(), item: pick(EQUIPS), lvl: int(0, 5) })));
+    // ログ期間の前から持っていた装備（usr_equips の組み立てに使う。乱数は使わない）
+    const invInitial = new Map([...inv].map(([u, arr]) => [u, arr.map((e) => Object.assign({}, e))]));
 
     const blocked = (u, t) => u.blackout.some(([a, b]) => t >= toT(a) && t <= toT(b));
     const liveCharAt = (u, t) => { const cs = u.chars.filter((c) => c.createdT < t && (!c.deletedT || c.deletedT > t)); return cs.length ? pick(cs) : null; };
@@ -1321,6 +1693,195 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     login(S.c7, T('2026-11-12 13:41:09'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
     login(S.c7, T('2026-11-12 23:48:55'), 'SUCCESS', '114.150.82.9', 'iPhone16,1-A9D0');
 
+    // ================= 追加テーブル（装備・ガチャ・ステージ・ランキング・プレゼント） =================
+    // ここまでのデータ（と問題の答え）を変えないよう、ここからは別の乱数列を使う
+    const rnd2 = mulberry32((seed || 20261113) + 7);
+    const int2 = (a, b) => a + Math.floor(rnd2() * (b - a + 1));
+    const pick2 = (a) => a[Math.floor(rnd2() * a.length)];
+    const chance2 = (p) => rnd2() < p;
+    const TJ = (s) => toT(s) - JST_OFFSET; // JST の文字列 → 内部の UTC 秒
+    const uById = new Map(users.map((u) => [u.id, u]));
+    const liveChar2 = (u, t) => { const cs = u.chars.filter((c) => c.createdT < t && (!c.deletedT || c.deletedT > t)); return cs.length ? cs[Math.floor(rnd2() * cs.length)] : null; };
+    const newUid2 = () => { let s; do { s = `EQ-${int2(1000, 9999)}-${int2(1000, 9999)}`; } while (usedUid.has(s)); usedUid.add(s); return s; };
+    const itemName = Object.fromEntries(ITEMS.map((i) => [i[0], i[1]]));
+
+    // --- 装備のログを log_item から log_equip に分ける
+    L.equip = L.item.filter((r) => EQUIP_IDS.has(r.item_id));
+    L.item = L.item.filter((r) => !EQUIP_IDS.has(r.item_id));
+    L.gacha = []; L.stage = [];
+
+    // --- ガチャ：既存の GACHA（ジェム消費）1件ごとに、引いた結果を記録する
+    //     150 = 初回限定の半額1回、300 = 1回、3000 = 10連。期間外のガチャIDは期間内のものに直す
+    const lineupOf = (gid) => LINEUPS.filter((l) => l[1] === gid);
+    const draw = (gid) => { const ls = lineupOf(gid); let x = int2(1, 1000); for (const l of ls) { x -= l[5]; if (x <= 0) return l; } return ls[0]; };
+    for (const r of L.cur) {
+      if (r.reason !== 'GACHA') continue;
+      let gid = String(r.ref_id || '').replace('gacha:', '') || 'standard';
+      if (gid === 'halloween' && r._t > TJ('2026-10-31 23:59:59')) gid = chance2(0.6) ? '2026_autumn' : 'standard';
+      if (gid === '2026_autumn' && r._t < TJ('2026-11-01 12:00:00')) gid = chance2(0.6) ? 'halloween' : 'standard';
+      r.ref_id = `gacha:${gid}`;
+      const u = uById.get(r.user_id);
+      const n = r.amount <= -3000 ? 10 : 1;
+      const c = liveChar2(u, r._t);
+      for (let k = 0; k < n; k++) {
+        const l = draw(gid);
+        push('gacha', r._t, { user_id: u.id, gacha_id: gid, curRow: r, reward_type: l[2], reward_id: l[3], rarity: l[4] });
+        const src = JSON.stringify({ source: `ガチャ:${GACHAS.find((g) => g[0] === gid)[1]}` });
+        if (l[2] === 'EQUIP') push('equip', r._t, { user_id: u.id, character_id: c ? c.id : null, item_id: l[3], item_uid: newUid2(), action: 'GET', quantity: 1, target_user_id: null, detail: src });
+        else push('item', r._t, { user_id: u.id, character_id: c ? c.id : null, item_id: l[3], item_uid: null, action: 'GET', quantity: 1, target_user_id: null, detail: src });
+      }
+    }
+
+    // --- ユーザーごと・ガチャごとの回数（usr_gachas）と天井ポイント（usr_gacha_ceilings）：log_gacha から数える
+    //     交換はプレイヤーが好きなときに行う。天井（100 / 200回）まで回した人はまだいないので、ポイント = 回した回数、交換回数は 0
+    const UG = new Map();
+    for (const r of [...L.gacha].sort((a, b) => a._t - b._t || a._s - b._s)) {
+      const k = `${r.user_id}:${r.gacha_id}`;
+      if (!UG.has(k)) UG.set(k, { user_id: r.user_id, gacha_id: r.gacha_id, draws: 0, point: 0, exchanged: 0, first: r._t, last: r._t });
+      const g = UG.get(k);
+      g.draws++; g.point++; g.last = r._t;
+    }
+
+    // --- ステージ：クエスト報酬（QUEST_REWARD）の直前にクリア記録。イベント期間は特設ステージも遊ぶ
+    const stageById = Object.fromEntries(STAGES.map((s) => [s[0], s]));
+    const normal = STAGES.filter((s) => s[3] === 'NORMAL');
+    const within = (t, a, b) => t >= TJ(a) && t <= TJ(b);
+    const stageFor = (lv, t) => {
+      if (within(t, '2026-10-15 12:00:00', '2026-10-31 23:59:59') && chance2(0.3)) return stageById[801];
+      if (within(t, '2026-11-01 12:00:00', '2026-11-15 23:59:59') && chance2(0.3)) return stageById[802];
+      const ok = normal.filter((s) => s[5] <= lv + 3);
+      return ok.length ? pick2(ok.slice(-4)) : normal[0];
+    };
+    for (const r of L.cur) {
+      if (r.reason !== 'QUEST_REWARD') continue;
+      const u = uById.get(r.user_id), c = liveChar2(u, r._t);
+      const st = stageFor(c ? c.level : 30, r._t);
+      if (chance2(0.15)) push('stage', r._t - int2(300, 900), { user_id: u.id, character_id: c ? c.id : null, stage_id: st[0], result: 'FAILED', score: int2(200, 3000), clear_time_sec: null });
+      push('stage', r._t - int2(3, 40), { user_id: u.id, character_id: c ? c.id : null, stage_id: st[0], result: 'CLEAR', score: int2(3000, 30000), clear_time_sec: int2(60, 600) });
+      r.ref_id = `stage:${st[0]}`;
+    }
+    // レイドで手に入れたアイテム・装備には、そのレイドのクリア記録を付ける
+    const raidByName = Object.fromEntries(STAGES.filter((s) => s[3] === 'RAID').map((s) => [s[1], s]));
+    for (const r of [...L.equip, ...L.item]) {
+      const src = r.detail ? (JSON.parse(r.detail).source || '') : '';
+      if (r.action === 'GET' && raidByName[src]) push('stage', r._t - int2(30, 120), { user_id: r.user_id, character_id: r.character_id, stage_id: raidByName[src][0], result: 'CLEAR', score: int2(800000, 2400000), clear_time_sec: int2(300, 1200) });
+    }
+    // 星喰いの竜 討伐戦：レベルの高いキャラを持つユーザーが挑む（与ダメージ = score）
+    for (const u of noiseUsers) {
+      const strong = u.chars.filter((c) => !c.deletedT && c.level >= 60);
+      if (!strong.length || !chance2(0.55)) continue;
+      const n = int2(1, 8);
+      for (let k = 0; k < n; k++) {
+        const t = int2(Math.max(T0, TJ('2026-10-25 12:00:00')), TJ('2026-11-08 23:59:59'));
+        const c = pick2(strong), win = chance2(0.7);
+        push('stage', t, { user_id: u.id, character_id: c.id, stage_id: 901, result: win ? 'CLEAR' : 'FAILED', score: win ? int2(300000, 2600000) : int2(20000, 300000), clear_time_sec: win ? int2(300, 1500) : null });
+      }
+    }
+
+    // --- ランキング：星喰いの竜（与ダメージの合計）と、ギルド貢献（寄付ゴールドの合計）
+    const RANK = [];
+    const rankUp = (eventId, rows) => {
+      const sum = new Map();
+      for (const [uid, v, t] of rows) { const s = sum.get(uid) || { v: 0, t: 0 }; s.v += v; s.t = Math.max(s.t, t); sum.set(uid, s); }
+      [...sum.entries()].sort((a, b) => b[1].v - a[1].v || a[0] - b[0]).forEach(([uid, s], i) => RANK.push({ event_id: eventId, user_id: uid, score: s.v, rank: i + 1, _t: s.t }));
+    };
+    rankUp('ev_raid_star', L.stage.filter((r) => r.stage_id === 901 && r.result === 'CLEAR' && within(r._t, '2026-10-25 12:00:00', '2026-11-08 23:59:59')).map((r) => [r.user_id, r.score, r._t]));
+    rankUp('ev_guild', L.cur.filter((r) => r.reason === 'GUILD_DONATE' && within(r._t, '2026-11-01 00:00:00', '2026-11-14 23:59:59')).map((r) => [r.user_id, -r.amount, r._t]));
+
+    // --- プレゼントBOX：ログインボーナス、メンテナンスのお詫び、討伐戦の順位報酬
+    //     受け取りはそのユーザーのログインのついで。ジェムは log_currency に PRESENT、アイテムは log_item に GET
+    const loginsOf = new Map();
+    for (const r of L.login) if (r.result === 'SUCCESS') { if (!loginsOf.has(r.user_id)) loginsOf.set(r.user_id, []); loginsOf.get(r.user_id).push(r._t); }
+    const nextLoginAfter = (uid, t, within2) => { const ls = loginsOf.get(uid) || []; const x = ls.find((v) => v > t && v - t <= within2); return x == null ? null : x + int2(5, 300); };
+    const PRES = [];
+    const DAY = 86400, nov1 = TJ('2026-11-01 00:00:00');
+    for (const [uid, ls] of loginsOf) {
+      const seenDay = new Set();
+      for (const t of ls) {
+        const d = Math.floor((t - nov1) / DAY) + 1;
+        if (d < 1 || seenDay.has(d)) continue;
+        seenDay.add(d);
+        const gift = d % 7 === 0 ? ['GEM', null, 50] : d % 3 === 0 ? ['ITEM', 1101, 5] : ['ITEM', 1001, 3];
+        PRES.push({ user_id: uid, type: gift[0], reward_id: gift[1], qty: gift[2], title: `11月ログインボーナス ${d}日目`, source: 'LOGIN_BONUS', _t: t + 1, exp: t + 30 * DAY, recv: chance2(0.85) ? t + int2(10, 600) : null });
+      }
+    }
+    const maint = TJ('2026-11-06 16:00:00');
+    for (const u of users) {
+      if (u.status !== 'ACTIVE' || u.scriptedOnly || u.createdT > maint) continue;
+      PRES.push({ user_id: u.id, type: 'GEM', reward_id: null, qty: 300, title: '11/6 臨時メンテナンスのお詫び', source: 'MAINTENANCE', _t: maint, exp: maint + 14 * DAY, recv: nextLoginAfter(u.id, maint, 7 * DAY) });
+    }
+    const raidEnd = TJ('2026-11-09 12:00:00');
+    for (const r of RANK.filter((x) => x.event_id === 'ev_raid_star')) {
+      const g = r.rank <= 3 ? ['GEM', null, 3000] : r.rank <= 10 ? ['GEM', null, 1000] : r.rank <= 30 ? ['GEM', null, 300] : ['ITEM', 1303, 1];
+      PRES.push({ user_id: r.user_id, type: g[0], reward_id: g[1], qty: g[2], title: `星喰いの竜 討伐戦 ${r.rank}位 報酬`, source: 'EVENT', _t: raidEnd, exp: raidEnd + 30 * DAY, recv: nextLoginAfter(r.user_id, raidEnd, 4 * DAY) });
+    }
+    PRES.sort((a, b) => a._t - b._t || a.user_id - b.user_id);
+    PRES.forEach((p, i) => {
+      p.id = i + 1;
+      if (p.recv != null && p.recv >= T1) p.recv = null;
+      if (p.recv == null) return;
+      if (p.type === 'GEM') cur(uById.get(p.user_id), p.recv, 'GEM', p.qty, 'PRESENT', `present:${p.id}`);
+      else { const c = liveChar2(uById.get(p.user_id), p.recv); push('item', p.recv, { user_id: p.user_id, character_id: c ? c.id : null, item_id: p.reward_id, item_uid: null, action: 'GET', quantity: p.qty, target_user_id: null, detail: JSON.stringify({ source: 'プレゼントBOX', present_id: p.id }) }); }
+    });
+
+    // --- ミッション（usr_missions）：実際のログから進み具合を数える。デイリー・ウィークリーは今の周期だけを持つ
+    //     受け取った報酬は、ジェムなら log_currency の MISSION、アイテムなら log_item の GET（source = ミッション報酬）
+    const evOf = new Map(); // user_id → { 条件の種類: [[時刻, 増える量], ...] }
+    const addEv = (uid, type, t, v) => { if (!evOf.has(uid)) evOf.set(uid, {}); const m = evOf.get(uid); (m[type] = m[type] || []).push([t, v]); };
+    const loginDay = new Set();
+    for (const r of [...L.login].sort((a, b) => a._t - b._t)) {
+      if (r.result !== 'SUCCESS') continue;
+      const k = `${r.user_id}:${Math.floor((r._t + JST_OFFSET) / DAY)}`;
+      if (!loginDay.has(k)) { loginDay.add(k); addEv(r.user_id, 'LOGIN', r._t, 1); }
+    }
+    for (const r of L.stage) if (r.result === 'CLEAR') { addEv(r.user_id, 'STAGE_CLEAR', r._t, 1); if (stageById[r.stage_id][3] === 'RAID') addEv(r.user_id, 'RAID_CLEAR', r._t, 1); }
+    for (const r of L.gacha) addEv(r.user_id, 'GACHA_DRAW', r._t, 1);
+    for (const r of L.equip) if (r.action === 'ENHANCE_SUCCESS') addEv(r.user_id, 'ENHANCE_SUCCESS', r._t, 1);
+    for (const r of L.cur) if (r.reason === 'GUILD_DONATE') addEv(r.user_id, 'GUILD_DONATE', r._t, -r.amount);
+    for (const c of chars) addEv(c.user.id, 'CHARACTER_CREATE', c.createdT, 1);
+    const evById = Object.fromEntries(EVENTS.map((e) => [e[0], e]));
+    const periodOf = (m, u) => {
+      if (m[2] === 'DAILY') return [TJ('2026-11-13 00:00:00'), T1];
+      if (m[2] === 'WEEKLY') return [TJ('2026-11-09 00:00:00'), T1];
+      if (m[2] === 'EVENT') { const e = evById[m[3]]; return [TJ(e[4]), Math.min(TJ(e[5]), T1)]; }
+      if (m[2] === 'BEGINNER') return u.createdT >= TJ('2026-11-01 00:00:00') ? [u.createdT, T1] : null;
+      return null;
+    };
+    const UM = [];
+    for (const u of users) {
+      for (const m of MISSIONS) {
+        const p = periodOf(m, u); if (!p) continue;
+        const evs = ((evOf.get(u.id) || {})[m[4]] || []).filter(([t]) => t >= p[0] && t <= p[1]).sort((a, b) => a[0] - b[0]);
+        if (!evs.length) continue;
+        let sum = 0, cleared = null;
+        for (const [t, v] of evs) { sum += v; if (cleared == null && sum >= m[5]) cleared = t; }
+        let recv = cleared != null && chance2(0.85) ? cleared + int2(5, 300) : null;
+        if (recv != null && recv >= T1) recv = null;
+        UM.push({ user_id: u.id, mission_id: m[0], progress: Math.min(sum, m[5]), cleared, recv, updated: Math.max(evs[evs.length - 1][0], recv || 0) });
+        if (recv == null) continue;
+        if (m[6] === 'GEM') cur(u, recv, 'GEM', m[8], 'MISSION', `mission:${m[0]}`);
+        else { const c = liveChar2(u, recv); push('item', recv, { user_id: u.id, character_id: c ? c.id : null, item_id: m[7], item_uid: null, action: 'GET', quantity: m[8], target_user_id: null, detail: JSON.stringify({ source: 'ミッション報酬', mission_id: m[0] }) }); }
+      }
+    }
+
+    // --- 今持っている装備（usr_equips）：期間前の手持ちに、log_equip を時系列で当てはめて組み立てる
+    const owned = new Map();
+    for (const [u, arr] of invInitial) {
+      const c = u.chars.find((x) => !x.deletedT) || u.chars[0];
+      for (const e of arr) owned.set(e.uid, { uid: e.uid, user_id: u.id, character_id: c ? c.id : null, equip_id: e.item, level: e.lvl, in_storage: 0, _t: int2(Math.max(u.createdT, T0 - DAY * 200), T0 - 3600) });
+    }
+    for (const r of [...L.equip].sort((a, b) => a._t - b._t || a._s - b._s)) {
+      const d = r.detail ? JSON.parse(r.detail) : {};
+      const o = owned.get(r.item_uid);
+      if (r.action === 'GET') owned.set(r.item_uid, { uid: r.item_uid, user_id: r.user_id, character_id: r.character_id, equip_id: r.item_id, level: 0, in_storage: 0, _t: r._t });
+      else if (!o) continue;
+      else if (r.action === 'ENHANCE_SUCCESS') o.level = d.to;
+      else if (r.action === 'ENHANCE_DESTROY' || r.action === 'SELL') owned.delete(r.item_uid);
+      else if (r.action === 'STORAGE_IN') o.in_storage = 1;
+      else if (r.action === 'STORAGE_OUT') o.in_storage = 0;
+      else if (r.action === 'TRADE_IN') { o.user_id = r.user_id; o.character_id = r.character_id; o.in_storage = 0; }
+    }
+
     // ================= finalize =================
     const order = (a, b) => a._t - b._t || a._s - b._s;
     for (const k of Object.keys(L)) {
@@ -1348,13 +1909,26 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     return {
       schema: SCHEMA,
       worlds: [[1, 'アルファ'], [2, 'ベータ'], [3, 'ガンマ']],
-      items: ITEMS, products: PRODUCTS,
+      items: MST_ITEMS, products: PRODUCTS, equips: MST_EQUIPS,
+      events: EVENTS, gachas: GACHAS, lineups: LINEUPS, stages: STAGES,
       // ここで JST に変換して書き出す
       users: users.map((u) => [u.id, u.pub, u.platform, u.status, toJ(u.created)]),
       characters: chars.map((c) => [c.id, c.user.id, c.world, c.name, c.job, c.level, toJ(c.created), toJ(c.deleted)]),
       login: L.login.map((r) => [r.id, r.user_id, r.result, r.ip_address, r.country, r.device_id, fmtJ(r._t)]),
       charlog: L.charlog.map((r) => [r.id, r.user_id, r.character_id, r.action, r.detail, r.ip_address, r.device_id, fmtJ(r._t)]),
-      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.quantity, r.target_user_id, r.detail, fmtJ(r._t)]),
+      item: L.item.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.action, r.quantity, r.target_user_id, r.detail, fmtJ(r._t)]),
+      equip: L.equip.map((r) => [r.id, r.user_id, r.character_id, r.item_id, r.item_uid, r.action, r.target_user_id, r.detail, fmtJ(r._t)]),
+      usrEquips: [...owned.values()].sort((a, b) => a.user_id - b.user_id || a._t - b._t).map((o) => [o.uid, o.user_id, o.character_id, o.equip_id, o.level, o.in_storage, fmtJ(o._t)]),
+      gacha: L.gacha.map((r) => [r.id, r.user_id, r.gacha_id, r.curRow.id, r.reward_type, r.reward_id, r.rarity, fmtJ(r._t)]),
+      usrGachas: [...UG.values()].sort((a, b) => a.user_id - b.user_id || (a.gacha_id < b.gacha_id ? -1 : 1))
+        .map((g) => [g.user_id, g.gacha_id, g.draws, fmtJ(g.first), fmtJ(g.last)]),
+      usrCeilings: [...UG.values()].sort((a, b) => a.user_id - b.user_id || (a.gacha_id < b.gacha_id ? -1 : 1))
+        .map((g) => [g.user_id, g.gacha_id, g.point, g.exchanged, fmtJ(g.last)]),
+      ceilings: CEILINGS, missions: MISSIONS,
+      usrMissions: UM.map((m) => [m.user_id, m.mission_id, m.progress, m.cleared == null ? null : fmtJ(m.cleared), m.recv == null ? null : fmtJ(m.recv), fmtJ(m.updated)]),
+      stage: L.stage.map((r) => [r.id, r.user_id, r.character_id, r.stage_id, r.result, r.score, r.clear_time_sec, fmtJ(r._t)]),
+      rankings: RANK.map((r) => [r.event_id, r.user_id, r.score, r.rank, fmtJ(r._t)]),
+      presents: PRES.map((p) => [p.id, p.user_id, p.type, p.reward_id, p.qty, p.title, p.source, fmtJ(p._t), fmtJ(p.exp), p.recv == null ? null : fmtJ(p.recv)]),
       cur: L.cur.map((r) => [r.id, r.user_id, r.currency, r.amount, r.balance_after, r.reason, r.ref_id, fmtJ(r._t)]),
       pay: L.pay.map((r) => [r.id, r.user_id, r.product_id, r.price_jpy, r.store, r.transaction_id, r.status, fmtJ(r._t)]),
       err: L.err.map((r) => [r.id, r.level, r.service, typeof r.message === 'function' ? r.message() : r.message, r.user_id, fmtJ(r._t)]),
@@ -1373,17 +1947,654 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
       for (const r of rows) st.run(r);
       st.free();
     };
-    ins('mst_worlds', g.worlds); ins('mst_items', g.items); ins('mst_products', g.products);
-    ins('usr_users', g.users); ins('usr_characters', g.characters);
-    ins('log_login', g.login); ins('log_character', g.charlog); ins('log_item', g.item);
-    ins('log_currency', g.cur); ins('log_payment', g.pay); ins('log_error', g.err);
+    const data = {
+      mst_worlds: g.worlds, mst_items: g.items, mst_products: g.products, mst_equips: g.equips,
+      mst_events: g.events, mst_gachas: g.gachas, mst_gacha_lineups: g.lineups, mst_stages: g.stages,
+      mst_gacha_ceilings: g.ceilings, mst_missions: g.missions,
+      usr_users: g.users, usr_characters: g.characters, usr_equips: g.usrEquips, usr_gachas: g.usrGachas, usr_gacha_ceilings: g.usrCeilings,
+      usr_missions: g.usrMissions, usr_rankings: g.rankings, usr_presents: g.presents,
+      log_login: g.login, log_character: g.charlog, log_item: g.item, log_equip: g.equip, log_currency: g.cur,
+      log_payment: g.pay, log_error: g.err, log_gacha: g.gacha, log_stage: g.stage,
+    };
+    for (const [t, rows] of Object.entries(data)) ins(t, rows);
     db.run('COMMIT');
-    return { db, keys: g.keys, counts: { usr_users: g.users.length, usr_characters: g.characters.length, log_login: g.login.length, log_character: g.charlog.length, log_item: g.item.length, log_currency: g.cur.length, log_payment: g.pay.length, log_error: g.err.length } };
+    return { db, keys: g.keys, counts: Object.fromEntries(Object.entries(data).map(([t, rows]) => [t, rows.length])) };
   }
 
   const api = { buildDatabase, generate, toT, fmt, fmtJ, WEND };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LogDB = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/*
+ * ログは嘘をつかない — 問い合わせ票の自動生成
+ * DBの実際のデータから、問い合わせ（答えが1つに決まるもの）を種類ごとに作る。
+ * 正解・根拠の値・解説・模範SQLはすべてDBの値から組み立てるので、データと食い違わない。
+ * データは乱数シード固定なので、誰が遊んでも同じ93件になる。
+ */
+(function (root) {
+  'use strict';
+
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const sub = (pub) => `(SELECT user_id FROM usr_users WHERE public_id = '${pub}')`;
+  const norm = (s) => String(s || '').normalize('NFKC').replace(/[\s#"'`,，]/g, '').toUpperCase();
+  const numAccept = (...ids) => (v) => { const n = parseInt(norm(v).replace(/^(LOG_?ID|PRESENT_?ID|ID)[:=]?/, ''), 10); return ids.includes(n); };
+  const strAccept = (...vals) => (v) => vals.map(norm).includes(norm(v));
+  const md = (ts) => `${+ts.slice(5, 7)}月${+ts.slice(8, 10)}日`;
+  const hm = (ts) => ts.slice(11, 16);
+  const when = (ts) => `${md(ts)} ${hm(ts)}`;
+  const num = (n) => Number(n).toLocaleString();
+  const day = (ts) => ts.slice(0, 10);
+  const WINDOW = "BETWEEN '2026-10-21 00:00:00' AND '2026-11-12 20:00:00'";
+  // 元の7問のユーザーと、その関係者は使わない
+  const EXCLUDE = ['U-38127', 'U-52904', 'U-27730', 'U-44590', 'U-73315', 'U-61458', 'U-90417', 'U-15562', 'U-31846'];
+
+  function mulberry32(a) {
+    return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function addMinutes(ts, m) { const d = new Date(ts.replace(' ', 'T') + 'Z'); d.setUTCMinutes(d.getUTCMinutes() + m); return d.toISOString().slice(0, 19).replace('T', ' '); }
+  const CAP = '2026-11-13 09:45:00';
+  // 出来事のあと、数時間〜1日半ほどして問い合わせが届く
+  function receivedAfter(ts, k) { let r = addMinutes(ts, 90 + ((k * 137) % 2000)); if (r > CAP) r = CAP; return r.slice(0, 16); }
+
+  function build(DB) {
+    const rows = (sql) => { const r = DB.exec(sql); if (!r.length) return []; const cols = r[0].columns; return r[0].values.map((v) => Object.fromEntries(cols.map((c, i) => [c, v[i]]))); };
+    const exIds = new Set(rows(`SELECT user_id FROM usr_users WHERE public_id IN (${EXCLUDE.map((p) => `'${p}'`).join(',')})`).map((r) => r.user_id));
+    const used = new Set(exIds);
+    const worldName = Object.fromEntries(rows('SELECT world_id, name FROM mst_worlds').map((r) => [r.world_id, r.name]));
+    const mainWorld = (uid) => { const r = rows(`SELECT w.name FROM usr_characters c JOIN mst_worlds w USING (world_id) WHERE c.user_id = ${uid} AND c.deleted_at IS NULL ORDER BY c.level DESC LIMIT 1`); return r.length ? r[0].name : '（未記入）'; };
+    // 候補を全期間からまんべんなく選び、同じユーザーは1回だけ使う
+    function pick(cands, n) {
+      const out = [];
+      if (!cands.length) return out;
+      const step = Math.max(1, Math.floor(cands.length / Math.max(1, n)));
+      const order = [];
+      for (let s = 0; s < step; s++) for (let i = s; i < cands.length; i += step) order.push(i);
+      for (const i of order) { if (out.length >= n) break; const c = cands[i]; if (used.has(c.user_id)) continue; used.add(c.user_id); out.push(c); }
+      return out;
+    }
+
+    let seq = 0;
+    const LETTERS = ['a', 'b', 'c', 'd'];
+    function mk(o) {
+      seq++;
+      // 選択肢の並びはケースごとに固定のシャッフル
+      const all = [[o.correct, true], ...o.wrongs.map((w) => [w, false])];
+      const r = mulberry32(seq * 7919 + 13);
+      for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+      return {
+        id: `g${seq}`, generated: true, kind: o.kind, tier: o.tier,
+        no: `CS-${o.received.slice(5, 7)}${o.received.slice(8, 10)}-${String(2000 + seq)}`,
+        label: o.label, received: o.received, user: o.pub, world: o.world || '（未記入）', category: o.category,
+        body: o.body, note: o.note,
+        options: all.map((x, i) => [LETTERS[i], x[0]]), answer: LETTERS[all.findIndex((x) => x[1])],
+        evidence: o.evidence, hints: o.hints, reply: o.reply, reaction: o.reaction, explain: o.explain, model: o.model,
+        honest: o.honest, spec: o.spec !== false, temper: o.temper || 3,
+      };
+    }
+    const vary = (arr, k) => arr[k % arr.length];
+
+    // ======================================================================== Tier 1
+    const T = {};
+    T.sell = (n) => pick(rows(`
+      SELECT e.log_id, e.user_id, u.public_id pub, e.equip_uid uid, e.created_at ts, m.name equip, c.name chara, w.name world, cur.log_id cur_id, cur.amount gold
+      FROM log_equip e JOIN usr_users u ON u.user_id = e.user_id JOIN mst_equips m ON m.equip_id = e.equip_id
+      LEFT JOIN usr_characters c ON c.character_id = e.character_id LEFT JOIN mst_worlds w ON w.world_id = c.world_id
+      JOIN log_currency cur ON cur.user_id = e.user_id AND cur.reason = 'SELL_ITEM' AND cur.ref_id = e.equip_uid
+      WHERE e.action = 'SELL' AND e.created_at ${WINDOW} AND m.rarity IN ('R', 'SR', 'SSR')
+        AND (SELECT COUNT(*) FROM log_equip x WHERE x.user_id = e.user_id AND x.equip_id = e.equip_id AND x.action = 'SELL') = 1
+        AND (SELECT COUNT(*) FROM usr_equips y WHERE y.user_id = e.user_id AND y.equip_id = e.equip_id) = 0
+      ORDER BY e.log_id`), n).map((r, k) => mk({
+      kind: 'sell', tier: 1, label: '装備消失', category: 'アイテム', pub: r.pub, world: r.world, temper: 3,
+      received: receivedAfter(r.ts, r.log_id),
+      body: vary([`『${r.equip}』が装備一覧から消えています。売った覚えはありません。不具合ですか？`, `大事にしていた『${r.equip}』がなくなりました。誰かに盗まれたんでしょうか。`, `『${r.equip}』がどこにもありません。倉庫も探しました。返してください。`], k),
+      note: vary(['ユーザーは「売っていない」と強く主張しています。', '同じような報告は、ほかに届いていません。'], k),
+      correct: '本人によるNPCショップへの売却', wrongs: ['強化の失敗による消滅', '他のプレイヤーへのトレード', '不具合による消失'],
+      evidence: { label: '決め手になったログの log_id（log_equip）', placeholder: '例: 1234', table: 'log_equip', id: r.log_id, accept: numAccept(r.log_id) },
+      hints: ['装備の名前は <code>mst_equips</code> にあります。equip_id を調べて、log_equip をユーザーと装備で絞り込みましょう。',
+        '<code>ORDER BY created_at</code> で並べて、最後の action を見ましょう。',
+        "売却なら log_currency に <code>reason = 'SELL_ITEM'</code> で、ref_id が装備の個体ID（equip_uid）の行があるはずです。"],
+      reply: `お問い合わせありがとうございます。調査の結果、『${r.equip}』は${when(r.ts)}に、お客様のキャラクター『${r.chara}』からNPCショップへ売却され、${num(r.gold)}ゴールドを受け取られていることを確認いたしました。売却されたアイテムの復元は承っておりません。何卒ご理解ください。`,
+      reaction: vary(['まとめて売ったときに、一緒に売っちゃってました……。', '整理したときにうっかり……。お騒がせしました。', 'ロックをかけ忘れてました。'], k),
+      explain: `${when(r.ts)} に『${esc(r.chara)}』が『${esc(r.equip)}』（個体ID ${esc(r.uid)}）を売却しています（log_equip の <code>SELL</code>、log_id ${r.log_id}）。同じ時刻に log_currency に <code>SELL_ITEM</code> で ${num(r.gold)} ゴールドが入っていて、ref_id が同じ個体IDです。強化での消滅やトレードの記録はなく、<code>usr_equips</code> にも残っていません。`,
+      model: `SELECT * FROM mst_equips WHERE name = '${r.equip}';
+
+SELECT log_id, action, equip_uid, detail, created_at
+FROM log_equip
+WHERE user_id = ${sub(r.pub)}
+  AND equip_id = (SELECT equip_id FROM mst_equips WHERE name = '${r.equip}')
+ORDER BY created_at;
+
+SELECT * FROM log_currency
+WHERE user_id = ${sub(r.pub)} AND reason = 'SELL_ITEM' AND ref_id = '${r.uid}';`,
+      honest: `ご自分で売っています。${num(r.gold)}ゴールドで。……安すぎませんか。`,
+    }));
+
+    T.expire = (n) => pick(rows(`
+      SELECT i.log_id, i.user_id, u.public_id pub, i.created_at ts, m.name item, w.name world
+      FROM log_item i JOIN usr_users u ON u.user_id = i.user_id JOIN mst_items m ON m.item_id = i.item_id
+      LEFT JOIN usr_characters c ON c.character_id = i.character_id LEFT JOIN mst_worlds w ON w.world_id = c.world_id
+      WHERE i.action = 'EXPIRE' AND i.created_at ${WINDOW}
+        AND (SELECT COUNT(*) FROM log_item x WHERE x.user_id = i.user_id AND x.item_id = i.item_id AND x.action = 'EXPIRE') = 1
+      ORDER BY i.log_id`), n).map((r, k) => {
+      const dur = (r.item.match(/（(.+?)）/) || [])[1] || '期間限定';
+      return mk({
+        kind: 'expire', tier: 1, label: 'マウント消失', category: 'アイテム', pub: r.pub, world: r.world, temper: 3,
+        received: receivedAfter(r.ts, r.log_id),
+        body: vary([`『${r.item}』に乗れなくなりました！せっかく手に入れたのに、勝手に消えるなんておかしいです。`, `マウントの『${r.item}』がいなくなっています。どこに行ったんですか？`], k),
+        note: 'マウントはイベントの報酬で配られたものです。',
+        correct: '期限付きアイテムの期限切れ（仕様どおり）', wrongs: ['本人によるトレード', '本人による売却', '不具合による消失'],
+        evidence: { label: '決め手になったログの log_id（log_item）', placeholder: '例: 1234', table: 'log_item', id: r.log_id, accept: numAccept(r.log_id) },
+        hints: ['アイテム名は <code>mst_items</code> にあります。名前をよく見てみましょう。', 'log_item をそのユーザーとアイテムで絞り込み、action を確認しましょう。', '<code>EXPIRE</code> は有効期限が切れたことを表します。'],
+        reply: `お問い合わせありがとうございます。調査の結果、『${r.item}』は期間限定のマウントで、${when(r.ts)}に有効期限を迎えたため、自動的に消滅していることを確認いたしました。仕様どおりの挙動となりますので、何卒ご理解ください。`,
+        reaction: vary([`名前に（${dur}）って書いてありました……。`, '期限があるの、知りませんでした。'], k),
+        explain: `『${esc(r.item)}』は名前のとおり期限付き（${esc(dur)}）のマウントです。log_item に ${when(r.ts)} の <code>EXPIRE</code>（期限切れ、log_id ${r.log_id}）があります。トレードや売却の記録はありません。`,
+        model: `SELECT * FROM mst_items WHERE name = '${r.item}';
+
+SELECT log_id, action, quantity, detail, created_at
+FROM log_item
+WHERE user_id = ${sub(r.pub)}
+  AND item_id = (SELECT item_id FROM mst_items WHERE name = '${r.item}')
+ORDER BY created_at;`,
+        honest: `名前に「${dur}」って書いてあります。`,
+      });
+    });
+
+    T.rename = (n) => pick(rows(`
+      SELECT l.log_id, l.user_id, u.public_id pub, l.created_at ts, l.detail, c.name chara, w.name world, l.ip_address ip, l.device_id dev
+      FROM log_character l JOIN usr_users u ON u.user_id = l.user_id JOIN usr_characters c ON c.character_id = l.character_id JOIN mst_worlds w ON w.world_id = c.world_id
+      WHERE l.action = 'RENAME' AND l.created_at <= '2026-11-12 20:00:00' ORDER BY l.log_id`), n).map((r, k) => {
+      const d = JSON.parse(r.detail);
+      return mk({
+        kind: 'rename', tier: 1, label: 'キャラ名変化', category: 'キャラクター', pub: r.pub, world: r.world, temper: 4,
+        received: receivedAfter(r.ts, r.log_id),
+        body: `キャラクター『${d.from}』がいなくなって、代わりに『${d.to}』という知らないキャラがいます！乗っ取られたんですか？`,
+        note: 'ユーザーは「名前を変えた覚えはない」とのことです。',
+        correct: '本人が名前変更チケットで名前を変えた（キャラクターは無事）', wrongs: ['第三者の不正ログインによる名前変更', 'キャラクターの削除と新規作成', '不具合による名前の書き換え'],
+        evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', table: 'log_character', id: r.log_id, accept: numAccept(r.log_id) },
+        hints: ['usr_characters でそのユーザーのキャラを見てみましょう。', "log_character に <code>action = 'RENAME'</code> があれば、detail に変更前（from）と変更後（to）が入っています。", '操作元の ip_address・device_id を log_login の普段のログインと比べましょう。log_item には名前変更チケットの使用も残っています。'],
+        reply: `お問い合わせありがとうございます。調査の結果、『${d.from}』は${when(r.ts)}に、お客様が普段ご利用の端末から名前変更チケットが使用され、『${d.to}』に名前が変更されていることを確認いたしました。キャラクターのデータはそのまま残っておりますのでご安心ください。`,
+        reaction: vary(['……夜中に変えたのを思い出しました。', '弟が勝手に変えたみたいです。すみません。'], k),
+        explain: `${when(r.ts)} に log_character の <code>RENAME</code>（log_id ${r.log_id}）があり、detail は <code>${esc(r.detail)}</code>。直前に log_item で名前変更チケット（1202）を使っています。操作元のIP（${esc(r.ip)}）・端末（${esc(r.dev)}）は普段のログインと同じです。キャラクターは別の名前で残っています。`,
+        model: `SELECT * FROM usr_characters WHERE user_id = ${sub(r.pub)};
+
+SELECT log_id, action, detail, ip_address, device_id, created_at
+FROM log_character
+WHERE user_id = ${sub(r.pub)}
+ORDER BY created_at;
+
+SELECT ip_address, device_id, COUNT(*) AS cnt
+FROM log_login
+WHERE user_id = ${sub(r.pub)}
+GROUP BY ip_address, device_id;`,
+        honest: `『${d.to}』も、あなたが自分で付けた名前です。`,
+      });
+    });
+
+    const PAY_OPTS = ['正常に付与済み（ユーザーの見落とし）', '決済が完了していない（キャンセル）', '決済は完了したが、ジェムの付与に失敗している（補填対象）', '返金処理済み'];
+    const others = (all, correct) => all.filter((x) => x !== correct);
+    T.payOk = (n) => pick(rows(`
+      SELECT p.payment_id, p.user_id, u.public_id pub, p.created_at ts, p.price_jpy price, p.transaction_id tx, p.store, pr.name prod, pr.gem, c.log_id cur_id,
+        (SELECT -SUM(amount) FROM log_currency g WHERE g.user_id = p.user_id AND g.currency = 'GEM' AND g.reason = 'GACHA' AND g.created_at BETWEEN p.created_at AND datetime(p.created_at, '+2 days')) spent
+      FROM log_payment p JOIN usr_users u ON u.user_id = p.user_id JOIN mst_products pr ON pr.product_id = p.product_id
+      JOIN log_currency c ON c.ref_id = p.transaction_id AND c.reason = 'PURCHASE'
+      WHERE p.status = 'SUCCESS' AND p.created_at ${WINDOW}
+        AND (SELECT COUNT(*) FROM log_payment x WHERE x.user_id = p.user_id AND x.created_at BETWEEN datetime(p.created_at, '-1 day') AND datetime(p.created_at, '+1 day')) = 1
+      ORDER BY p.payment_id`), n).map((r, k) => mk({
+      kind: 'payok', tier: 1, label: '課金未反映', category: '課金', pub: r.pub, world: mainWorld(r.user_id), temper: 4,
+      received: receivedAfter(r.ts, r.payment_id),
+      body: `${md(r.ts)}に${num(r.price)}円の『${r.prod}』を買いましたが、ジェムが増えていません！${r.store}からは購入完了のメールが届いています。`,
+      note: '課金関連です。補填が必要かどうかを明確にしてください。',
+      correct: PAY_OPTS[0], wrongs: others(PAY_OPTS, PAY_OPTS[0]),
+      evidence: { label: '該当する決済の transaction_id', placeholder: '例: GPA.0000-0000-0000-00000', accept: strAccept(r.tx), value: r.tx },
+      hints: ['log_payment をそのユーザーで見てみましょう。status にも注目。', "SUCCESS なら、log_currency に <code>ref_id = transaction_id</code> の PURCHASE があるはずです。", 'その後、ジェムを何に使ったかも log_currency で確認しましょう。'],
+      reply: `お問い合わせありがとうございます。調査の結果、${when(r.ts)}のご購入（取引ID: ${r.tx}）について、決済の完了と同時に${num(r.gem)}ジェムが付与されていることを確認いたしました。${r.spent ? `その後、ガチャで合計${num(r.spent)}ジェムをご利用いただいております。` : '現在の所持ジェムに含まれております。'}`,
+      reaction: r.spent ? '……そのあと10連、回してました。' : 'ホーム画面の数字しか見てませんでした……。',
+      explain: `log_payment の ${esc(r.tx)} は SUCCESS で、同時刻に log_currency に <code>PURCHASE</code> +${num(r.gem)}ジェム（ref_id が同じ取引ID、log_id ${r.cur_id}）があります。付与は正常です。${r.spent ? `その後2日以内に GACHA で合計 ${num(r.spent)} ジェムを使っていて、増えていないように見えたと考えられます。` : ''}`,
+      model: `SELECT p.*, c.log_id AS grant_log_id, c.amount AS granted
+FROM log_payment p
+LEFT JOIN log_currency c
+  ON c.ref_id = p.transaction_id AND c.reason = 'PURCHASE'
+WHERE p.user_id = ${sub(r.pub)}
+ORDER BY p.created_at;
+
+SELECT log_id, amount, balance_after, reason, ref_id, created_at
+FROM log_currency
+WHERE user_id = ${sub(r.pub)} AND currency = 'GEM'
+ORDER BY created_at;`,
+      honest: r.spent ? `ちゃんと入っています。そして${num(r.spent)}ジェム、ガチャで溶かしています。` : 'ちゃんと入っています。残高の数字を見てください。',
+    }));
+
+    T.payCancel = (n) => pick(rows(`
+      SELECT p.payment_id, p.user_id, u.public_id pub, p.created_at ts, p.price_jpy price, p.transaction_id tx, p.store
+      FROM log_payment p JOIN usr_users u ON u.user_id = p.user_id
+      WHERE p.status = 'CANCELED' AND p.created_at ${WINDOW}
+        AND NOT EXISTS (SELECT 1 FROM log_payment x WHERE x.user_id = p.user_id AND x.status = 'SUCCESS' AND x.created_at BETWEEN datetime(p.created_at, '-1 day') AND datetime(p.created_at, '+1 day'))
+      ORDER BY p.payment_id`), n).map((r) => mk({
+      kind: 'paycancel', tier: 1, label: '課金未反映', category: '課金', pub: r.pub, world: mainWorld(r.user_id), temper: 3,
+      received: receivedAfter(r.ts, r.payment_id),
+      body: `${md(r.ts)}に${num(r.price)}円のジェムパックを買ったのに、ジェムが届きません！`,
+      note: '課金関連です。補填が必要かどうかを明確にしてください。',
+      correct: PAY_OPTS[1], wrongs: others(PAY_OPTS, PAY_OPTS[1]),
+      evidence: { label: '該当する決済の transaction_id', placeholder: '例: GPA.0000-0000-0000-00000', accept: strAccept(r.tx), value: r.tx },
+      hints: ['log_payment をそのユーザーで見てみましょう。status にも注目。', "SUCCESS なら、log_currency に <code>ref_id = transaction_id</code> の PURCHASE があるはずです。", 'CANCELED は決済が完了しなかったことを表します。'],
+      reply: `お問い合わせありがとうございます。調査の結果、${when(r.ts)}のご購入手続き（取引ID: ${r.tx}）は決済が完了せず、キャンセルとなっておりました。そのためジェムは付与されておらず、ストアからの請求も発生しておりません。お手数ですが、改めてご購入ください。`,
+      reaction: '確認画面で「戻る」を押してたかもしれません……。',
+      explain: `log_payment の ${esc(r.tx)}（${when(r.ts)}）は status が <code>CANCELED</code> です。決済が完了していないため、log_currency に PURCHASE はなく、ストアからの請求も発生していません。`,
+      model: `SELECT * FROM log_payment WHERE user_id = ${sub(r.pub)} ORDER BY created_at;
+
+SELECT * FROM log_currency
+WHERE ref_id = '${r.tx}';`,
+      honest: '買えてません。最後のボタンまで押してください。',
+    }));
+
+    const BOX_OPTS = ['プレゼントBOXに届いている（まだ受け取っていない）', '受け取り済み'];
+    T.loginBonus = (n) => pick(rows(`
+      SELECT p.present_id, p.user_id, u.public_id pub, p.title, p.created_at ts, p.expires_at exp, p.quantity qty, p.present_type ptype, m.name item
+      FROM usr_presents p JOIN usr_users u ON u.user_id = p.user_id LEFT JOIN mst_items m ON m.item_id = p.reward_id
+      WHERE p.source = 'LOGIN_BONUS' AND p.received_at IS NULL AND p.created_at <= '2026-11-12 20:00:00'
+      ORDER BY p.present_id`), n).map((r) => {
+      const reward = r.ptype === 'GEM' ? `ジェム${r.qty}個` : `${r.item}×${r.qty}`;
+      return mk({
+        kind: 'loginbonus', tier: 1, label: 'ログボ未着', category: 'プレゼント', pub: r.pub, world: mainWorld(r.user_id), temper: 3,
+        received: receivedAfter(r.ts, r.present_id),
+        body: `ログインボーナスの「${r.title}」がもらえていません。ちゃんとログインしたのに！`,
+        note: 'ログインボーナスはプレゼントBOXに届く仕組みです。',
+        correct: BOX_OPTS[0], wrongs: [BOX_OPTS[1], 'ログインしていない日なので届いていない', '不具合で届いていない'],
+        evidence: { label: '該当するプレゼントの present_id', placeholder: '例: 123', table: 'usr_presents', id: r.present_id, accept: numAccept(r.present_id) },
+        hints: ['usr_presents をそのユーザーで見てみましょう。title で探せます。', 'received_at が NULL なら、まだ受け取っていません。', 'その日のログインは log_login で確認できます。'],
+        reply: `お問い合わせありがとうございます。調査の結果、「${r.title}」（${reward}）は${when(r.ts)}にプレゼントBOXへお届けしております。まだお受け取りいただいていないようですので、プレゼントBOXからお受け取りください。受け取り期限は${md(r.exp)}までです。`,
+        reaction: 'プレゼントBOX、開いてませんでした……！',
+        explain: `usr_presents に「${esc(r.title)}」（present_id ${r.present_id}、${esc(reward)}）が ${when(r.ts)} に届いていて、received_at は NULL（未受け取り）です。その日最初のログインの直後に届いています。期限は ${day(r.exp)} まで。`,
+        model: `SELECT * FROM usr_presents
+WHERE user_id = ${sub(r.pub)}
+ORDER BY created_at;`,
+        honest: 'プレゼントBOXを、開いてください。',
+      });
+    });
+
+    T.maint = (n) => {
+      const cands = rows(`
+        SELECT p.present_id, p.user_id, u.public_id pub, p.created_at ts, p.received_at recv, p.expires_at exp, c.log_id cur_id
+        FROM usr_presents p JOIN usr_users u ON u.user_id = p.user_id
+        LEFT JOIN log_currency c ON c.user_id = p.user_id AND c.reason = 'PRESENT' AND c.ref_id = 'present:' || p.present_id
+        WHERE p.source = 'MAINTENANCE' AND (p.received_at IS NULL OR p.received_at <= '2026-11-12 20:00:00') ORDER BY p.present_id`);
+      const nUn = Math.min(3, Math.floor(n / 2) + 1);
+      const picked = [...pick(cands.filter((r) => r.recv == null), nUn), ...pick(cands.filter((r) => r.recv != null), n - nUn)];
+      const opts = [...BOX_OPTS, '配布の対象外', '不具合で届いていない'];
+      return picked.map((r, k) => {
+        const got = r.recv != null;
+        const base = got ? r.recv : '2026-11-08 12:00:00';
+        return mk({
+          kind: 'maint', tier: 1, label: 'お詫び未着', category: 'プレゼント', pub: r.pub, world: mainWorld(r.user_id), temper: 4,
+          received: receivedAfter(base, r.present_id + k),
+          body: vary(['メンテナンスのお詫びの300ジェム、まだもらってません！ほかの人はもらってるのに！', 'お詫びのジェムが届いていません。私は対象外なんですか？'], k),
+          note: '11/6 の臨時メンテナンスのお詫び（300ジェム）は、対象のユーザー全員にプレゼントBOXで配布済みです。',
+          correct: got ? BOX_OPTS[1] : BOX_OPTS[0], wrongs: others(opts, got ? BOX_OPTS[1] : BOX_OPTS[0]),
+          evidence: { label: '該当するプレゼントの present_id', placeholder: '例: 123', table: 'usr_presents', id: r.present_id, accept: numAccept(r.present_id) },
+          hints: ['usr_presents を source や title で探しましょう。', 'received_at が入っていれば受け取り済み、NULL なら未受け取りです。', "受け取ったジェムは log_currency に <code>reason = 'PRESENT'</code>、ref_id = present:〜 で記録されます。"],
+          reply: got ? `お問い合わせありがとうございます。調査の結果、お詫びの300ジェムは${when(r.recv)}にお受け取りいただいていることを確認いたしました。現在の所持ジェムに含まれております。`
+            : `お問い合わせありがとうございます。調査の結果、お詫びの300ジェムはプレゼントBOXにお届けしております。受け取り期限（${md(r.exp)}）までにお受け取りください。`,
+          reaction: got ? 'あれ、もらってました。もう使っちゃってたみたいです。' : 'BOXにありました！ありがとうございます。',
+          explain: got ? `usr_presents の「11/6 臨時メンテナンスのお詫び」（present_id ${r.present_id}）は ${when(r.recv)} に受け取られていて、log_currency に <code>PRESENT</code> +300（ref_id = present:${r.present_id}、log_id ${r.cur_id}）があります。`
+            : `usr_presents の「11/6 臨時メンテナンスのお詫び」（present_id ${r.present_id}）は received_at が NULL で、まだ受け取っていません。log_currency にも PRESENT はありません。`,
+          model: `SELECT * FROM usr_presents
+WHERE user_id = ${sub(r.pub)} AND source = 'MAINTENANCE';
+
+SELECT * FROM log_currency
+WHERE user_id = ${sub(r.pub)} AND reason = 'PRESENT';`,
+          honest: got ? '受け取っています。そして、たぶんもう使っています。' : 'プレゼントBOXを開いてください。',
+        });
+      });
+    };
+
+    // ======================================================================== Tier 2
+    const GOLD_OPTS = { GUILD_DONATE: '本人の操作によるギルドへの寄付', AUCTION_BUY: '本人の操作によるオークションでの購入' };
+    T.gold = (n) => {
+      const q = (reason) => rows(`
+        SELECT c.log_id, c.user_id, u.public_id pub, c.created_at ts, -c.amount amt, c.reason, c.ref_id ref,
+          (SELECT l.ip_address FROM log_login l WHERE l.user_id = c.user_id AND l.result = 'SUCCESS' AND l.created_at <= c.created_at ORDER BY l.created_at DESC LIMIT 1) ip,
+          (SELECT l.device_id FROM log_login l WHERE l.user_id = c.user_id AND l.result = 'SUCCESS' AND l.created_at <= c.created_at ORDER BY l.created_at DESC LIMIT 1) dev,
+          (SELECT l.created_at FROM log_login l WHERE l.user_id = c.user_id AND l.result = 'SUCCESS' AND l.created_at <= c.created_at ORDER BY l.created_at DESC LIMIT 1) login_at
+        FROM log_currency c JOIN usr_users u ON u.user_id = c.user_id
+        WHERE c.currency = 'GOLD' AND c.reason = '${reason}' AND c.amount <= -500000 AND c.created_at ${WINDOW}
+          AND (SELECT COUNT(*) FROM log_currency x WHERE x.user_id = c.user_id AND x.currency = 'GOLD' AND x.amount <= -200000 AND date(x.created_at) = date(c.created_at)) = 1
+        ORDER BY c.log_id`).filter((r) => r.login_at);
+      const half = Math.ceil(n / 2);
+      return [...pick(q('GUILD_DONATE'), half), ...pick(q('AUCTION_BUY'), n - half)].map((r, k) => {
+        const donate = r.reason === 'GUILD_DONATE';
+        return mk({
+          kind: 'gold', tier: 2, label: 'ゴールド減少', category: 'ゲーム内通貨', pub: r.pub, world: mainWorld(r.user_id), temper: 4,
+          received: receivedAfter(r.ts, r.log_id),
+          body: `${md(r.ts)}の${+r.ts.slice(11, 13)}時ごろ、ゴールドが${num(r.amt)}も減っていました。使った覚えはありません。乗っ取りですか？`,
+          note: vary(['ユーザーはスマホ1台で遊んでいるそうです。', 'パスワードは誰にも教えていないとのことです。'], k),
+          correct: GOLD_OPTS[r.reason], wrongs: [GOLD_OPTS[donate ? 'AUCTION_BUY' : 'GUILD_DONATE'], '本人の操作によるショップでの購入', '第三者の不正ログインによる消費'],
+          evidence: { label: '決め手になったログの log_id（log_currency）', placeholder: '例: 1234', table: 'log_currency', id: r.log_id, accept: numAccept(r.log_id) },
+          hints: [`log_currency をそのユーザーの <code>currency = 'GOLD'</code> と日付（${day(r.ts)}）で絞り込みましょう。`, 'amount の大きなマイナスと、reason・ref_id に注目。', 'その直前のログインを log_login で見て、普段の端末・IPか確かめましょう。'],
+          reply: donate ? `お問い合わせありがとうございます。調査の結果、${when(r.ts)}に、お客様が普段ご利用の端末から、ギルドへ${num(r.amt)}ゴールドを寄付する操作が行われていたことを確認いたしました。第三者によるログインの形跡はございません。`
+            : `お問い合わせありがとうございます。調査の結果、${when(r.ts)}に、お客様が普段ご利用の端末から、オークションで${num(r.amt)}ゴールドの落札が行われていたことを確認いたしました。第三者によるログインの形跡はございません。`,
+          reaction: donate ? 'ギルドのみんなに頼まれて、つい……。' : '夜中に入札したのを思い出しました……。',
+          explain: `${when(r.ts)} に log_currency で <code>${r.reason}</code>（ref_id ${esc(r.ref)}）の −${num(r.amt)} ゴールド（log_id ${r.log_id}）。直前のログイン（${when(r.login_at)}）は ${esc(r.ip)}・${esc(r.dev)} からで、普段と同じ端末・IPです。不正ログインの形跡はありません。`,
+          model: `SELECT log_id, amount, balance_after, reason, ref_id, created_at
+FROM log_currency
+WHERE user_id = ${sub(r.pub)}
+  AND currency = 'GOLD'
+  AND date(created_at) = '${day(r.ts)}'
+ORDER BY created_at;
+
+SELECT log_id, result, ip_address, device_id, created_at
+FROM log_login
+WHERE user_id = ${sub(r.pub)}
+ORDER BY created_at DESC
+LIMIT 20;`,
+          honest: donate ? 'ご自分で寄付しています。ギルドの皆さんは喜んでいると思います。' : 'ご自分で落札しています。いい買い物でしたか？',
+        });
+      });
+    };
+
+    T.loginFail = (n) => pick(rows(`
+      SELECT f.log_id fail_id, f.user_id, u.public_id pub, f.created_at ts, f.ip_address ip, f.device_id dev,
+        (SELECT s.log_id FROM log_login s WHERE s.user_id = f.user_id AND s.result = 'SUCCESS' AND s.ip_address = f.ip_address AND s.device_id = f.device_id AND s.created_at > f.created_at ORDER BY s.created_at LIMIT 1) ok_id,
+        (SELECT s.created_at FROM log_login s WHERE s.user_id = f.user_id AND s.result = 'SUCCESS' AND s.ip_address = f.ip_address AND s.device_id = f.device_id AND s.created_at > f.created_at ORDER BY s.created_at LIMIT 1) ok_at,
+        (SELECT COUNT(*) FROM log_login z WHERE z.user_id = f.user_id AND z.ip_address = f.ip_address AND z.result = 'SUCCESS') usual
+      FROM log_login f JOIN usr_users u ON u.user_id = f.user_id
+      WHERE f.result = 'FAILED' AND f.created_at ${WINDOW}
+        AND (SELECT COUNT(*) FROM log_login y WHERE y.user_id = f.user_id AND y.result = 'FAILED') = 1
+      ORDER BY f.log_id`).filter((r) => r.ok_at && r.ok_at <= addMinutes(r.ts, 5) && r.usual >= 3), n).map((r, k) => {
+      const secs = Math.round((new Date(r.ok_at.replace(' ', 'T') + 'Z') - new Date(r.ts.replace(' ', 'T') + 'Z')) / 1000);
+      return mk({
+        kind: 'loginfail', tier: 2, label: 'ログイン失敗', category: 'アカウント', pub: r.pub, world: mainWorld(r.user_id), temper: 4,
+        received: receivedAfter(r.ts, r.fail_id),
+        body: `${md(r.ts)}に「ログインに失敗しました」という通知が届きました。誰かが私のアカウントに入ろうとしているんですか？怖いです。`,
+        note: vary(['ユーザーはかなり不安がっています。', 'セキュリティの問い合わせです。'], k),
+        correct: '本人のパスワード入力ミス（直後に同じ端末・IPでログインに成功している）', wrongs: ['第三者による不正ログインの試み', 'サーバー障害によるログインエラー', '第三者にログインされている（乗っ取り）'],
+        evidence: { label: '決め手になったログの log_id（log_login）', placeholder: '例: 1234', table: 'log_login', id: r.ok_id, accept: numAccept(r.fail_id, r.ok_id) },
+        hints: ['log_login をそのユーザーで見てみましょう。result が FAILED の行を探します。', 'FAILED の前後で、ip_address・device_id・country を比べましょう。', 'そのIP・端末から、普段ログインしているかも数えてみましょう。'],
+        reply: `お問い合わせありがとうございます。調査の結果、${when(r.ts)}のログイン失敗は、お客様が普段ご利用の端末からのもので、直後に同じ端末でログインに成功していることを確認いたしました。パスワードの入力ミスと考えられます。ご心配でしたら、パスワードの変更をおすすめいたします。`,
+        reaction: 'パスワード、一回打ち間違えたの思い出しました。',
+        explain: `${when(r.ts)} に ${esc(r.ip)}・${esc(r.dev)} から FAILED（log_id ${r.fail_id}）。${secs}秒後に同じIP・端末で SUCCESS（log_id ${r.ok_id}）。このIPからは普段から ${r.usual} 回ログインしていて、海外や見慣れない端末からの失敗はありません。`,
+        model: `SELECT log_id, result, ip_address, country, device_id, created_at
+FROM log_login
+WHERE user_id = ${sub(r.pub)}
+  AND date(created_at) = '${day(r.ts)}'
+ORDER BY created_at;
+
+SELECT ip_address, device_id, result, COUNT(*) AS cnt
+FROM log_login
+WHERE user_id = ${sub(r.pub)}
+GROUP BY ip_address, device_id, result;`,
+        honest: 'それ、あなたです。',
+      });
+    });
+
+    const UNIT = { LOGIN: '日', STAGE_CLEAR: '回', RAID_CLEAR: '回', GACHA_DRAW: '回', ENHANCE_SUCCESS: '回', GUILD_DONATE: 'ゴールド', CHARACTER_CREATE: '体' };
+    const PERIOD = { DAILY: '今日（11/13）の分だけを数えます。', WEEKLY: '今週（11/9 月曜〜）の分だけを数えます。', EVENT: 'イベント期間中の分だけを数えます。', BEGINNER: '' };
+    const MIS_OPTS = ['達成済みで、報酬をまだ受け取っていない', 'ミッションをまだ達成していない', '報酬は受け取り済み', '不具合で進み具合が数えられていない'];
+    T.mission = (n) => {
+      const all = rows(`
+        SELECT um.user_id, u.public_id pub, um.mission_id mid, m.name, m.mission_type mtype, m.condition_type ctype, m.condition_value target,
+          um.progress, um.cleared_at cleared, um.received_at recv, um.updated_at upd, m.reward_type rtype, m.reward_quantity rqty, i.name item
+        FROM usr_missions um JOIN usr_users u ON u.user_id = um.user_id JOIN mst_missions m ON m.mission_id = um.mission_id
+        LEFT JOIN mst_items i ON i.item_id = m.reward_id
+        ORDER BY um.mission_id, um.user_id`);
+      const half = Math.ceil(n / 2);
+      const unrecv = pick(all.filter((r) => r.cleared && !r.recv && r.cleared <= '2026-11-13 09:00:00'), half);
+      const notyet = pick(all.filter((r) => !r.cleared && r.target > 1 && r.progress >= r.target / 2 && r.mtype !== 'DAILY'), n - unrecv.length);
+      return [...unrecv, ...notyet].map((r, k) => {
+        const done = !!r.cleared;
+        const reward = r.rtype === 'GEM' ? `ジェム${r.rqty}個` : `${r.item}×${r.rqty}`;
+        const left = r.target - r.progress, unit = UNIT[r.ctype];
+        return mk({
+          kind: 'mission', tier: 2, label: 'ミッション', category: 'ミッション', pub: r.pub, world: mainWorld(r.user_id), temper: 3,
+          received: receivedAfter(done ? r.cleared : r.upd, r.user_id * 31 + r.mid),
+          body: done ? `ミッション「${r.name}」を達成したのに、報酬がもらえていません！` : `ミッション「${r.name}」をクリアしたはずなのに、達成になりません。不具合ですか？`,
+          note: 'ミッションの報酬は、ミッション画面の「受け取る」で受け取る仕組みです。',
+          correct: MIS_OPTS[done ? 0 : 1], wrongs: others(MIS_OPTS, MIS_OPTS[done ? 0 : 1]),
+          evidence: { label: 'usr_missions の progress の値', placeholder: '例: 3', value: String(r.progress), accept: numAccept(r.progress) },
+          hints: ['ミッション名は mst_missions にあります。mission_id と、達成に必要な数（condition_value）を確認しましょう。', 'usr_missions でそのユーザーの進み具合（progress）を見ます。', 'cleared_at が入っていれば達成済み、received_at が入っていれば受け取り済みです。'],
+          reply: done ? `お問い合わせありがとうございます。調査の結果、ミッション「${r.name}」は${when(r.cleared)}に達成されております。報酬（${reward}）は、ミッション画面の「受け取る」からお受け取りください。`
+            : `お問い合わせありがとうございます。調査の結果、ミッション「${r.name}」の進み具合は${num(r.progress)}／${num(r.target)}で、まだ達成されておりません。あと${num(left)}${unit}で達成となります。`,
+          reaction: done ? '受け取るボタン、押してませんでした。' : '数え間違えてました……。',
+          explain: done ? `mst_missions で「${esc(r.name)}」は mission_id ${r.mid}、必要数 ${num(r.target)}。usr_missions の progress は ${num(r.progress)} で、${when(r.cleared)} に達成（cleared_at）。received_at は NULL なので、報酬（${esc(reward)}）をまだ受け取っていません。`
+            : `mst_missions で「${esc(r.name)}」は mission_id ${r.mid}、必要数 ${num(r.target)}。usr_missions の progress は ${num(r.progress)} で、あと ${num(left)}${unit} 足りません。${PERIOD[r.mtype]}cleared_at も NULL です。`,
+          model: `SELECT * FROM mst_missions WHERE name = '${r.name}';
+
+SELECT * FROM usr_missions
+WHERE user_id = ${sub(r.pub)}
+  AND mission_id = ${r.mid};`,
+          honest: done ? '「受け取る」を押してください。' : `あと${num(left)}${unit}です。数えてください。`,
+        });
+      });
+    };
+
+    T.ceiling = (n) => pick(rows(`
+      SELECT g.user_id, u.public_id pub, g.gacha_id gid, mg.name gname, g.draw_count draws, g.updated_at ts, c.ceiling_count cc,
+        (SELECT MAX(required_count) FROM mst_gacha_ceilings m WHERE m.gacha_id = g.gacha_id) req
+      FROM usr_gachas g JOIN usr_users u ON u.user_id = g.user_id JOIN usr_gacha_ceilings c ON c.user_id = g.user_id AND c.gacha_id = g.gacha_id
+      JOIN mst_gachas mg ON mg.gacha_id = g.gacha_id
+      WHERE g.draw_count >= 20 AND g.updated_at <= '2026-11-12 22:00:00'
+      ORDER BY g.draw_count DESC, g.user_id`), n).map((r) => mk({
+      kind: 'ceiling', tier: 2, label: '天井', category: 'ガチャ', pub: r.pub, world: mainWorld(r.user_id), temper: 4,
+      received: receivedAfter(r.ts, r.user_id),
+      body: `「${r.gname}」をもう${r.draws}回も回しています。天井で交換できるはずなのに、交換できません！`,
+      note: 'ガチャの天井は交換型です（1回まわすごとに1ポイント）。',
+      correct: '天井ポイントが必要数に届いていない（まだ交換できない）', wrongs: ['天井に届いていて、すでに交換できる', '天井ポイントがリセットされている', 'このガチャには天井がない'],
+      evidence: { label: 'あと何回まわせば交換できるか（回数）', placeholder: '例: 30', value: String(r.req - r.cc), accept: numAccept(r.req - r.cc) },
+      hints: ['ガチャ名は mst_gachas、天井の必要数は mst_gacha_ceilings にあります。', 'usr_gacha_ceilings で、そのユーザーのポイント（ceiling_count）を見ましょう。', '必要数からポイントを引くと、あと何回か分かります。'],
+      reply: `お問い合わせありがとうございます。調査の結果、「${r.gname}」の天井ポイントは現在${r.cc}で、交換には${r.req}ポイントが必要です。あと${r.req - r.cc}回まわしていただくと、交換が可能になります。`,
+      reaction: `天井って${r.req}回だったんですね……遠い。`,
+      explain: `mst_gacha_ceilings で「${esc(r.gname)}」の天井は ${r.req} 回。usr_gacha_ceilings の ceiling_count は ${r.cc}（usr_gachas の draw_count ${r.draws} と同じで、リセットはされていません）。あと ${r.req - r.cc} 回で交換できます。`,
+      model: `SELECT * FROM mst_gacha_ceilings
+WHERE gacha_id = (SELECT gacha_id FROM mst_gachas WHERE name = '${r.gname}');
+
+SELECT * FROM usr_gacha_ceilings WHERE user_id = ${sub(r.pub)};
+SELECT * FROM usr_gachas WHERE user_id = ${sub(r.pub)};`,
+      honest: `あと${r.req - r.cc}回です。……やめておいたほうがいいと思います。`,
+    }));
+
+    T.noSsr = (n) => pick(rows(`
+      SELECT g.currency_log_id cur_id, g.user_id, u.public_id pub, MIN(g.created_at) ts, g.gacha_id gid, mg.name gname, SUM(g.rarity = 'SR') sr
+      FROM log_gacha g JOIN usr_users u ON u.user_id = g.user_id JOIN mst_gachas mg ON mg.gacha_id = g.gacha_id
+      WHERE g.created_at ${WINDOW}
+      GROUP BY g.currency_log_id HAVING COUNT(*) = 10 AND SUM(g.rarity = 'SSR') = 0
+        AND (SELECT COUNT(*) FROM log_currency x WHERE x.user_id = g.user_id AND x.reason = 'GACHA' AND x.amount = -3000 AND date(x.created_at) = date(MIN(g.created_at))) = 1
+      ORDER BY g.currency_log_id`), n).map((r) => mk({
+      kind: 'nossr', tier: 2, label: 'ガチャ確率', category: 'ガチャ', pub: r.pub, world: mainWorld(r.user_id), temper: 5,
+      received: receivedAfter(r.ts, r.cur_id),
+      body: `${md(r.ts)}に「${r.gname}」で10連を回したのに、SSRが1枚も出ませんでした。確率がおかしくないですか？`,
+      note: '確率についての苦情です。データにもとづいて回答してください。',
+      correct: '表示どおりの確率による結果（不具合ではない）', wrongs: ['排出確率の設定ミス（SSRが出ない状態）', 'ジェムだけ消費されて、ガチャが回っていない', '10連のSSR確定枠の不具合'],
+      evidence: { label: 'その10連でジェムを払ったログの log_id（log_currency）', placeholder: '例: 1234', table: 'log_currency', id: r.cur_id, accept: numAccept(r.cur_id) },
+      hints: [`log_currency で ${day(r.ts)} の <code>reason = 'GACHA'</code> を探しましょう。amount −3000 が10連です。`, 'log_gacha の currency_log_id が、そのジェム消費の log_id と一致する行を数えましょう。', 'mst_gacha_lineups で SSR の rate を合計してみましょう（千分率）。'],
+      reply: `お問い合わせありがとうございます。調査の結果、${when(r.ts)}の10連（${r.gname}）は正常に実行され、10回分の結果をお受け取りいただいております。SSRの排出確率は1回あたり3%で、設定どおりの結果でございます。`,
+      reaction: '74%……そんなに出ないものなんですね。',
+      explain: `${when(r.ts)} の log_currency に GACHA −3,000（log_id ${r.cur_id}）があり、それに対応する log_gacha（currency_log_id = ${r.cur_id}）は10行。SSRは0枚、SRは${r.sr}枚でした。mst_gacha_lineups の SSR は合計30（千分率で3%）なので、10回すべてSSR以外になる確率は 0.97 の10乗 ≒ 74%。SSR確定枠はなく、設定どおりの結果です。`,
+      model: `SELECT log_id, amount, ref_id, created_at
+FROM log_currency
+WHERE user_id = ${sub(r.pub)}
+  AND reason = 'GACHA'
+  AND date(created_at) = '${day(r.ts)}';
+
+SELECT rarity, COUNT(*) AS cnt
+FROM log_gacha
+WHERE currency_log_id = ${r.cur_id}
+GROUP BY rarity;
+
+SELECT rarity, SUM(rate) AS rate_permil
+FROM mst_gacha_lineups
+WHERE gacha_id = '${r.gid}'
+GROUP BY rarity;`,
+      honest: '確率3%です。そういうものです。',
+    }));
+
+    T.trade = (n) => pick(rows(`
+      SELECT o.log_id out_id, o.user_id, u.public_id pub, o.created_at ts, m.name item, o.quantity q, o.target_user_id tuid, tu.public_id tpub,
+        i.log_id in_id, tc.name tchar, w.name world
+      FROM log_item o JOIN usr_users u ON u.user_id = o.user_id JOIN mst_items m ON m.item_id = o.item_id JOIN usr_users tu ON tu.user_id = o.target_user_id
+      JOIN log_item i ON i.user_id = o.target_user_id AND i.action = 'TRADE_IN' AND i.target_user_id = o.user_id AND i.item_id = o.item_id AND i.created_at = o.created_at
+      LEFT JOIN usr_characters tc ON tc.character_id = i.character_id
+      LEFT JOIN usr_characters c ON c.character_id = o.character_id LEFT JOIN mst_worlds w ON w.world_id = c.world_id
+      WHERE o.action = 'TRADE_OUT' AND o.created_at ${WINDOW} AND tc.name IS NOT NULL
+        AND (SELECT COUNT(*) FROM log_item x WHERE x.user_id = o.user_id AND x.action = 'TRADE_OUT' AND x.item_id = o.item_id AND date(x.created_at) = date(o.created_at)) = 1
+      ORDER BY o.log_id`), n).map((r) => mk({
+      kind: 'trade', tier: 2, label: 'トレード未着', category: 'アイテム', pub: r.pub, world: r.world, temper: 2,
+      received: receivedAfter(r.ts, r.out_id),
+      body: `${md(r.ts)}にフレンドの『${r.tchar}』へ『${r.item}』を${r.q}個トレードしたのに、「届いていない」と言われました。アイテムはどこに消えたんですか？`,
+      note: 'トレード相手もこのゲームのユーザーです。',
+      correct: '相手に届いている（相手側に受け取りの記録がある）', wrongs: ['トレードが失敗して、アイテムは手元に戻った', '別のプレイヤーに送っていた', '不具合でアイテムが消えた'],
+      evidence: { label: '決め手になったログの log_id（log_item）', placeholder: '例: 1234', table: 'log_item', id: r.in_id, accept: numAccept(r.in_id) },
+      hints: ["log_item でそのユーザーの <code>action = 'TRADE_OUT'</code> を探しましょう。", 'target_user_id は相手の user_id。相手側の log_item に TRADE_IN があるか見てみましょう。', '同じ時刻・同じアイテムの TRADE_IN が、受け取りの記録です。'],
+      reply: `お問い合わせありがとうございます。調査の結果、${when(r.ts)}にお客様から『${r.tchar}』様へ『${r.item}』×${r.q}がトレードされ、相手の方が受け取られていることを確認いたしました。お相手の方に、持ち物をご確認いただくようお伝えください。`,
+      reaction: 'フレンドに確認したら、ありました！もう使ってたみたいです。',
+      explain: `log_item の TRADE_OUT（${when(r.ts)}、log_id ${r.out_id}）の target_user_id は ${esc(r.tpub)}（user_id ${r.tuid}）。同じ時刻に ${esc(r.tpub)} 側に TRADE_IN（log_id ${r.in_id}、キャラ『${esc(r.tchar)}』）があります。アイテムは相手に届いています。`,
+      model: `SELECT log_id, item_id, quantity, target_user_id, detail, created_at
+FROM log_item
+WHERE user_id = ${sub(r.pub)}
+  AND action = 'TRADE_OUT'
+  AND date(created_at) = '${day(r.ts)}';
+
+SELECT log_id, user_id, item_id, quantity, target_user_id, created_at
+FROM log_item
+WHERE user_id = ${r.tuid}
+  AND action = 'TRADE_IN'
+  AND target_user_id = ${sub(r.pub)};`,
+      honest: '届いています。ご友人に、もう一度よく探すように言ってください。',
+    }));
+
+    // ======================================================================== Tier 3
+    T.del = (n) => pick(rows(`
+      SELECT l.log_id, l.user_id, u.public_id pub, l.created_at ts, c.name chara, c.level, w.name world, l.ip_address ip, l.device_id dev
+      FROM log_character l JOIN usr_users u ON u.user_id = l.user_id JOIN usr_characters c ON c.character_id = l.character_id JOIN mst_worlds w ON w.world_id = c.world_id
+      WHERE l.action = 'DELETE' AND l.created_at ${WINDOW} AND c.deleted_at IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM log_character r WHERE r.character_id = l.character_id AND r.action = 'RESTORE')
+      ORDER BY l.log_id`), n).map((r, k) => mk({
+      kind: 'delete', tier: 3, label: 'キャラ消失', category: 'キャラクター', pub: r.pub, world: r.world, temper: 5,
+      received: receivedAfter(r.ts, r.log_id),
+      body: vary([`キャラクター『${r.chara}』（Lv${r.level}）がいなくなりました！何もしていません！すぐに戻してください！`, `『${r.chara}』がキャラ一覧から消えました。運営のミスですよね？`], k),
+      note: 'ユーザーはかなりお怒りです。まずは事実確認をお願いします。',
+      correct: '本人の操作による削除（普段と同じ端末・IPから実行）', wrongs: ['第三者の不正ログインによる削除', 'サーバー不具合によるデータ消失', 'キャラクターは消えていない（表示の問題）'],
+      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', table: 'log_character', id: r.log_id, accept: numAccept(r.log_id) },
+      hints: ['usr_characters でそのユーザーのキャラを確認しましょう。<code>deleted_at</code> に日時が入っていれば削除済みです。', "log_character で <code>action = 'DELETE'</code> を探し、detail を見ましょう。", 'DELETE の ip_address と device_id を、log_login の普段のログインと比べましょう。'],
+      reply: `お問い合わせありがとうございます。調査の結果、『${r.chara}』は${when(r.ts)}に、お客様が普段ご利用の端末から、キャラクター名の入力確認を経て削除されていることを確認いたしました。削除から30日以内のため、復旧申請が可能です。`,
+      reaction: vary(['サブキャラと間違えて消してました……。復旧申請します。', '……消しました。寝ぼけてました。'], k),
+      explain: `usr_characters の deleted_at が ${when(r.ts)}。log_character に同時刻の DELETE（log_id ${r.log_id}）があり、detail に <code>confirm: name_input</code>（キャラ名を入力しての確認）。操作元のIP（${esc(r.ip)}）・端末（${esc(r.dev)}）は普段のログインと同じです。`,
+      model: `SELECT * FROM usr_characters WHERE user_id = ${sub(r.pub)};
+
+SELECT log_id, action, detail, ip_address, device_id, created_at
+FROM log_character
+WHERE user_id = ${sub(r.pub)} AND action = 'DELETE';
+
+SELECT ip_address, device_id, COUNT(*) AS cnt
+FROM log_login
+WHERE user_id = ${sub(r.pub)}
+GROUP BY ip_address, device_id;`,
+      honest: '名前を手で打ち込んでまで、ご自分で消しています。',
+    }));
+
+    T.restore = (n) => pick(rows(`
+      SELECT r.log_id, r.user_id, u.public_id pub, r.created_at ts, d.created_at del_at, d.log_id del_id, c.name chara, w.name world
+      FROM log_character r JOIN usr_users u ON u.user_id = r.user_id
+      JOIN log_character d ON d.character_id = r.character_id AND d.action = 'DELETE' AND d.created_at < r.created_at
+      JOIN usr_characters c ON c.character_id = r.character_id JOIN mst_worlds w ON w.world_id = c.world_id
+      WHERE r.action = 'RESTORE' AND r.created_at <= '2026-11-12 20:00:00'
+      ORDER BY r.log_id`), n).map((r) => mk({
+      kind: 'restore', tier: 3, label: 'キャラ復活', category: 'キャラクター', pub: r.pub, world: r.world, temper: 3,
+      received: receivedAfter(r.ts, r.log_id),
+      body: `消したはずのキャラクター『${r.chara}』が、いつの間にか戻っています。気味が悪いです。誰かが勝手に操作していませんか？`,
+      note: 'セキュリティの不安についての問い合わせです。',
+      correct: 'CSへの依頼にもとづく、運営の復旧対応', wrongs: ['第三者の不正ログインによる操作', '不具合による復活', '本人がキャラクターを作り直した'],
+      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', table: 'log_character', id: r.log_id, accept: numAccept(r.log_id) },
+      hints: ['log_character でそのキャラの action を時系列で見ましょう。', 'RESTORE の detail に、誰が戻したかが書いてあります。', 'ip_address・device_id が NULL なのは、ユーザーの端末からの操作ではないということです。'],
+      reply: `お問い合わせありがとうございます。調査の結果、『${r.chara}』は${when(r.del_at)}に削除された後、${when(r.ts)}にカスタマーサポートへの復旧依頼にもとづいて復旧されております。第三者による操作ではございませんので、ご安心ください。`,
+      reaction: '……そういえば、消した直後にCSに泣きついてました。忘れてました。',
+      explain: `${when(r.del_at)} に DELETE（log_id ${r.del_id}）、${when(r.ts)} に RESTORE（log_id ${r.log_id}）。RESTORE の detail は <code>by: cs_ticket</code>（CSへの問い合わせにもとづく復旧）で、ip_address・device_id は NULL（ユーザーの端末ではなく、運営側の操作）です。`,
+      model: `SELECT log_id, character_id, action, detail, ip_address, device_id, created_at
+FROM log_character
+WHERE user_id = ${sub(r.pub)}
+ORDER BY created_at;`,
+      honest: 'ご自分でCSに「戻してください」と頼んでいます。',
+    }));
+
+    T.world = (n) => pick(rows(`
+      SELECT l.log_id, l.user_id, u.public_id pub, l.created_at ts, l.detail, c.name chara, c.world_id now_w
+      FROM log_character l JOIN usr_users u ON u.user_id = l.user_id JOIN usr_characters c ON c.character_id = l.character_id
+      WHERE l.action = 'WORLD_TRANSFER' AND l.created_at <= '2026-11-12 20:00:00' ORDER BY l.log_id`), n).map((r) => {
+      const d = JSON.parse(r.detail);
+      const from = worldName[d.from_world], to = worldName[d.to_world];
+      return mk({
+        kind: 'world', tier: 3, label: 'キャラ不在', category: 'キャラクター', pub: r.pub, world: from, temper: 4,
+        received: receivedAfter(r.ts, r.log_id),
+        body: `キャラクター『${r.chara}』が${from}のキャラ一覧から消えています！削除なんてしていません！`,
+        note: `ユーザーは「${from}」で遊んでいるとのことです。`,
+        correct: '本人の操作によるワールド移動（キャラクターは無事）', wrongs: ['本人の操作による削除', '本人の操作による名前変更', '不具合によるキャラクターの消失'],
+        evidence: { label: `『${r.chara}』が今いるワールド名`, placeholder: '例: ベータ', value: to, accept: (v) => { const x = norm(v); return x.includes(norm(to)) || x === String(d.to_world) || x === `ワールド${d.to_world}`; } },
+        hints: ["usr_characters で <code>name</code> を検索してみましょう。world_id はどこ？", 'world_id は <code>mst_worlds</code> テーブルと対応しています。', 'log_character でこのキャラの action を確認しましょう。detail に移動元と移動先が入っています。'],
+        reply: `お問い合わせありがとうございます。調査の結果、『${r.chara}』は${when(r.ts)}にワールド移動チケットを使用して、${from}から${to}へ移動しております。キャラクターは削除されておりませんので、${to}にログインしてご確認ください。`,
+        reaction: 'イベントにつられて移動したの、完全に忘れてました……。',
+        explain: `log_character の WORLD_TRANSFER（${when(r.ts)}、log_id ${r.log_id}）の detail は <code>${esc(r.detail)}</code>。usr_characters の world_id も ${r.now_w}（${esc(worldName[r.now_w])}）です。直前に log_item でワールド移動チケット（1201）を使っています。`,
+        model: `SELECT c.*, w.name AS world_name
+FROM usr_characters c JOIN mst_worlds w USING (world_id)
+WHERE c.name = '${r.chara}';
+
+SELECT log_id, action, detail, created_at
+FROM log_character
+WHERE user_id = ${sub(r.pub)}
+ORDER BY created_at;`,
+        honest: `消えていません。${to}にいます。あなたが連れて行きました。`,
+      });
+    });
+
+    const RANK_OPTS = ['報酬は受け取り済み', 'プレゼントBOXに届いている（まだ受け取っていない）', '順位が報酬の対象外', '不具合で届いていない'];
+    T.rank = (n) => {
+      const all = rows(`
+        SELECT r.user_id, u.public_id pub, r.rank, r.score, p.present_id, p.title, p.received_at recv, p.created_at ts, p.present_type ptype, p.quantity qty, i.name item, c.log_id cur_id
+        FROM usr_rankings r JOIN usr_users u ON u.user_id = r.user_id
+        JOIN usr_presents p ON p.user_id = r.user_id AND p.source = 'EVENT'
+        LEFT JOIN mst_items i ON i.item_id = p.reward_id
+        LEFT JOIN log_currency c ON c.user_id = r.user_id AND c.reason = 'PRESENT' AND c.ref_id = 'present:' || p.present_id
+        WHERE r.event_id = 'ev_raid_star' ORDER BY r.rank`);
+      const half = Math.ceil(n / 2);
+      return [...pick(all.filter((r) => !r.recv), half), ...pick(all.filter((r) => r.recv && r.recv <= '2026-11-12 20:00:00'), n - half)].map((r) => {
+        const got = !!r.recv;
+        const reward = r.ptype === 'GEM' ? `ジェム${num(r.qty)}個` : `${r.item}×${r.qty}`;
+        return mk({
+          kind: 'rank', tier: 3, label: 'ランキング報酬', category: 'イベント', pub: r.pub, world: mainWorld(r.user_id), temper: 3,
+          received: receivedAfter(got ? r.recv : r.ts, r.present_id),
+          body: '星喰いの竜 討伐戦の順位報酬が、まだ届いていません。上位に入っていたはずなんですが……。',
+          note: '順位報酬は、イベント終了後にプレゼントBOXへ配布しています。',
+          correct: RANK_OPTS[got ? 0 : 1], wrongs: others(RANK_OPTS, RANK_OPTS[got ? 0 : 1]),
+          evidence: { label: 'このユーザーの最終順位（rank）', placeholder: '例: 12', value: String(r.rank), accept: numAccept(r.rank) },
+          hints: ["イベントIDは mst_events にあります。usr_rankings で <code>event_id = 'ev_raid_star'</code> の順位を見ましょう。", 'usr_presents に、順位報酬（source = EVENT）が届いているか確認しましょう。', 'received_at が入っていれば受け取り済み、NULL なら未受け取りです。'],
+          reply: got ? `お問い合わせありがとうございます。調査の結果、お客様の最終順位は${r.rank}位で、順位報酬（${reward}）は${when(r.recv)}にお受け取りいただいていることを確認いたしました。`
+            : `お問い合わせありがとうございます。調査の結果、お客様の最終順位は${r.rank}位で、順位報酬（${reward}）は${when(r.ts)}にプレゼントBOXへお届けしております。プレゼントBOXからお受け取りください。`,
+          reaction: got ? 'もらってました。使ったのを忘れてました。' : 'BOXにありました！ありがとうございます！',
+          explain: `usr_rankings（ev_raid_star）で ${r.rank} 位（与ダメージ ${num(r.score)}）。usr_presents に「${esc(r.title)}」（${esc(reward)}、present_id ${r.present_id}）が ${when(r.ts)} に届いていて、${got ? `${when(r.recv)} に受け取り済みです${r.cur_id ? `（log_currency の PRESENT、log_id ${r.cur_id}）` : ''}。` : 'received_at は NULL（未受け取り）です。'}`,
+          model: `SELECT * FROM usr_rankings
+WHERE event_id = 'ev_raid_star' AND user_id = ${sub(r.pub)};
+
+SELECT * FROM usr_presents
+WHERE user_id = ${sub(r.pub)} AND source = 'EVENT';`,
+          honest: got ? 'もう受け取っています。' : 'プレゼントBOXを開いてください。',
+        });
+      });
+    };
+
+    // ======================================================================== 組み立て（合計 target 件）
+    // 候補の少ない種類から先に選ぶ（同じユーザーは1回しか使わないため）
+    const PLAN = [['restore', 3], ['world', 3], ['rename', 5], ['del', 5], ['rank', 4], ['expire', 5], ['maint', 7], ['payCancel', 5],
+      ['loginFail', 6], ['gold', 8], ['ceiling', 5], ['noSsr', 5], ['mission', 10], ['loginBonus', 5], ['payOk', 6], ['sell', 6], ['trade', 5]];
+    const out = [];
+    for (const [k, n] of PLAN) out.push(...T[k](n));
+    // 足りなければ、候補の多い種類で埋める
+    const FILL = ['trade', 'gold', 'sell', 'payOk', 'loginBonus', 'loginFail', 'noSsr'];
+    for (let f = 0; out.length < 93 && f < FILL.length * 3; f++) out.push(...T[FILL[f % FILL.length]](Math.min(2, 93 - out.length)));
+    return out.slice(0, 93);
+  }
+
+  root.CaseGen = { build };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { build };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -1552,6 +2763,25 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     reveal(t) { thud(t, 0.25); },
     // 称号の発表
     rank(t) { thud(t, 0.6); [72, 79, 84, 88, 91].forEach((m, i) => bell(t + 0.12 + i * 0.07, m, 0.1, 1.2)); },
+    // 証拠を叩きつける「バンッ」
+    smash(t) { thud(t, 0.75); noise({ t, dur: 0.18, gain: 0.3, filter: 'lowpass', freq: 1800, q: 0.6 }); tone({ t, f: 90, f2: 40, glide: 0.2, dur: 0.3, gain: 0.4, type: 'triangle' }); },
+    // 紙を丸める
+    crumple(t) { for (let i = 0; i < 7; i++) noise({ t: t + i * 0.045 + Math.random() * 0.02, dur: 0.04, gain: 0.08, filter: 'bandpass', freq: 2500 + Math.random() * 2500, q: 1.5 }); },
+    // 投げる
+    toss(t) { noise({ t, dur: 0.25, gain: 0.08, filter: 'bandpass', freq: 600, freq2: 2400, q: 1, attack: 0.05 }); },
+    // ゴミ箱に入った「カコーン」
+    clang(t) { tone({ t, f: 1240, dur: 0.4, gain: 0.08, type: 'square', lp: 3000 }); tone({ t, f: 1870, dur: 0.3, gain: 0.05, type: 'triangle' }); thud(t, 0.2); },
+    // 外れた「ポテッ」
+    plop(t) { tone({ t, f: 220, f2: 110, glide: 0.1, dur: 0.12, gain: 0.12, type: 'triangle' }); },
+    // 爆発・崩壊
+    explode(t) { noise({ t, dur: 1.4, gain: 0.45, filter: 'lowpass', freq: 2400, freq2: 120, q: 0.4 }); tone({ t, f: 70, f2: 28, glide: 1.2, dur: 1.3, gain: 0.5, type: 'sine' }); thud(t, 0.8); },
+    // ハンマー
+    hammer(t) { thud(t, 0.9); tone({ t, f: 880, dur: 0.25, gain: 0.08, type: 'square', lp: 2500 }); noise({ t, dur: 0.3, gain: 0.3, filter: 'lowpass', freq: 1200 }); },
+    // 電話線を抜く／挿す
+    unplug(t) { tone({ t, f: 440, f2: 110, glide: 0.25, dur: 0.3, gain: 0.08, type: 'square', lp: 1500 }); },
+    plug(t) { tone({ t, f: 330, f2: 990, glide: 0.12, dur: 0.15, gain: 0.07, type: 'square', lp: 2500 }); SFX.ring(t + 0.25); },
+    // 炎上
+    enjo(t) { SFX.shimatsu(t); noise({ t: t + 0.1, dur: 1.2, gain: 0.15, filter: 'bandpass', freq: 800, freq2: 3000, q: 0.5 }); },
     // 結果発表：ファンファーレ
     final(t) {
       const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];
@@ -1698,6 +2928,11 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
       pal: { r: '#2f7d5b', h: '#3a3026', d: '#5a4030', c: '#556070' },
       px: ['...rrrrrr...', '..rrrrrrrr..', '.rrrrrrrrrrr', '..hssssssh..', '..sesssses..', '..ssssssss..', '..sssmmsss..', '..dddddddd..', '...dddddd...', '...cccccc...', '.cccccccccc.', 'cccccccccccc'],
     },
+    hacker: {
+      name: '影狼', role: 'U-90417',
+      pal: { h: '#3a3f5c', k: '#141625', r: '#e43b44', m: '#2a2d40' },
+      px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh', 'hhkkkkkkkkhh', 'hhkrkkkkrkhh', 'hhkkkkkkkkhh', 'hhkkkmmkkkhh', '.hhkkkkkkhh.', '.hhhkkkkhhh.', '..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh'],
+    },
     bucho: {
       name: '部長', role: '運用部',
       pal: { h: '#7a7a7a', d: '#3b3b3b', n: '#2b3240', t: '#d4361f' },
@@ -1796,8 +3031,9 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
   function burst(x, y, opts) {
     if (reduced()) return;
     opts = opts || {};
-    const colors = opts.colors || ['#f7a823', '#63c74d', '#f4f1e4', '#e43b44', '#2ce8f5', '#fee761'];
+    const colors = opts.colors || (opts.fire ? ['#e43b44', '#f7a823', '#fee761', '#f77622'] : opts.smoke ? ['#8b8fa8', '#5d6182', '#c3c8e8'] : ['#f7a823', '#63c74d', '#f4f1e4', '#e43b44', '#2ce8f5', '#fee761']);
     const n = opts.count || 36;
+    const rising = opts.fire || opts.smoke;
     const layer = $('#fx-layer');
     for (let i = 0; i < n; i++) {
       const p = document.createElement('i');
@@ -1806,13 +3042,15 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
       p.style.cssText = `left:${Math.round(x)}px;top:${Math.round(y)}px;width:${size}px;height:${size}px;background:${colors[i % colors.length]}`;
       layer.appendChild(p);
       const ang = Math.random() * Math.PI * 2, sp = 90 + Math.random() * 220;
-      const dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp - 120;
-      const rot = (Math.random() - 0.5) * 900;
+      const dx = rising ? (Math.random() - 0.5) * (opts.spread || 160) : Math.cos(ang) * sp;
+      const dy = rising ? -(80 + Math.random() * 260) : Math.sin(ang) * sp - 120;
+      const fall = rising ? 0 : 260;
+      const rot = rising ? 0 : (Math.random() - 0.5) * 900;
       const a = p.animate([
         { transform: 'translate(-50%,-50%) rotate(0deg)', opacity: 1 },
         { transform: `translate(calc(-50% + ${dx * 0.7}px), calc(-50% + ${dy * 0.6}px)) rotate(${rot * 0.6}deg)`, opacity: 1, offset: 0.55 },
-        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + 260}px)) rotate(${rot}deg)`, opacity: 0 },
-      ], { duration: 900 + Math.random() * 600, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + fall}px)) rotate(${rot}deg)`, opacity: 0 },
+      ], { duration: (rising ? 1200 : 900) + Math.random() * 600, delay: rising ? Math.random() * (opts.duration || 300) : 0, easing: rising ? 'steps(8, end)' : 'cubic-bezier(.2,.7,.4,1)', fill: 'both' });
       a.onfinish = () => p.remove();
     }
   }
@@ -1884,7 +3122,131 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     flame: ['...r....', '..rr..r.', '..rrr.r.', '.rroorr.', '.rooyor.', 'rroyyorr', '.royyor.', '..rrrr..'],
     search: ['.kkkk...', 'kcwcck..', 'kwccck..', 'kcccck..', '.kkkko..', '.....oo.', '......oo', '.......o'],
     ticket: ['........', 'kkkkkkkk', 'kwwwwwwk', 'kwkkkkwk', 'kwwwwwwk', 'kwkkwwwk', 'kkkkkkkk', '........'],
+    phone: ['........', '.kkkkkk.', 'kwwwwwwk', 'kwkkkkwk', '.kwwwwk.', 'kwwwwwwk', 'kwkwkwwk', 'kkkkkkkk'],
   };
+  // 大きめのスプライト（ハンマー 16×16、丸めた紙 8×8、ゴミ箱 12×12）
+  const SPRITES = {
+    hammer: { pal: { k: '#1c1f33', g: '#9aa3b8', w: '#e8ecf5', d: '#5d6578', b: '#9c5a2c' },
+      px: ['................', '..kkkkkkkkkkkk..', '..kwwgggggggdk..', '..kwggggggggdk..', '..kgggggggggdk..', '..kddddddddddk..', '..kkkkkkkkkkkk..',
+        '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kbbk......', '......kkkk......'] },
+    ball: { pal: { k: '#1c1f33', w: '#fbf7ea', p: '#d8d0b8', r: '#e43b44' },
+      px: ['..kkkk..', '.kwwpwk.', 'kwpwwrwk', 'kwwwpwpk', 'kpwrwwwk', 'kwwpwwwk', '.kwwwpk.', '..kkkk..'] },
+    bin: { pal: { k: '#1c1f33', g: '#9aa3b8', d: '#6b7388' },
+      px: ['..kkkkkkkk..', '.kggggggggk.', 'kkkkkkkkkkkk', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '.kgdgdgdgdk.', '..kkkkkkkk..'] },
+  };
+  function sprite(name, scale) {
+    const sp = SPRITES[name]; if (!sp) return '';
+    const s = scale || 4, w = sp.px[0].length, h = sp.px.length;
+    let rects = '';
+    sp.px.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = sp.pal[row[x]]; if (c) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; } });
+    return `<svg width="${w * s}" height="${h * s}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+  }
+
+  // ------------------------------------------------------------ 証拠のログを叩きつける
+  function evidence(cardHtml) {
+    const el = document.createElement('div');
+    el.className = 'evidence';
+    el.innerHTML = `<div class="evidence-card">${cardHtml}</div><p class="evidence-shout">ログは嘘をつかない！</p>`;
+    $('#fx-layer').appendChild(el);
+    snd('whoosh');
+    setTimeout(() => { snd('smash'); shake($('.app'), true); flash('white'); }, reduced() ? 0 : 260);
+    setTimeout(() => el.remove(), reduced() ? 900 : 1500);
+  }
+
+  // ------------------------------------------------------------ 禁断のDROP（夢オチ）
+  function dropSequence(sqlText, table, done) {
+    const el = document.createElement('div');
+    el.className = 'dropseq';
+    el.innerHTML = '<pre class="dropseq-term"></pre><div class="dropseq-dream" hidden><p class="dream-main">……という夢を見た。</p><p class="dream-sub">※現実の本番DBでは、絶対にやめましょう。</p></div>';
+    document.body.appendChild(el);
+    const term = $('.dropseq-term', el), dream = $('.dropseq-dream', el);
+    const desk = $('.desk');
+    const lines = [
+      `prod-replica-01> ${sqlText.replace(/\s+/g, ' ').trim()}`,
+      `OK. テーブル ${table} を削除しました。(0.01 sec)`,
+      '',
+      `[ALERT] GameAPI: no such table: ${table}`,
+      '[ALERT] ログイン成功率 99.8% → 0.0%',
+      '[ALERT] 同時接続 52,391 → 0',
+    ];
+    const timers = [];
+    const at = (ms, fn) => timers.push(setTimeout(fn, reduced() ? Math.min(ms, 300) : ms));
+    let finished = false;
+    const finish = () => {
+      if (finished) return; finished = true;
+      timers.forEach(clearTimeout);
+      desk.classList.remove('crumble');
+      el.classList.add('is-out');
+      setTimeout(() => { el.remove(); done(); }, 400);
+    };
+    lines.forEach((l, i) => at(250 + i * 260, () => { term.textContent += (i ? '\n' : '') + l; snd(i < 2 ? 'type' : 'warn'); }));
+    at(2000, () => {
+      el.classList.add('is-burning');
+      desk.classList.add('crumble');
+      snd('explode'); siren(); flash('red');
+      const r = desk.getBoundingClientRect();
+      for (let k = 0; k < 5; k++) setTimeout(() => burst(r.left + r.width * (0.1 + k * 0.2), r.bottom - 10, { fire: true, count: 26, spread: 120, duration: 600 }), k * 120);
+      say('infra', 'うわあああああ！！！ 本番のテーブルが消えた！！！ バックアップ！ バックアップどこ！？', { interrupt: true, hold: 2200 });
+      say('bucho', '…………（気絶）', { hold: 1600 });
+    });
+    at(5400, () => { term.hidden = true; dream.hidden = false; el.classList.add('is-dream'); desk.classList.remove('crumble'); });
+    at(8200, finish);
+    el.addEventListener('click', () => { if (!dream.hidden) finish(); else { timers.forEach(clearTimeout); term.hidden = true; dream.hidden = false; el.classList.add('is-dream'); desk.classList.remove('crumble'); timers.push(setTimeout(finish, 1800)); } });
+  }
+
+  // ------------------------------------------------------------ 始末書を丸めてゴミ箱へ
+  function trashThrow(onResult) {
+    if ($('.trash-game')) return;
+    const el = document.createElement('div');
+    el.className = 'trash-game';
+    el.innerHTML = `<p class="trash-tip">始末書を丸めた！　ゴミ箱が来たらクリックで投げろ</p>
+      <div class="trash-lane"><div class="trash-bin">${sprite('bin', 4)}</div></div>
+      <button class="trash-ball" type="button" aria-label="丸めた始末書を投げる">${sprite('ball', 4)}</button>`;
+    document.body.appendChild(el);
+    snd('crumple');
+    const ball = $('.trash-ball', el), bin = $('.trash-bin', el), lane = $('.trash-lane', el);
+    let done = false;
+    const end = (hit) => {
+      if (done) return; done = true;
+      setTimeout(() => { el.classList.add('is-out'); setTimeout(() => el.remove(), 300); onResult(hit); }, hit == null ? 0 : 700);
+    };
+    const timeout = setTimeout(() => end(null), 7000);
+    ball.addEventListener('click', () => {
+      if (done) return;
+      clearTimeout(timeout);
+      const lr = lane.getBoundingClientRect(), br = bin.getBoundingClientRect(), bl = ball.getBoundingClientRect();
+      const target = lr.left + lr.width / 2; // ボールは常にレーンの真ん中へ飛ぶ
+      const binCenter = br.left + br.width / 2;
+      const hit = Math.abs(binCenter - target) < 30;
+      bin.style.animationPlayState = 'paused';
+      snd('toss');
+      const dx = target - (bl.left + bl.width / 2), dy = (br.top + 8) - (bl.top + bl.height / 2);
+      ball.animate([
+        { transform: 'translate(0,0) rotate(0)' },
+        { transform: `translate(${dx * 0.5}px, ${dy - 90}px) rotate(180deg)`, offset: 0.5 },
+        { transform: `translate(${dx}px, ${hit ? dy : dy + 30}px) rotate(360deg)` },
+      ], { duration: 520, easing: 'steps(10, end)', fill: 'forwards' });
+      setTimeout(() => { snd(hit ? 'clang' : 'plop'); if (hit) burstFrom(bin, { count: 12 }); el.classList.add(hit ? 'is-hit' : 'is-miss'); }, 520);
+      end(hit);
+    });
+  }
+
+  // ------------------------------------------------------------ BANハンマー
+  function banHammer(done) {
+    const el = document.createElement('div');
+    el.className = 'ban';
+    el.innerHTML = `<div class="ban-card">${avatar('hacker')}<div><b>影狼</b><span>U-90417</span><em class="ban-status">ACTIVE</em></div></div>
+      <div class="ban-hammer">${sprite('hammer', 8)}</div><p class="ban-shout">BANNED!!</p>`;
+    document.body.appendChild(el);
+    const card = $('.ban-card', el);
+    setTimeout(() => {
+      snd('hammer'); shake($('.app'), true); flash('white');
+      el.classList.add('is-hit');
+      $('.ban-status', el).textContent = 'BANNED';
+      burstFrom(card, { count: 40 });
+    }, reduced() ? 100 : 700);
+    setTimeout(() => { el.classList.add('is-out'); setTimeout(() => { el.remove(); done && done(); }, 300); }, reduced() ? 1200 : 2600);
+  }
   function icon(name, scale) {
     const px = ICONS[name]; if (!px) return '';
     const s = scale || 3;
@@ -1957,7 +3319,7 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" aria-hidden="true"><defs>${defs}</defs>${s}</svg>`;
   }
 
-  root.FX = { avatar, icon, skyline, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, reduced, PEOPLE };
+  root.FX = { avatar, icon, sprite, skyline, evidence, dropSequence, trashThrow, banHammer, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, reduced, PEOPLE };
 })(window);
 
 </script>
@@ -1970,6 +3332,8 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
   const STORE_KEY = 'logs-dont-lie:v1';
   const NOW_JST = '2026-11-13 10:00:00';
   const BASE = 100, WRONG = 25, HINT = 10, SHIMATSU = 15, FLOOR = 20, COMBO = 10;
+  // 「ゲームだからいいよね」の機能
+  const SPEC_SCORE = 60, BACKDOOR_SCORE = 80, ENJO = 50, BIG_ROWS = 200000;
   // ゲーム内時計（10:00 出社からの経過分）の進み方
   const CLOCK = { query: 2, hint: 3, wrong: 8, solve: 10, giveup: 15 }, DAY_START = 10 * 60, DAY_END = 18 * 60;
   const snd = (name) => { if (window.Sound) window.Sound.sfx(name); };
@@ -2002,18 +3366,67 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
     { name: 'log_login', desc: 'ログイン試行の記録（失敗も含む）。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ログイン先アカウント'], ['result', 'SUCCESS / FAILED'], ['ip_address', '接続元IP'],
       ['country', 'IPから推定した国コード'], ['device_id', '端末ID'], ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'log_item', desc: 'アイテムの増減・移動。', cols: [
+    { name: 'log_item', desc: 'アイテム（消耗品・素材・チケットなど）の増減・移動。装備は log_equip。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['item_id', 'アイテム → mst_items'],
-      ['item_uid', '装備の個体ID（消耗品はNULL）'],
-      ['action', 'GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE'],
-      ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'],
+      ['action', 'GET / USE / TRADE_OUT / TRADE_IN / EXPIRE'],
+      ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元（source）など'],
       ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'mst_items', desc: 'アイテムマスタ。', cols: [
-      ['item_id', 'アイテムID'], ['name', '名前'], ['category', '武器 / 防具 / 消耗品 など'], ['rarity', 'N / R / SR / SSR / UR'], ['tradable', '1 = トレード可、0 = 不可']] },
+    { name: 'mst_items', desc: 'アイテムマスタ（消耗品・素材・チケット・マウント）。', cols: [
+      ['item_id', 'アイテムID'], ['name', '名前'], ['category', '消耗品 / 素材 / マウント'], ['rarity', 'N / R / SR / SSR'], ['tradable', '1 = トレード可、0 = 不可']] },
+    { name: 'mst_equips', desc: '装備マスタ（武器・防具・アクセサリ）。', cols: [
+      ['equip_id', '装備ID'], ['name', '名前'], ['category', '武器 / 防具 / アクセサリ'], ['rarity', 'N / R / SR / SSR / UR'],
+      ['tradable', '1 = トレード可、0 = 不可'], ['attack', '攻撃力'], ['defense', '防御力']] },
+    { name: 'usr_equips', desc: 'いま持っている装備（1個体1行）。売却・消滅したものは消える。', cols: [
+      ['equip_uid', '装備の個体ID（例: EQ-1234-5678）'], ['user_id', '持ち主 → usr_users'], ['character_id', '装備しているキャラ'],
+      ['equip_id', '装備 → mst_equips'], ['level', '強化レベル（+n）'], ['in_storage', '1 = 倉庫の中'], ['obtained_at', '手に入れた日時 <em>JST</em>']] },
+    { name: 'log_equip', desc: '装備の入手・強化・倉庫・トレード・売却。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['equip_id', '装備 → mst_equips'], ['equip_uid', '装備の個体ID'],
+      ['action', 'GET / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / TRADE_OUT / TRADE_IN / SELL'],
+      ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'], ['created_at', '発生日時 <em>JST</em>']] },
     { name: 'log_currency', desc: 'ゴールド・ジェムの増減。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['currency', 'GOLD / GEM'], ['amount', '増減（マイナスは消費）'], ['balance_after', '変動後の残高'],
-      ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE'],
-      ['ref_id', '関連ID（ギルド、決済の transaction_id など）'], ['created_at', '発生日時 <em>JST</em>']] },
+      ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE / PRESENT / MISSION'],
+      ['ref_id', '関連ID（stage:〜、gacha:〜、present:〜、mission:〜、guild:〜、決済の transaction_id など）'], ['created_at', '発生日時 <em>JST</em>']] },
+    { name: 'mst_events', desc: 'イベント。', cols: [
+      ['event_id', 'イベントID（例: ev_halloween）'], ['name', 'イベント名'], ['event_type', 'SEASONAL / RAID / CAMPAIGN / RANKING / WORLD / LOGIN_BONUS'],
+      ['world_id', '対象ワールド（NULL = 全ワールド）'], ['start_at', '開始 <em>JST</em>'], ['end_at', '終了 <em>JST</em>'], ['description', '説明']] },
+    { name: 'mst_gachas', desc: 'ガチャ。log_currency の ref_id「gacha:〜」と同じID。', cols: [
+      ['gacha_id', 'ガチャID'], ['name', 'ガチャ名'], ['event_id', '関連イベント → mst_events'], ['gem_single', '1回のジェム'], ['gem_ten', '10連のジェム'],
+      ['start_at', '開始 <em>JST</em>'], ['end_at', '終了 <em>JST</em>（NULL = 常設）']] },
+    { name: 'mst_gacha_lineups', desc: 'ガチャの排出内容と確率。', cols: [
+      ['lineup_id', 'ID'], ['gacha_id', 'ガチャ → mst_gachas'], ['reward_type', 'ITEM / EQUIP'], ['reward_id', 'item_id か equip_id'],
+      ['rarity', 'N / R / SR / SSR'], ['rate', '確率（千分率。ガチャごとに合計 1000）']] },
+    { name: 'usr_gachas', desc: 'ユーザーごと・ガチャごとに回した回数（1ユーザー×1ガチャで1行）。', cols: [
+      ['user_id', 'ユーザー → usr_users'], ['gacha_id', 'ガチャ → mst_gachas'], ['draw_count', '回した回数の合計（10連は10回）'],
+      ['created_at', '初めて回した日時 <em>JST</em>'], ['updated_at', '最後に回した日時 <em>JST</em>']] },
+    { name: 'mst_gacha_ceilings', desc: 'ガチャの天井（交換型）。1回まわすごとに1ポイント。必要数に届くと、どれか1つと交換できる。', cols: [
+      ['ceiling_id', 'ID'], ['gacha_id', 'ガチャ → mst_gachas'], ['required_count', '交換に必要なポイント（回数）'],
+      ['reward_type', 'EQUIP'], ['reward_id', '交換できる装備 → mst_equips（同じガチャに複数行あれば選べる）']] },
+    { name: 'usr_gacha_ceilings', desc: 'ユーザーごと・ガチャごとの天井ポイント。', cols: [
+      ['user_id', 'ユーザー → usr_users'], ['gacha_id', 'ガチャ → mst_gachas'], ['ceiling_count', 'いまのポイント（交換すると必要数だけ減る）'],
+      ['exchanged_count', '交換した回数'], ['updated_at', '最終更新 <em>JST</em>']] },
+    { name: 'mst_missions', desc: 'ミッション。', cols: [
+      ['mission_id', 'ミッションID'], ['name', 'ミッション名'], ['mission_type', 'DAILY（毎日0時リセット）/ WEEKLY（毎週月曜0時リセット）/ EVENT / BEGINNER'],
+      ['event_id', '関連イベント → mst_events'], ['condition_type', 'LOGIN / STAGE_CLEAR / RAID_CLEAR / GACHA_DRAW / ENHANCE_SUCCESS / GUILD_DONATE / CHARACTER_CREATE'],
+      ['condition_value', '達成に必要な数（寄付はゴールド）'], ['reward_type', 'GEM / ITEM'], ['reward_id', 'item_id（ジェムはNULL）'], ['reward_quantity', '報酬の数']] },
+    { name: 'usr_missions', desc: 'ユーザーごとのミッションの進み具合。デイリー・ウィークリーは今の周期の分だけ。', cols: [
+      ['user_id', 'ユーザー → usr_users'], ['mission_id', 'ミッション → mst_missions'], ['progress', '進み具合（達成に必要な数で止まる）'],
+      ['cleared_at', '達成した日時 <em>JST</em>。NULLなら未達成'], ['received_at', '報酬を受け取った日時 <em>JST</em>。NULLなら未受け取り'], ['updated_at', '最終更新 <em>JST</em>']] },
+    { name: 'log_gacha', desc: 'ガチャで出たもの（1回1行。10連なら10行）。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['gacha_id', 'ガチャ → mst_gachas'], ['currency_log_id', 'ジェムを払ったログ → log_currency'],
+      ['reward_type', 'ITEM / EQUIP'], ['reward_id', 'item_id か equip_id'], ['rarity', 'レアリティ'], ['created_at', '発生日時 <em>JST</em>']] },
+    { name: 'mst_stages', desc: 'ステージ（通常・イベント・レイド）。', cols: [
+      ['stage_id', 'ステージID'], ['name', 'ステージ名'], ['area', 'エリア'], ['stage_type', 'NORMAL / EVENT / RAID'], ['event_id', '関連イベント → mst_events'],
+      ['recommended_level', '推奨レベル'], ['stamina', '消費スタミナ'], ['boss_name', 'ボス'], ['drop_item_id', '主なドロップ → mst_items']] },
+    { name: 'log_stage', desc: 'ステージの挑戦結果。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['stage_id', 'ステージ → mst_stages'], ['result', 'CLEAR / FAILED'],
+      ['score', 'スコア（レイドは与ダメージ）'], ['clear_time_sec', 'クリアまでの秒数'], ['created_at', '発生日時 <em>JST</em>']] },
+    { name: 'usr_rankings', desc: 'イベントのランキング。', cols: [
+      ['event_id', 'イベント → mst_events'], ['user_id', 'ユーザー'], ['score', 'スコア（与ダメージ、寄付額など）'], ['rank', '順位'], ['updated_at', '最終更新 <em>JST</em>']] },
+    { name: 'usr_presents', desc: 'プレゼントBOX（運営からの配布）。', cols: [
+      ['present_id', 'プレゼントID'], ['user_id', '受取人'], ['present_type', 'GEM / ITEM'], ['reward_id', 'item_id（ジェムはNULL）'], ['quantity', '個数'],
+      ['title', '件名'], ['source', 'LOGIN_BONUS / MAINTENANCE / EVENT'], ['created_at', '届いた日時 <em>JST</em>'], ['expires_at', '受け取り期限 <em>JST</em>'],
+      ['received_at', '受け取った日時 <em>JST</em>。NULLなら未受け取り']] },
     { name: 'log_payment', desc: 'ストア決済の記録。', cols: [
       ['payment_id', '決済ID'], ['user_id', 'ユーザー'], ['product_id', '商品 → mst_products'], ['price_jpy', '金額（円）'],
       ['store', 'GooglePlay / AppStore / WebShop'], ['transaction_id', 'ストアの取引ID'], ['status', 'SUCCESS / CANCELED'], ['created_at', '決済日時 <em>JST</em>']] },
@@ -2039,7 +3452,9 @@ CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
         ['d', 'キャラクターは消えていない（表示の問題）'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', key: 'c1_delete' },
+      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', key: 'c1_delete', table: 'log_character' },
+      spec: true,
+      honest: '「何もしていません」とのことですが、11月3日 21:42 にあなたのiPhoneから、キャラ名をわざわざ手で入力して削除しています。消したのはあなたです。ちなみに『シルフィ』という名前は、もう別の方が使っています。',
       hints: [
         'usr_users テーブルで公開ID（U-38127）を検索すると、内部の <code>user_id</code> が分かります。ほかのテーブルは user_id で絞り込みます。',
         'usr_characters でそのユーザーのキャラを確認しましょう。<code>deleted_at</code> に日時が入っていれば削除済みです。',
@@ -2076,21 +3491,23 @@ GROUP BY ip_address, device_id;`,
         ['d', '倉庫の不具合による消失'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（log_item）', placeholder: '例: 1234', key: 'c2_destroy' },
+      evidence: { label: '決め手になったログの log_id（log_equip）', placeholder: '例: 1234', key: 'c2_destroy', table: 'log_equip' },
+      spec: true,
+      honest: '倉庫の不具合ではありません。保護の巻物をケチって +10 を狙い、ご自分で溶かしています。+9 で止めておけば、今も最強の大剣でした。倉庫は無実です。',
       hints: [
-        'アイテム名は <code>mst_items</code> にあります。item_id を調べて log_item を絞り込みましょう。',
-        'log_item をそのユーザー・そのアイテムで絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。',
+        '武器や防具は <code>mst_equips</code> にあります。equip_id を調べて log_equip を絞り込みましょう。',
+        'log_equip をそのユーザー・その装備で絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。いま持っているかは <code>usr_equips</code> でも分かります。',
         '最後のほうのログに注目。倉庫から出した後、何をしている？ detail の <code>protect</code> は保護の巻物を使ったかどうかです。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、『煌星の大剣』は11月11日 22:01 に倉庫から取り出され、22:03 に+9への強化に成功した後、22:05 に保護の巻物を使用せずに+10への強化を行い、強化失敗により消滅したことを確認いたしました。仕様どおりの挙動のため、補填はいたしかねます。何卒ご理解ください。',
       reaction: '……+9になった勢いでいけると思ったんです。巻物、ケチるんじゃなかった。',
-      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>mst_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
-      model: `SELECT * FROM mst_items WHERE name = '煌星の大剣';
+      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>mst_equips.tradable = 0</code>）なので、トレードの線はそもそもありません。<code>usr_equips</code> にもこの個体はもう残っていません。別ユーザーも同じ大剣を持っていますが、equip_uid が違う別の個体です。',
+      model: `SELECT * FROM mst_equips WHERE name = '煌星の大剣';
 
-SELECT log_id, action, item_uid, detail, created_at
-FROM log_item
+SELECT log_id, action, equip_uid, detail, created_at
+FROM log_equip
 WHERE user_id = ${sub('U-52904')}
-  AND item_id = (SELECT item_id FROM mst_items WHERE name = '煌星の大剣')
+  AND equip_id = (SELECT equip_id FROM mst_equips WHERE name = '煌星の大剣')
 ORDER BY created_at;`,
     },
     {
@@ -2104,7 +3521,9 @@ ORDER BY created_at;`,
         ['d', '該当時間帯にゴールド減少の記録はない'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（log_currency）', placeholder: '例: 1234', key: 'c3_donate' },
+      evidence: { label: '決め手になったログの log_id（log_currency）', placeholder: '例: 1234', key: 'c3_donate', table: 'log_currency' },
+      spec: true,
+      honest: '乗っ取りではありません。ゼロをひとつ多く押したのは、あなたの親指です。ギルドの皆さんは、きっと泣いて喜んでいると思います。',
       hints: [
         "log_currency をそのユーザーの <code>currency = 'GOLD'</code> で絞り込みましょう。",
         "11月8日に絞り込みましょう。<code>created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'</code> のように書けます。",
@@ -2136,6 +3555,8 @@ WHERE user_id = ${sub('U-27730')}
       ],
       answer: 'b',
       evidence: { label: '『漆黒の堕天使』が今いるワールド名', placeholder: '例: ベータ', accept: (v) => { const n = norm(v); return n.includes('ガンマ') || n === '3' || n === 'GAMMA' || n === 'WORLD3' || n === 'ワールド3'; } },
+      spec: true,
+      honest: '消えていません。あなたがご自分でジェムを払って、ガンマへお引っ越しされました。「!!」を2つ付ける前に、ほかのワールドを覗いてみてください。あと、キャラ名はもう少し何とかなりませんでしたか。',
       hints: [
         "usr_characters で <code>name = '漆黒の堕天使'</code> を検索すると……複数ヒットするかも。user_id で持ち主を確かめましょう。",
         'world_id は <code>mst_worlds</code> テーブルと対応しています。問い合わせのワールドと一致していますか？',
@@ -2165,6 +3586,9 @@ ORDER BY created_at;`,
       ],
       answer: 'c',
       evidence: { label: '該当する決済の transaction_id', placeholder: '例: GPA.0000-0000-0000-00000', accept: (v) => norm(v) === 'GPA.3391-0042-7781-55102' },
+      spec: false,
+      backdoor: true,
+      honest: '完全にこちらの不具合です。本当に、本当に申し訳ありません。デッドロックを起こすコードを書いた人には、私から強めに言っておきます。……たぶん、半年前の私です。',
       hints: [
         'log_payment をそのユーザーで見てみましょう。<code>status</code> にも注目。',
         "決済が SUCCESS なら、log_currency に <code>ref_id = transaction_id</code> の GEM 付与（reason = 'PURCHASE'）があるはずです。",
@@ -2195,9 +3619,12 @@ WHERE user_id = ${sub('U-73315')};`,
       ],
       answer: 'b',
       evidence: { label: 'アイテムの移動先アカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-90417') },
+      spec: false,
+      ban: true,
+      honest: 'ほかのサイトと同じパスワードを使い回すのは、今日でやめてください。犯人のアカウントは、今からこの手でハンマーで叩き潰します。',
       hints: [
         'log_login で直近のログインを見てみましょう。result・ip_address・country・device_id に注目。',
-        "log_item の <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> はアイテムを渡した相手の user_id です。",
+        "弓や防具は log_equip、エリクサーは log_item です。どちらも <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> は渡した相手の user_id です。",
         'target_user_id を usr_users と JOIN すると公開IDが分かります。いつ作られたアカウントかも見てみましょう。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月12日 12:10 に、お客様が普段ご利用の端末とは異なる海外の環境からログインがあり、その直後にアイテムが別のアカウントへ移動していたことを確認いたしました。第三者による不正ログインの可能性が高いため、至急パスワードの変更をお願いいたします。アイテムの扱いについては、担当部署で調査のうえ改めてご連絡いたします。',
@@ -2209,6 +3636,16 @@ WHERE user_id = ${sub('U-61458')}
   AND created_at >= '2026-11-10'
 ORDER BY created_at;
 
+-- 装備のトレード
+SELECT e.log_id, m.name, u.public_id AS to_public_id,
+       u.created_at AS to_created_at, e.created_at
+FROM log_equip e
+JOIN mst_equips m USING (equip_id)
+JOIN usr_users u ON u.user_id = e.target_user_id
+WHERE e.user_id = ${sub('U-61458')} AND e.action = 'TRADE_OUT'
+ORDER BY e.created_at;
+
+-- アイテムのトレード
 SELECT i.log_id, m.name, i.quantity, u.public_id AS to_public_id,
        u.created_at AS to_created_at, i.created_at
 FROM log_item i
@@ -2229,6 +3666,8 @@ ORDER BY i.created_at;`,
       ],
       answer: 'b',
       evidence: { label: '『ミルク』がいるアカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-31846') },
+      spec: true,
+      honest: '引き継ぎコードは「発行」しただけでは引き継げません。新しい端末で「入力」してください。説明画面に3回書いてあります。3回です。',
       hints: [
         '問い合わせアカウント（U-15562）の作成日時と、持っているキャラを確認しましょう。',
         "『ミルク』という名前のキャラは何人もいます。usr_characters を name で検索し、持ち主を洗い出しましょう。",
@@ -2255,33 +3694,39 @@ GROUP BY u.public_id, l.ip_address;`,
     },
   ];
 
-  // 満点 = 基本点 ×件数 ＋ ノーミス連続ボーナス（2件目から +10, +20, …）
-  const MAX_SCORE = CASES.length * BASE + COMBO * (CASES.length - 1) * CASES.length / 2;
+  // 元の7問：ユーザーの怒り（問い合わせ時点、5段階）と難しさ（1〜3）
+  [[4, 1], [3, 1], [4, 2], [5, 2], [3, 2], [4, 3], [2, 3]].forEach(([temper, tier], i) => Object.assign(CASES[i], { id: `b${i + 1}`, temper, tier }));
+  // 1日5件 × 20日 = 100件。残りの93件は DB ができてから casegen.js で作る
+  const DAY_SIZE = 5, TOTAL_CASES = 100, COMBO_CAP = 5;
+  const comboBonus = (combo) => Math.min(combo - 1, COMBO_CAP) * COMBO; // 2件目から +10、6件目以降は +50 で頭打ち
+  let MAX_SCORE = 0;
+  const maxScoreOf = (n) => { let s = n * BASE; for (let k = 1; k <= n; k++) s += Math.max(0, comboBonus(k)); return s; };
+  // 称号は満点に対する割合で決まる
   const RANKS = [
-    [860, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
-    [700, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
-    [520, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
-    [340, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
+    [0.9, 'ログの声が聞こえる人', '問い合わせ文より先にログが語りかけてくる境地。テックリードの席が空いています。'],
+    [0.75, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
+    [0.55, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
+    [0.35, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
     [0, '研修やり直し', 'まずは usr_users テーブルから。焦らず WHERE を書きましょう。'],
   ];
-  // ユーザーの怒り（問い合わせ時点、5段階）
-  const TEMPER = [4, 3, 4, 5, 3, 4, 2];
+  // 1日の評価（その日の5件の得点）
+  const GRADES = [[560, 'S', '文句なし。明日もこの調子で。'], [450, 'A', 'いい一日だった。'], [320, 'B', 'まずまず。ヒントに頼りすぎないように。'], [0, 'C', '明日は取り返そう。']];
+  const DAY_LINES = ['おはよう。今日も5件だ。届いた順にさばいていこう。', 'おはよう。昨日の調子で頼む。', 'おはよう。コーヒーは淹れた？ 今日も5件いこう。', 'おはよう。CSから今日の分が届いてるぞ。'];
   const PRAISE = ['いいね、ログどおりだ。', 'ナイス。根拠もばっちり。', 'さすが。CSも助かるって。', 'その調子。次も頼んだ。', '完璧。もう一人で回せるな。'];
   const ARRIVE = ['新しいチケットです！', '次、お願いします！', 'こちらも急ぎでお願いします！', '問い合わせ、もう1件です！'];
 
   // ---------------------------------------------------------------- state
   let DB = null, KEYS = {}, COUNTS = {};
-  let state = freshState();
-  function shuffled(n) {
-    const a = Array.from({ length: n }, (_, i) => i);
-    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  }
+  let state = null; // 100件そろってから作る
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   function freshState() {
-    const order = shuffled(CASES.length); // チケットの届く順番は毎回ランダム
+    // 最初の1件はチュートリアル代わりの『キャラ消失』。あとは難しさの順に、同じ難しさの中ではランダム
+    const idx = CASES.map((_, i) => i);
+    const order = [0, ...[1, 2, 3].flatMap((t) => shuffle(idx.filter((i) => i !== 0 && CASES[i].tier === t)))];
     return {
-      started: false, current: order[0], shimatsu: 0, order, combo: 0, maxCombo: 0, minutes: 0,
-      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false })),
+      started: false, current: order[0], shimatsu: 0, order, day: 1, dayLog: {}, specDay: 0, combo: 0, maxCombo: 0, minutes: 0,
+      shimatsuIssued: 0, thrown: 0, penalty: 0, enjo: 0, heavyCount: 0, dropUsed: false, unplugged: false,
+      cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false, via: null, specUsed: false, enjo: false, honest: false, banned: false })),
       drafts: {},
     };
   }
@@ -2290,19 +3735,24 @@ GROUP BY u.public_id, l.ip_address;`,
   function validState(s) { return s && Array.isArray(s.cases) && s.cases.length === CASES.length && typeof s.current === 'number'; }
   function validOrder(o) { return Array.isArray(o) && o.length === CASES.length && o.slice().sort((a, b) => a - b).every((v, i) => v === i); }
 
-  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score + (c.bonus || 0), 0) - state.shimatsu * SHIMATSU);
-  const allDone = () => state.cases.every((c) => c.status !== 'open');
-  const posOf = (i) => state.order.indexOf(i);
-  const firstOpen = () => { const i = state.order.find((k) => state.cases[k].status === 'open'); return i == null ? state.order[CASES.length - 1] : i; };
-  const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, TEMPER[i] + state.cases[i].wrong));
+  const totalScore = () => Math.max(0, state.cases.reduce((a, c) => a + c.score + (c.bonus || 0), 0) - state.shimatsu * SHIMATSU - (state.penalty || 0));
+  const DAYS = () => Math.ceil(CASES.length / DAY_SIZE);
+  const dayCases = (d) => state.order.slice((d - 1) * DAY_SIZE, d * DAY_SIZE);
+  const dayOf = (i) => Math.floor(state.order.indexOf(i) / DAY_SIZE) + 1;
+  const dayScore = (d) => dayCases(d).reduce((a, i) => a + state.cases[i].score + (state.cases[i].bonus || 0), 0);
+  const dayDone = () => dayCases(state.day).every((i) => state.cases[i].status !== 'open');
+  const allDone = () => state.day >= DAYS() && dayDone();
+  const posOf = (i) => state.order.indexOf(i) % DAY_SIZE; // その日の何件目か
+  const firstOpen = () => { const ds = dayCases(state.day); const i = ds.find((k) => state.cases[k].status === 'open'); return i == null ? ds[ds.length - 1] : i; };
+  const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, (CASES[i].temper || 3) + state.cases[i].wrong + (state.cases[i].enjo ? 2 : 0)));
   function clockText(extra) {
     const m = DAY_START + state.minutes + (extra || 0);
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   }
-  function advance(kind) { state.minutes += CLOCK[kind] || 0; }
+  function advance(kind) { state.minutes += (CLOCK[kind] || 0) * (state.unplugged ? 2 : 1); } // 電話線を抜いていると時間は倍速
   function starterFor(i) {
     const c = CASES[i];
-    if (posOf(i) === 0 && state.cases.every((c) => !c.queries)) {
+    if (state.order.indexOf(i) === 0 && state.cases.every((c) => !c.queries)) {
       return `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行\n-- まずは問い合わせてきたユーザーを探してみよう\nSELECT * FROM usr_users WHERE public_id = '${c.user}';\n`;
     }
     return `-- #${posOf(i) + 1} ${c.label}（${c.user}）\n`;
@@ -2349,15 +3799,20 @@ GROUP BY u.public_id, l.ip_address;`,
       DB = built.db; KEYS = built.keys; COUNTS = built.counts;
       DB.create_function('CONVERT_TZ', (dt, from, to) => { const a = tzOffset(from), b = tzOffset(to); return a == null || b == null ? null : shiftDt(dt, b - a); });
       DB.create_function('NOW', () => NOW_JST);
+      // 残りの問い合わせ票を、DBの実データから作る（書き込み禁止にする前に読むだけ）
+      if (window.CaseGen && CASES.length < TOTAL_CASES) CASES.push(...window.CaseGen.build(DB).slice(0, TOTAL_CASES - CASES.length));
+      MAX_SCORE = maxScoreOf(CASES.length);
       DB.run('PRAGMA query_only = 1');
       conn.classList.add('is-ready'); label.textContent = 'prod-replica-01';
       $('#run').disabled = false;
       renderSchema();
       if (!$('#results').dataset.used) renderResultsEmpty();
+      return true;
     } catch (e) {
       conn.classList.add('is-error');
       label.textContent = 'DBに接続できませんでした';
       $('#results').innerHTML = `<div class="rerr">データベースを読み込めませんでした: ${esc(e.message)}<small>ページを再読み込みしてください。ファイル単体で開いている場合は、sql-wasm.js / sql-wasm.wasm / sql-asm.js を同じフォルダに置き、Webサーバー経由で開いてください。</small></div>`;
+      return false;
     }
   }
 
@@ -2400,6 +3855,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   function issueShimatsu(word) {
     state.shimatsu++;
+    state.shimatsuIssued = (state.shimatsuIssued || 0) + 1;
     save(); renderHud();
     snd('shimatsu');
     const f = FXo();
@@ -2408,7 +3864,86 @@ GROUP BY u.public_id, l.ip_address;`,
       f.cutin('shimatsu', `始末書 ${state.shimatsu}枚目`, `−${SHIMATSU}点`);
       f.floatText($('#score'), `−${SHIMATSU}`, 'minus');
       say('bucho', `${esc(SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。')} ……始末書、${state.shimatsu}枚目だぞ。`, { interrupt: true });
+      // ゲームだからいいよね：始末書を丸めてゴミ箱へ。入れば取り消し
+      setTimeout(() => f.trashThrow((hit) => {
+        if (hit == null) return;
+        if (hit) {
+          state.shimatsu = Math.max(0, state.shimatsu - 1); state.thrown = (state.thrown || 0) + 1; save(); renderHud();
+          f.floatText($('#score'), `+${SHIMATSU}`, 'plus');
+          say('bucho', '…………見なかったことにする。（※現実の始末書は、ちゃんと書いて出しましょう）', { interrupt: true });
+        } else say('bucho', '外したな。拾って清書して、明日の朝イチで持ってくるように。', { interrupt: true });
+      }), 1700);
     } else toast(`始末書 ${state.shimatsu}枚目`, (SHIMATSU_MSG[word] || '参照系（SELECT）以外のSQLは実行できません。') + ` −${SHIMATSU}点`, true);
+  }
+
+  // ---------------------------------------------------------------- ゲームだからいいよね（禁断の操作）
+  // 禁断のDROP：1プレイに1回だけ、本当に消える（夢を見る）。始末書にはならない
+  function forbiddenDrop(stmt) {
+    state.dropUsed = true; save();
+    const m = stripComments(stmt).match(/DROP\s+(?:TABLE|DATABASE|SCHEMA|INDEX|VIEW)?\s*(?:IF\s+EXISTS\s+)?[`"]?([A-Za-z0-9_]+)/i);
+    const table = m ? m[1] : 'usr_users';
+    $('#results').innerHTML = `<div class="rerr">DROP ${esc(table)} … 実行中</div>`;
+    FXo().dropSequence(stmt, table, () => {
+      $('#results').innerHTML = '<p class="rnote">（夢から覚めた。DBは無事だ。もう一度DROPすると、今度は現実の始末書です）</p>';
+      say('senpai', '……おい、大丈夫か？ 机に突っ伏して寝てたぞ。本番でDROPするのは、夢の中だけにしておけ。', { interrupt: true });
+    });
+  }
+  // 直接UPDATEで補填（課金未反映のケースだけ）：即解決。ただし現実では監査で死ぬ
+  function backdoorFix() {
+    const i = state.current, st = state.cases[i];
+    st.status = 'solved'; st.via = 'update'; st.score = BACKDOOR_SCORE; st.bonus = 0;
+    state.combo = 0;
+    advance('solve'); save();
+    $('#results').innerHTML = `<div class="rblock"><div class="rmeta"><span class="rsql">-- 本番DB（直結）</span></div><div class="backdoor-ok">Query OK, 1 row affected<small>ジェム 1,800個を、ユーザーに直接付与しました。</small></div></div>`;
+    snd('solved');
+    renderHud(); renderTicket(); renderAnswer();
+    const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+    const f = FXo();
+    if (f) {
+      f.flash('amber');
+      f.cutin('backdoor', '裏ルート', `本番に直接UPDATE　+${BACKDOOR_SCORE}`);
+      f.floatText($('#score'), `+${BACKDOOR_SCORE}`, 'plus');
+      say('senpai', '……やりやがった。今回だけは見なかったことにする。現実でやったら監査で一発アウトだからな。', { interrupt: true });
+      say('bucho', '（遠くで部長がこちらを見ている）');
+    }
+  }
+  // わざと重いクエリ：数億行になる掛け合わせは、実行する前にHさんが止める
+  const BIG_TABLES = /\b(log_[a-z_]+|usr_[a-z_]+)\b/gi; // ログとユーザーデータは行数が多い
+  function isQueryBomb(stmt) {
+    const s = stripComments(stmt);
+    const from = s.split(/\bFROM\b/i).slice(1).join(' FROM ');
+    if (!from) return false;
+    const big = (from.match(BIG_TABLES) || []).length;
+    if (big < 2) return false;
+    const cross = /\bCROSS\s+JOIN\b/i.test(from) || /\bFROM\s+[A-Za-z0-9_]+(\s+(AS\s+)?[A-Za-z0-9_]+)?\s*,/i.test(' FROM ' + from) || (/\bJOIN\b/i.test(from) && !/\b(ON|USING)\b/i.test(from));
+    const filtered = /\b(WHERE|ON|USING)\b/i.test(from);
+    // LIMIT だけで済むのは、並べ替えや集計で全件を舐めない場合だけ
+    const fastLimit = /\bLIMIT\b/i.test(from) && !/\b(ORDER|GROUP)\s+BY\b|\bDISTINCT\b|\b(COUNT|SUM|MAX|MIN|AVG|TOTAL|GROUP_CONCAT)\s*\(/i.test(s);
+    return cross && !filtered && !fastLimit;
+  }
+  const HEAVY_LINES = [
+    (n) => `いま重いクエリ流したの誰？ ${n}行も引いたらDBが悲鳴あげるって。<code>WHERE</code> や <code>LIMIT</code> で絞ってくれ。`,
+    () => '……また？ DBのCPU、ずっと90%に張り付いてるんだけど。',
+    () => 'おい！！ サーバールームから焦げた匂いがする！！ 何流してんの！？',
+    () => 'もう知らん……。俺は帰る。（※現実の本番DBでは、重いクエリは事前に相談しましょう）',
+  ];
+  function heavyQuery(rows, bomb) {
+    state.heavyCount = (state.heavyCount || 0) + 1;
+    const stage = bomb ? 4 : Math.min(state.heavyCount, 4);
+    const f = FXo();
+    snd('warn');
+    if (!f) { toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。'); return; }
+    const screen = $('.screen');
+    if (stage >= 3) f.burstFrom(screen, { smoke: true, count: 30, spread: 300, duration: 800 });
+    if (stage >= 4) {
+      snd('explode'); f.flash('amber'); f.shake($('.app'), true);
+      f.burstFrom(screen, { fire: true, count: 40, spread: 360, duration: 600 });
+      f.cutin('smoke', 'サーバールーム 炎上', '※減点はありません');
+      say('infra', bomb ? '実行される前に、電源ごと引っこ抜いた。テーブル同士を条件なしで掛け合わせたら、何億行になると思ってんだ。' : HEAVY_LINES[3](), { interrupt: true });
+    } else {
+      f.flash('amber');
+      say('infra', HEAVY_LINES[stage - 1](rows.toLocaleString()), { interrupt: true });
+    }
   }
 
   const MYSQL_TIPS = [
@@ -2432,8 +3967,16 @@ GROUP BY u.public_id, l.ip_address;`,
     if (!stmts.length) { out.innerHTML = '<p class="rnote">実行するSQLがありません。</p>'; return; }
     const bad = stmts.find((s) => !isAllowed(s));
     if (bad) {
-      issueShimatsu(firstWord(bad));
-      out.innerHTML = `<div class="rerr">実行を止めました: ${esc(firstWord(bad) || 'この文')} は参照系ではありません。<small>このコンソールで使えるのは SELECT / WITH / EXPLAIN と PRAGMA table_info だけです。</small></div>`;
+      const w = firstWord(bad), c = CASES[state.current], st0 = state.cases[state.current];
+      if (w === 'DROP' && !state.dropUsed && FXo()) { forbiddenDrop(bad); return; }
+      if ((w === 'UPDATE' || w === 'INSERT') && c.backdoor && st0.status === 'open') { backdoorFix(); return; }
+      issueShimatsu(w);
+      out.innerHTML = `<div class="rerr">実行を止めました: ${esc(w || 'この文')} は参照系ではありません。<small>このコンソールで使えるのは SELECT / WITH / EXPLAIN と PRAGMA table_info だけです。</small></div>`;
+      return;
+    }
+    if (stmts.some(isQueryBomb)) {
+      out.innerHTML = '<div class="rerr">実行を止めました：インフラ担当が電源を引っこ抜きました。<small>大きなテーブル同士を条件なしで掛け合わせると、何億行にもなってDBが止まります。JOIN には ON、絞り込みには WHERE を付けましょう。</small></div>';
+      heavyQuery(0, true);
       return;
     }
     const cs = state.cases[state.current];
@@ -2449,11 +3992,11 @@ GROUP BY u.public_id, l.ip_address;`,
         st = DB.prepare(s);
         const cols = st.getColumnNames();
         const rows = [];
-        let count = 0;
-        while (st.step()) { if (count < 1000) rows.push(st.get()); count++; }
+        let count = 0, cut = false;
+        while (st.step()) { if (count < 1000) rows.push(st.get()); count++; if (count >= BIG_ROWS) { cut = true; break; } }
         const ms = performance.now() - t0;
         totalRows += count; if (count >= 2000) heavy = true;
-        blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms));
+        blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms, cut));
       } catch (e) {
         ok = false;
         const tip = /\bINTERVAL\b/i.test(s) ? "SQLite に INTERVAL はありません。datetime(created_at, '+1 day') のように書きます。"
@@ -2467,17 +4010,12 @@ GROUP BY u.public_id, l.ip_address;`,
     out.scrollTop = 0;
     out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
     snd('run');
-    if (heavy && !cs.heavy) {
-      cs.heavy = true;
-      snd('warn');
-      if (FXo()) { FXo().flash('amber'); say('infra', `いま重いクエリ流したの誰？ ${totalRows.toLocaleString()}行も引いたらDBが悲鳴あげるって。<code>WHERE</code> や <code>LIMIT</code> で絞ってくれ。`, { interrupt: true }); }
-      else toast('インフラ担当より', '「いま重いクエリ流したの誰？」 WHERE や LIMIT で絞り込みましょう。');
-    } else snd(ok ? 'ok' : 'error');
+    if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
     renderClock();
     save();
   }
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
-  function renderTable(k, n, sql, cols, rows, count, ms) {
+  function renderTable(k, n, sql, cols, rows, count, ms, cut) {
     const head = `<tr><th class="rn">#</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>`;
     const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v) => {
       if (v === null || v === undefined) return '<td class="null">NULL</td>';
@@ -2487,7 +4025,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }).join('')}</tr>`).join('');
     const more = count > rows.length ? `<span>（先頭 ${rows.length.toLocaleString()} 行を表示）</span>` : '';
     const label = n > 1 ? `<b>#${k + 1}</b>` : '';
-    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}</b> 行</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
+    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}${cut ? '+' : ''}</b> 行${cut ? '（数えきれないので打ち切り）' : ''}</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
       <div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
   }
   function renderResultsEmpty() {
@@ -2517,6 +4055,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   let draftTimer = null;
   function syncEditor() {
+    if (!state) { $('#hl').innerHTML = highlight($('#sql').value); return; }
     const ta = $('#sql');
     $('#hl').innerHTML = highlight(ta.value);
     syncScroll();
@@ -2557,20 +4096,24 @@ GROUP BY u.public_id, l.ip_address;`,
     comboEl.hidden = state.combo < 2;
     $('#combo').textContent = `x${state.combo}`;
     renderClock();
+    const phone = $('#btn-phone'); if (phone) phone.setAttribute('aria-pressed', String(!state.unplugged));
     const q = $('#queue');
     const unlockedPos = posOf(firstOpen());
-    q.innerHTML = state.order.map((i, p) => {
+    // 上のバーには、その日の5件だけを出す
+    q.innerHTML = dayCases(state.day).map((i, p) => {
       const c = CASES[i], st = state.cases[i];
       const locked = p > unlockedPos && st.status === 'open';
       const isNew = !locked && st.status === 'open' && !st.seen;
       const cls = ['chip', i === state.current ? 'is-current' : '', st.status === 'solved' ? 'is-solved' : '', st.status === 'gaveup' ? 'is-gaveup' : '', isNew ? 'is-new' : ''].join(' ');
       return `<button class="${cls}" data-case="${i}" ${locked ? 'disabled' : ''} type="button" aria-current="${i === state.current}"><i class="lamp"></i><span class="no">#${p + 1}</span>${locked ? '<span class="lock">？？？</span>' : esc(c.label)}</button>`;
-    }).join('') + (allDone() ? '<button class="chip is-current is-final" data-final="1" type="button"><i class="lamp"></i>結果を見る</button>' : '');
+    }).join('') + (allDone() ? '<button class="chip is-current is-final" data-final="1" type="button"><i class="lamp"></i>最終結果を見る</button>'
+      : dayDone() ? '<button class="chip is-current is-final" data-dayend="1" type="button"><i class="lamp"></i>本日の業務を終える</button>' : '');
   }
   function renderClock() {
     const el = $('#clock');
-    el.textContent = `11/13 ${clockText()}`;
-    el.parentElement.classList.toggle('warn', DAY_START + state.minutes >= DAY_END);
+    el.textContent = clockText();
+    el.parentElement.querySelector('span').textContent = `DAY ${state.day}`;
+    el.closest('.stat').classList.toggle('warn', DAY_START + state.minutes >= DAY_END);
   }
 
   function angerHtml(i) {
@@ -2595,7 +4138,7 @@ GROUP BY u.public_id, l.ip_address;`,
       </dl>
       <p class="ticket-body">${esc(c.body)}</p>
       <p class="ticket-note"><b>CS担当メモ：</b>${esc(c.note)}</p>
-      ${st.status === 'solved' ? stampHtml('解決', '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
+      ${st.status === 'solved' ? stampHtml(st.via === 'spec' ? '仕様' : st.via === 'update' ? '裏技' : '解決', st.via ? `is-${st.via}` : '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
   }
   function stampHtml(text, cls) {
     return `<div class="stamp ${cls}"><span><span class="s-main">${text}</span><span class="s-sub">2026.11.13</span></span></div>`;
@@ -2623,6 +4166,7 @@ GROUP BY u.public_id, l.ip_address;`,
           <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（−${HINT}）</button>
           <button class="btn btn-ghost" type="button" id="btn-giveup">先輩に聞く</button>
         </div>
+        <button class="btn btn-spec" type="button" id="btn-spec" ${st.specUsed || state.specDay === state.day ? 'disabled' : ''}>${st.specUsed ? '「仕様です」は使用済み（炎上中）' : state.specDay === state.day ? '「仕様です」は1日1回まで（今日は使用済み）' : '調べずに「仕様です」で即答する（1日1回）'}</button>
         <ol class="hints" id="hints">${c.hints.slice(0, st.hints).map((h, k) => `<li><b>${k + 1}</b>${h}</li>`).join('')}</ol>
         <p class="feedback" id="feedback" hidden></p>
       </form>`;
@@ -2632,21 +4176,125 @@ GROUP BY u.public_id, l.ip_address;`,
     const c = CASES[i], st = state.cases[i];
     const solved = st.status === 'solved';
     const right = c.options.find((o) => o[0] === c.answer)[1];
+    const via = st.via === 'spec' ? '<p class="via-note"><b>「仕様です」で即答した。</b>今回はたまたま当たっていた。<small>※現実では、ちゃんと調べてから答えましょう。</small></p>'
+      : st.via === 'update' ? '<p class="via-note"><b>本番DBに直接UPDATEしてジェムを配った。</b>確かに一瞬で終わった。<small>※現実でやると監査で一発アウトです。補填は必ず管理ツールから。</small></p>' : '';
+    const pointsNote = !solved ? '先輩に聞いたので 0 点' : st.via === 'spec' ? '「仕様です」で即答' : st.via === 'update' ? '裏ルート（直接UPDATE）'
+      : `誤答 ${st.wrong} 回・ヒント ${st.hints} 回${st.bonus ? `・コンボ +${st.bonus}` : ''}`;
+    const extras = solved ? `<div class="extras">
+        ${st.honest ? honestHtml(i, true) : '<button class="btn btn-honest" type="button" id="btn-honest">本音で返信する</button>'}
+        ${c.ban ? (st.banned ? '<p class="banned-note">U-90417 はBAN済み。いい音がした。</p>' : '<button class="btn btn-ban" type="button" id="btn-ban">BANハンマーを振り下ろす</button>') : ''}
+      </div>` : '';
     return `<div class="card resolution">
-      <div class="points"><b>${solved ? '+' + (st.score + (st.bonus || 0)) : '0'}</b><span>${solved ? `誤答 ${st.wrong} 回・ヒント ${st.hints} 回${st.bonus ? `・コンボ +${st.bonus}` : ''}` : '先輩に聞いたので 0 点'}</span></div>
+      <div class="points"><b>${solved ? '+' + (st.score + (st.bonus || 0)) : '0'}</b><span>${pointsNote}</span></div>
+      ${via}
       <div><h3>正しい結論</h3><p class="explain">${esc(right)}</p></div>
       <div><h3>ユーザーへの回答</h3><p class="reply">${esc(c.reply)}</p></div>
       ${solved ? `<p class="reaction">ユーザーからの返信：「${esc(c.reaction)}」</p>` : ''}
+      ${extras}
       <div><h3>解説</h3><p class="explain">${c.explain}</p></div>
       <div><h3>模範SQL</h3><pre class="model">${highlight(c.model)}</pre>
         <div class="btn-row"><button class="btn" type="button" id="btn-model">エディタに貼って実行</button></div></div>
-      <div class="btn-row"><button class="btn btn-primary" type="button" id="btn-next">${allDone() ? '結果を見る' : '次のチケットへ'}</button></div>
+      <div class="btn-row"><button class="btn btn-primary" type="button" id="btn-next">${allDone() ? '最終結果を見る' : dayDone() ? '本日の業務を終える' : '次のチケットへ'}</button></div>
     </div>`;
   }
 
+  function honestHtml(i, done) {
+    return `<div class="honest${done ? ' is-done' : ''}" id="honest"><h3>本音の返信（下書き）</h3><p class="honest-text">${done ? esc(CASES[i].honest) : ''}</p>
+      ${done ? '<div class="stamp is-reject honest-stamp"><span><span class="s-main">破棄</span><span class="s-sub">by U</span></span></div><small>※現実のユーザーには送らないでください。</small>' : ''}</div>`;
+  }
+  // 本音で返信：打ち込むだけ打ち込んで、送信直前にUさんが止める
+  function honestReply() {
+    const i = state.current, st = state.cases[i];
+    if (st.honest) return;
+    const btn = $('#btn-honest'); if (!btn) return;
+    btn.outerHTML = honestHtml(i, false);
+    const p = $('#honest .honest-text'), text = CASES[i].honest;
+    let k = 0;
+    const tick = setInterval(() => {
+      k += 2; p.textContent = text.slice(0, k);
+      if (k % 6 === 0) snd('type');
+      if (k >= text.length) {
+        clearInterval(tick);
+        setTimeout(() => {
+          st.honest = true; save();
+          $('#honest').outerHTML = honestHtml(i, true);
+          const s = $('#honest .honest-stamp'); if (s) s.classList.add('slam');
+          snd('reject');
+          say('cs', '…………送信前に止めておきました。気持ちは、すごくわかります。', { interrupt: true });
+        }, 600);
+      }
+    }, FXo() && FXo().reduced() ? 1 : 28);
+  }
+  // 「仕様です」で即答：当たれば早いが、本物の不具合や乗っ取りに使うと炎上する
+  let specArmed = false;
+  function specAnswer(btn) {
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    if (st.status !== 'open' || st.specUsed || state.specDay === state.day) return;
+    if (!specArmed) { specArmed = true; btn.textContent = '本当に？（調べずに「仕様です」と返す）'; btn.classList.add('is-armed'); snd('pop'); return; }
+    specArmed = false;
+    st.specUsed = true; state.specDay = state.day;
+    const f = FXo();
+    if (c.spec) {
+      st.status = 'solved'; st.via = 'spec'; st.score = SPEC_SCORE; st.bonus = 0;
+      state.combo = 0; advance('solve'); save();
+      snd('hammer');
+      renderHud(); renderTicket(); renderAnswer();
+      const s = $('#ticket .stamp'); if (s) s.classList.add('slam');
+      $('#ticket-scroll').scrollTop = 0;
+      if (f) {
+        f.shake($('.app'), true);
+        f.cutin('spec', '仕様です', `たまたま当たった　+${SPEC_SCORE}`);
+        f.floatText($('#score'), `+${SPEC_SCORE}`, 'plus');
+        say('senpai', '……当たってるのが逆に怖い。次はちゃんとログを見ような。', { interrupt: true });
+      }
+      return;
+    }
+    st.enjo = true; state.enjo = (state.enjo || 0) + 1; state.penalty = (state.penalty || 0) + ENJO;
+    advance('wrong'); save();
+    snd('enjo');
+    renderHud(); renderTicket(); renderAnswer();
+    if (f) {
+      f.siren(); f.flash('red'); f.shake($('.app'), true);
+      f.burstFrom($('#ticket'), { fire: true, count: 50, spread: 300, duration: 700 });
+      f.cutin('enjo', '大炎上', `−${ENJO}点　SNSで拡散中`);
+      f.floatText($('#score'), `−${ENJO}`, 'minus');
+      say('cs', c.ban ? '乗っ取り被害の人に「仕様です」って返したの、スクショ付きで拡散されてます！！ トレンド1位です！！' : '「運営が不具合を仕様扱い」ってトレンド入りしてます！！ 電話が鳴りやみません！！', { interrupt: true });
+      say('senpai', '……ちゃんと調べよう。まだ間に合う。（※現実では、調べる前に「仕様です」と言わないこと）');
+    }
+  }
+  // BANハンマー：乗っ取り犯のアカウントを叩き潰す
+  function banHammer() {
+    const st = state.cases[state.current];
+    if (st.banned || !FXo()) return;
+    st.banned = true; save();
+    FXo().banHammer(() => {
+      renderAnswer();
+      say('infra', 'サーバー側でも凍結しておいた。……いい音したな。（※実際のBANは、調査とエスカレーションの手順を踏んでから）', { interrupt: true });
+    });
+  }
+  // 決め手の証拠カード（ログの行を引いて見せる）
+  function evidenceCardHtml(c, ev) {
+    const id = c.evidence.key ? KEYS[c.evidence.key] : c.evidence.id;
+    if (c.evidence.table && id != null && DB) {
+      const pk = c.evidence.table === 'usr_presents' ? 'present_id' : 'log_id';
+      try {
+        const r = DB.exec(`SELECT * FROM ${c.evidence.table} WHERE ${pk} = ${id}`);
+        if (r.length) {
+          const row = Object.fromEntries(r[0].columns.map((k, n) => [k, r[0].values[0][n]]));
+          const what = row.action || row.reason || row.result || row.title || '';
+          const extra = row.amount != null ? ` ${Number(row.amount).toLocaleString()}` : '';
+          return `<span class="ev-label">EVIDENCE</span><b>${esc(c.evidence.table)} #${id}</b><span class="ev-main">${esc(what)}${esc(extra)}</span><span class="ev-sub">${esc(row.created_at || '')}</span>`;
+        }
+      } catch (e) { /* fall through */ }
+    }
+    return `<span class="ev-label">EVIDENCE</span><b>${esc(c.evidence.label)}</b><span class="ev-main">${esc(String(ev).trim())}</span>`;
+  }
+
   function renderSchema() {
-    $('#tab-schema').innerHTML = TABLE_DOCS.map((t, k) => `
-      <details class="tbl" ${k < 2 ? 'open' : ''}>
+    // テーブルはアルファベット順。入口になる usr_users だけ最初から開いておく
+    const docs = TABLE_DOCS.slice().sort((a, b) => (a.name < b.name ? -1 : 1));
+    $('#tab-schema').innerHTML = docs.map((t) => `
+      <details class="tbl" ${t.name === 'usr_users' ? 'open' : ''}>
         <summary><span class="tbl-name">${t.name}</span><span class="tbl-count">${COUNTS[t.name] != null ? COUNTS[t.name].toLocaleString() + '行' : ''}</span></summary>
         <p class="tbl-desc">${t.desc}</p>
         <ul class="cols">${t.cols.map(([n, d]) => `<li><button type="button" data-col="${n}">${n}</button><span class="cmt">${d}</span></li>`).join('')}</ul>
@@ -2692,7 +4340,7 @@ GROUP BY u.public_id, l.ip_address;`,
       const perfect = st.wrong === 0 && st.hints === 0;
       state.combo = perfect ? state.combo + 1 : 0;
       state.maxCombo = Math.max(state.maxCombo || 0, state.combo);
-      st.bonus = perfect && state.combo >= 2 ? (state.combo - 1) * COMBO : 0;
+      st.bonus = perfect && state.combo >= 2 ? comboBonus(state.combo) : 0;
       advance('solve');
       save();
       snd('solved');
@@ -2702,11 +4350,14 @@ GROUP BY u.public_id, l.ip_address;`,
       const f = FXo();
       if (f) {
         const pts = st.score + st.bonus;
-        f.flash('white');
-        f.cutin('solve', perfect ? 'PERFECT!' : 'CASE CLOSED', `解決　+${pts}`);
-        setTimeout(() => f.burstFrom($('#ticket .stamp') || $('#ticket')), 120);
-        f.floatText($('#score'), `+${pts}`, 'plus');
-        if (st.bonus) setTimeout(() => { snd('combo'); f.cutin('combo', `${state.combo} COMBO`, `ボーナス +${st.bonus}`); }, 1500);
+        // まず決め手のログを叩きつけてから、CASE CLOSED
+        f.evidence(evidenceCardHtml(c, ev));
+        setTimeout(() => {
+          f.cutin('solve', perfect ? 'PERFECT!' : 'CASE CLOSED', `解決　+${pts}`);
+          f.burstFrom($('#ticket .stamp') || $('#ticket'));
+          f.floatText($('#score'), `+${pts}`, 'plus');
+        }, 1250);
+        if (st.bonus) setTimeout(() => { snd('combo'); f.cutin('combo', `${state.combo} COMBO`, `ボーナス +${st.bonus}`); }, 2750);
         const line = PRAISE[Math.floor(Math.random() * PRAISE.length)];
         say('senpai', `${line}${state.combo >= 2 ? `ノーミス${state.combo}連続だ。` : ''}ユーザーからも返信が来てるぞ。`, { interrupt: true });
       }
@@ -2763,12 +4414,26 @@ GROUP BY u.public_id, l.ip_address;`,
       f.cutin('incoming', 'INCOMING TICKET', `#${posOf(i) + 1}　${c.label}　${c.category}`);
       const greet = posOf(i) === 0 ? ARRIVE[0] : ARRIVE[1 + Math.floor(Math.random() * (ARRIVE.length - 1))];
       say('cs', `${greet}「${esc(c.label)}」の件、${esc(c.note)}`);
+      if (c.backdoor) say('senpai', '補填の管理ツール、今日もめちゃくちゃ重いんだよな……。本番に直接 <code>UPDATE</code> したくなるけど、絶対にやるなよ。絶対だぞ。');
     }
   }
+  // 電話線を抜く：新しいチケットは届かないが、時間は倍速で過ぎる
+  function togglePhone() {
+    state.unplugged = !state.unplugged; save(); renderHud();
+    if (state.unplugged) {
+      snd('unplug');
+      say('senpai', 'おい、電話線抜いたな……。チケットは来なくなるけど、時計は倍速で進むぞ。（※現実ではやめましょう）', { interrupt: true });
+    } else {
+      snd('plug');
+      say('cs', 'やっとつながった！！ 電話、ずっと鳴りっぱなしでしたよ！？', { interrupt: true });
+    }
+  }
+  const blockedByPhone = (i) => state.unplugged && state.cases[i].status === 'open' && !state.cases[i].seen;
   function goto(i, opts) {
     if (i === state.current && !(opts && opts.force)) return;
+    if (blockedByPhone(i)) { snd('error'); say('senpai', '電話線が抜けてるから、次のチケットが届かない。右上の TEL で戻せるぞ。', { interrupt: true }); return; }
     state.drafts[state.current] = $('#sql').value;
-    state.current = i; giveupArmed = false; save();
+    state.current = i; giveupArmed = false; specArmed = false; save();
     snd('page');
     renderHud(); renderTicket(); renderAnswer();
     const draft = state.drafts[i];
@@ -2777,7 +4442,9 @@ GROUP BY u.public_id, l.ip_address;`,
     if (state.cases[i].status === 'open' && !state.cases[i].seen) arrive(i);
   }
   function next() {
-    if (allDone()) showFinal(true); else goto(firstOpen());
+    if (allDone()) showFinal(true);
+    else if (dayDone()) showDayEnd(true);
+    else goto(firstOpen()); // 電話線が抜けていれば goto 側で止まる
   }
 
   // ---------------------------------------------------------------- modals
@@ -2789,7 +4456,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
   function closeModal() { $('#overlay').hidden = true; finalTimers.forEach(clearTimeout); finalTimers = []; }
   function showIntro() {
-    const resume = state.started && !allDone();
+    const resume = state && state.started && !allDone();
     const f = FXo();
     const sky = f ? f.skyline() : '';
     const cast = f ? ['senpai', 'cs', 'infra', 'bucho'].map((k) => `<figure class="cast-${k}">${f.avatar(k)}<figcaption>${esc(f.PEOPLE[k].name)}<small>${esc(f.PEOPLE[k].role)}</small></figcaption></figure>`).join('') : '';
@@ -2804,15 +4471,16 @@ GROUP BY u.public_id, l.ip_address;`,
           <div class="cast">${cast}</div>
           <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
           <dl class="rules">
-            <dt>任務</dt><dd>ランダムな順番で届く7件のチケットを調査し、結論と決め手の値（ログIDなど）で回答</dd>
-            <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス</dd>
+            <dt>任務</dt><dd>1日に5件届くチケットを調査し、結論と決め手の値（ログIDなど）で回答。全${DAYS()}日・${CASES.length}件。日を追うごとに手強くなる</dd>
+            <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス（最大 +${COMBO * COMBO_CAP}）</dd>
             <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
-            <dt>時計</dt><dd>10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
+            <dt>時計</dt><dd>毎朝 10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
             <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
           </dl>
           <div class="btn-row title-actions">
-            ${resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
-              : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
+            ${!DB ? '<button class="btn btn-primary btn-start" type="button" disabled>データベースを準備中…</button>'
+              : resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（DAY ${state.day}・#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
+                : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
           </div>
         </div>
       </div>`, 'title');
@@ -2821,29 +4489,107 @@ GROUP BY u.public_id, l.ip_address;`,
     closeModal();
     snd('start');
     if (window.Sound) window.Sound.playBgm();
-    const first = () => {
+    if (isResume) {
       const i = state.current;
-      if (state.cases[i].status === 'open' && !state.cases[i].seen) {
-        say('senpai', isResume ? 'おかえり。続きをやろう。' : `おはよう。今日の問い合わせは${CASES.length}件、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`);
-        arrive(i);
-      } else say('senpai', 'おかえり。続きをやろう。チケットは上のバーから選べるぞ。');
+      if (dayDone()) say('senpai', 'おかえり。今日の分は終わってるぞ。上のバーから業務を締めよう。');
+      else if (state.cases[i].status === 'open' && !state.cases[i].seen) { say('senpai', 'おかえり。続きをやろう。'); arrive(i); }
+      else say('senpai', 'おかえり。続きをやろう。チケットは上のバーから選べるぞ。');
       $('#sql').focus({ preventScroll: true });
-    };
+      return;
+    }
     const f = FXo();
-    if (isResume || !f) { first(); return; }
+    if (!f) { startDay(); return; }
+    const open = state.cases.filter((c) => c.status === 'open').length;
     f.boot([
       'NOCT GAMES  ops-terminal v2.6',
       '> login ops-team ............ OK',
       '> connect prod-replica-01 (READ ONLY) ... OK',
       "> SELECT COUNT(*) FROM tickets WHERE status = 'OPEN';",
-      `  ${CASES.length}`,
-      '> 本日の業務を開始します',
-    ], first);
+      `  ${open}`,
+      `> DAY ${state.day} の業務を開始します（本日分 ${DAY_SIZE} 件）`,
+    ], startDay);
+  }
+  // 1日の始まり：DAY n のカットイン → 先輩のあいさつ → 1件目が届く
+  function startDay() {
+    const d = state.day, f = FXo();
+    const tiers = dayCases(d).map((i) => CASES[i].tier);
+    const prevTiers = d > 1 ? dayCases(d - 1).map((i) => CASES[i].tier) : [1];
+    let line = d === 1 ? `おはよう。配属初日だな。問い合わせは毎日${DAY_SIZE}件ずつ、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`
+      : d === DAYS() ? '今日で最終日だ。最後まで気を抜くなよ。'
+        : Math.max(...tiers) > Math.max(...prevTiers) ? (Math.max(...tiers) === 3 ? 'おはよう。そろそろ一人前だな。今日からは手強いのが混ざるぞ。' : 'おはよう。今日からは、少し調べる量が多いチケットも回ってくる。')
+          : DAY_LINES[d % DAY_LINES.length];
+    if (f) f.cutin('day', `DAY ${d}`, `本日の問い合わせ ${DAY_SIZE}件`);
+    snd('boot');
+    say('senpai', line);
+    setTimeout(() => { arrive(state.current); $('#sql').focus({ preventScroll: true }); }, f && !f.reduced() ? 1600 : 0);
+  }
+  // 翌日へ：時計を 10:00 に戻し、次の5件を届ける
+  function goNextDay() {
+    if (state.day >= DAYS()) { showFinal(true); return; }
+    state.drafts[state.current] = $('#sql').value;
+    state.day += 1; state.minutes = 0; state.current = dayCases(state.day)[0];
+    save(); closeModal();
+    $('#results').dataset.used = ''; renderAll();
+    snd('start');
+    startDay();
+  }
+  const gradeOf = (score) => GRADES.find((g) => score >= g[0]);
+  const resultLabel = (s) => (s.status === 'solved' ? (s.via === 'spec' ? '仕様です' : s.via === 'update' ? '裏ルート' : s.wrong === 0 && s.hints === 0 ? 'PERFECT' : '解決') : s.status === 'gaveup' ? '先輩に聞いた' : '未対応');
+  // 1日の終わり：その日の5件を1行ずつ判を押して見せ、評価（S〜C）を出す
+  function showDayEnd(animate) {
+    const f = FXo();
+    if (f) f.closeSay();
+    const d = state.day, score = dayScore(d), [, grade, gline] = gradeOf(score);
+    if (!state.dayLog[d]) { state.dayLog[d] = { score, minutes: state.minutes }; save(); }
+    if (animate) snd('final');
+    const perfect = dayCases(d).filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length;
+    const rows = dayCases(d).map((i, p) => {
+      const c = CASES[i], s = state.cases[i];
+      return `<tr class="reveal-row"><td>#${p + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${resultLabel(s)}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score + (s.bonus || 0)}</td></tr>`;
+    }).join('');
+    const last = d >= DAYS();
+    openModal(`
+      <p class="eyebrow">DAY ${d} / ${DAYS()}　本日の業務終了　退勤 ${clockText()}</p>
+      <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${DAY_SIZE * BASE} 点　累計 ${totalScore()} 点</span></div>
+      <div class="badges"><span class="badge ${DAY_START + state.minutes <= DAY_END ? 'is-good' : 'is-bad'}">${overtimeText()}</span><span class="badge ${perfect === DAY_SIZE ? 'is-good' : ''}">PERFECT ${perfect} / ${DAY_SIZE}</span>${state.combo >= 2 ? `<span class="badge is-good">${state.combo} COMBO 継続中</span>` : ''}<span class="badge">残り ${state.cases.filter((c) => c.status === 'open').length} 件</span></div>
+      <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="final-rank" id="final-rank">
+        <div class="rank-stamp"><span>${grade}</span></div>
+        <div><p class="final-title">本日の評価 ${grade}</p><p class="final-line">Kさん「${esc(gline)}」</p></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" type="button" data-act="${last ? 'show-final' : 'next-day'}">${last ? '最終結果を見る' : `翌日へ（DAY ${d + 1}）`}</button>
+        <button class="btn" type="button" data-act="review">今日のチケットを見直す</button>
+      </div>
+      ${(state.shimatsuIssued || 0) >= 3 ? '<div class="btn-row"><button class="btn btn-resign" type="button" data-act="resign">辞表を叩きつけて定時退社する</button></div>' : ''}`, 'final');
+    reveal(animate, score, 'grade');
+  }
+  // 結果画面の演出：1行ずつ判を押す → 点数のカウントアップ → 称号・評価の印鑑
+  function reveal(animate, score) {
+    const f = FXo(), modal = $('#modal');
+    if (!animate || !f || f.reduced()) { modal.classList.add('revealed'); return; }
+    modal.classList.add('revealing');
+    const rowsEl = [...modal.querySelectorAll('.reveal-row')];
+    let t = 600;
+    rowsEl.forEach((r) => { finalTimers.push(setTimeout(() => { r.classList.add('is-in'); snd('reveal'); }, t)); t += rowsEl.length > 10 ? 120 : 300; });
+    finalTimers.push(setTimeout(() => f.countUp($('#final-score'), 0, score, 1300), t));
+    t += 1500;
+    finalTimers.push(setTimeout(() => {
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+      snd('rank'); f.burstFrom($('.rank-stamp'), { count: 50 });
+    }, t));
+    modal.addEventListener('click', (e) => {
+      if (!modal.classList.contains('revealing') || e.target.closest('button')) return;
+      finalTimers.forEach(clearTimeout); finalTimers = [];
+      rowsEl.forEach((r) => r.classList.add('is-in'));
+      $('#final-score').textContent = score;
+      modal.classList.add('revealed'); modal.classList.remove('revealing');
+    });
   }
 
-  function rankOf(score) { return RANKS.find((r) => score >= r[0]); }
-  function overtimeText() {
-    const end = DAY_START + state.minutes;
+  function rankOf(score) { return RANKS.find((r) => score >= r[0] * MAX_SCORE); }
+  function overtimeText(minutes) {
+    const end = DAY_START + (minutes == null ? state.minutes : minutes);
     if (end <= DAY_END) return '定時退社';
     const over = end - DAY_END;
     return `残業 ${Math.floor(over / 60)}時間${over % 60}分`;
@@ -2855,17 +4601,22 @@ GROUP BY u.public_id, l.ip_address;`,
     if (animate) snd('final');
     const score = totalScore(); const [, title, line] = rankOf(score);
     const solved = state.cases.filter((c) => c.status === 'solved').length;
-    const rows = state.order.map((i, p) => {
-      const c = CASES[i], s = state.cases[i];
-      const res = s.status === 'solved' ? (s.wrong === 0 && s.hints === 0 ? 'PERFECT' : '解決') : s.status === 'gaveup' ? '先輩に聞いた' : '未対応';
-      return `<tr class="reveal-row"><td>#${p + 1} ${esc(c.label)}</td><td class="${s.status === 'solved' ? 'ok' : 'ng'}">${res}</td><td class="r">${s.wrong}</td><td class="r">${s.hints}</td><td class="r">${s.queries}</td><td class="r">${s.score + (s.bonus || 0)}</td></tr>`;
+    if (!state.dayLog[state.day] && dayDone()) { state.dayLog[state.day] = { score: dayScore(state.day), minutes: state.minutes }; save(); }
+    const ontime = Object.values(state.dayLog).filter((x) => DAY_START + x.minutes <= DAY_END).length;
+    // 20日分を1行ずつ
+    const rows = Array.from({ length: DAYS() }, (_, k) => {
+      const d = k + 1, ids = dayCases(d), log = state.dayLog[d];
+      const ok = ids.filter((i) => state.cases[i].status === 'solved').length;
+      const perfect = ids.filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length;
+      const sc = dayScore(d);
+      return `<tr class="reveal-row"><td>DAY ${d}</td><td class="${ok === ids.length ? 'ok' : 'ng'}">${ok}/${ids.length} 解決</td><td class="r">${perfect}</td><td class="r">${log ? clockText(-state.minutes + log.minutes) : '-'}</td><td class="r">${gradeOf(sc)[1]}</td><td class="r">${sc}</td></tr>`;
     }).join('');
     openModal(`
-      <p class="eyebrow">本日の業務終了　2026.11.13　退勤 ${clockText()}</p>
+      <p class="eyebrow">全${DAYS()}日の業務終了　${CASES.length}件</p>
       <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${MAX_SCORE} 点　${solved}件解決</span></div>
-      <div class="badges"><span class="badge ${DAY_START + state.minutes <= DAY_END ? 'is-good' : 'is-bad'}">${overtimeText()}</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span></div>
-      <table class="summary"><thead><tr><th>チケット</th><th>結果</th><th class="r">差戻</th><th class="r">ヒント</th><th class="r">SQL</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）</td><td class="r"></td></tr></tfoot></table>
+      <div class="badges"><span class="badge ${ontime === DAYS() ? 'is-good' : ''}">定時退社 ${ontime} / ${DAYS()}日</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span>${state.thrown ? `<span class="badge">ゴミ箱に捨てた始末書 ${state.thrown}枚</span>` : ''}${state.enjo ? `<span class="badge is-bad">炎上 ${state.enjo}回</span>` : ''}${state.dropUsed ? '<span class="badge">DROPした（夢）</span>' : ''}${state.cases.some((c) => c.banned) ? '<span class="badge is-good">BAN執行</span>' : ''}</div>
+      <div class="summary-wrap"><table class="summary"><thead><tr><th>日</th><th>結果</th><th class="r">PERFECT</th><th class="r">退勤</th><th class="r">評価</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）${state.penalty ? `　炎上（−${state.penalty}）` : ''}</td><td class="r"></td></tr></tfoot></table></div>
       <div class="final-rank" id="final-rank">
         <div class="rank-stamp"><span>称号</span></div>
         <div><p class="final-title">${esc(title)}${state.shimatsu >= 3 ? '（始末書の常連）' : ''}</p><p class="final-line">${esc(line)}</p></div>
@@ -2874,33 +4625,39 @@ GROUP BY u.public_id, l.ip_address;`,
         <button class="btn btn-primary" type="button" data-act="copy">結果をコピー</button>
         <button class="btn" type="button" data-act="review">チケットを見直す</button>
         <button class="btn btn-ghost" type="button" data-act="reset">最初から遊ぶ</button>
-      </div>`, 'final');
-    const modal = $('#modal');
-    if (!animate || !f || f.reduced()) { modal.classList.add('revealed'); return; }
-    // 1行ずつ判を押す → スコアのカウントアップ → 称号
-    modal.classList.add('revealing');
-    const rowsEl = [...modal.querySelectorAll('.reveal-row')];
-    let t = 700;
-    rowsEl.forEach((r) => { finalTimers.push(setTimeout(() => { r.classList.add('is-in'); snd('reveal'); }, t)); t += 300; });
-    finalTimers.push(setTimeout(() => f.countUp($('#final-score'), 0, score, 1300), t));
-    t += 1500;
-    finalTimers.push(setTimeout(() => {
-      modal.classList.add('revealed'); modal.classList.remove('revealing');
-      snd('rank'); f.burstFrom($('.rank-stamp'), { count: 50 });
-    }, t));
-    const skip = (e) => {
-      if (!modal.classList.contains('revealing') || e.target.closest('button')) return;
-      finalTimers.forEach(clearTimeout); finalTimers = [];
-      rowsEl.forEach((r) => r.classList.add('is-in'));
-      $('#final-score').textContent = score;
-      modal.classList.add('revealed'); modal.classList.remove('revealing');
-    };
-    modal.addEventListener('click', skip, { once: false });
+      </div>
+      ${(state.shimatsuIssued || 0) >= 3 ? '<div class="btn-row"><button class="btn btn-resign" type="button" data-act="resign">辞表を叩きつけて定時退社する</button></div>' : ''}`, 'final');
+    reveal(animate, score);
+  }
+  // 隠しエンディング：始末書を3枚以上もらうと、辞表を叩きつけて退職できる
+  function showResign() {
+    const f = FXo();
+    if (f) f.closeSay();
+    snd('smash');
+    openModal(`
+      <div class="title-sky" aria-hidden="true">${f ? f.skyline() : ''}</div>
+      <div class="title-inner resign">
+        <div class="resign-letter"><span>辞</span><span>表</span></div>
+        <p class="eyebrow">ENDING : RESIGNED</p>
+        <h1 class="logo"><span class="logo-ja" data-text="自由の身">自由の身</span></h1>
+        <div class="title-card">
+          <p>あなたは部長の机に辞表を叩きつけ、17:59 にオフィスを出た。夕焼けがやけにきれいだ。</p>
+          <p>翌朝、CSチームのUさんから「チケット、まだ来てますよ」とだけ連絡が来た。返信はしなかった。</p>
+          <dl class="rules"><dt>始末書</dt><dd>もらった枚数 ${state.shimatsuIssued || 0} 枚</dd><dt>称号</dt><dd>退職エンド「自由の身」</dd><dt>スコア</dt><dd>${totalScore()} / ${MAX_SCORE} 点</dd></dl>
+          <p class="resign-note">※現実では、辞表を叩きつける前に、まず有給を使い切りましょう。</p>
+          <div class="btn-row title-actions">
+            <button class="btn btn-primary" type="button" data-act="back-final">結果画面に戻る</button>
+            <button class="btn" type="button" data-act="reset">再就職する（最初から）</button>
+          </div>
+        </div>
+      </div>`, 'title');
+    if (f) setTimeout(() => { f.shake($('.app'), true); snd('rank'); }, 350);
   }
   function resultText() {
     const score = totalScore(); const [, title] = rankOf(score);
-    const marks = state.order.map((i) => { const c = state.cases[i]; return c.status === 'solved' ? (c.wrong === 0 && c.hints === 0 ? '◎' : '○') : '×'; }).join('');
-    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${marks} 称号「${title}」 最大${state.maxCombo || 0}コンボ 退勤${clockText()} 始末書${state.shimatsu}枚`;
+    const perfect = state.cases.filter((c) => resultLabel(c) === 'PERFECT').length;
+    const grades = Array.from({ length: DAYS() }, (_, k) => gradeOf(dayScore(k + 1))[1]).join('');
+    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${CASES.length}件中PERFECT ${perfect}件 毎日の評価 ${grades} 称号「${title}」 最大${state.maxCombo || 0}コンボ 始末書${state.shimatsu}枚`;
   }
 
   // ---------------------------------------------------------------- toast
@@ -2937,8 +4694,13 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.id === 'btn-model') { setEditor(CASES[state.current].model, false); runSql(); }
       else if (b.dataset.case != null) goto(+b.dataset.case);
       else if (b.dataset.final) showFinal(true);
+      else if (b.dataset.dayend) showDayEnd(true);
       else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
+      else if (b.id === 'btn-phone') togglePhone();
+      else if (b.id === 'btn-spec') specAnswer(b);
+      else if (b.id === 'btn-honest') honestReply();
+      else if (b.id === 'btn-ban') banHammer();
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
       else if (b.dataset.col) insertAtCursor(b.dataset.col);
       else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-notes') {
@@ -2956,6 +4718,10 @@ GROUP BY u.public_id, l.ip_address;`,
           $('#results').dataset.used = ''; renderAll();
           beginDay(false);
         } else if (a === 'review') closeModal();
+        else if (a === 'next-day') goNextDay();
+        else if (a === 'show-final') showFinal(true);
+        else if (a === 'resign') showResign();
+        else if (a === 'back-final') showFinal(false);
         else if (a === 'copy') {
           const text = resultText();
           const done = () => { b.textContent = 'コピーしました'; snd('pop'); };
@@ -2963,6 +4729,7 @@ GROUP BY u.public_id, l.ip_address;`,
         }
       }
       if (b.id !== 'btn-giveup' && giveupArmed) { giveupArmed = false; const g = $('#btn-giveup'); if (g) { g.textContent = '先輩に聞く'; g.classList.remove('btn-danger'); } }
+      if (b.id !== 'btn-spec' && specArmed) { specArmed = false; const g = $('#btn-spec'); if (g) { g.textContent = '調べずに「仕様です」で即答する（1日1回）'; g.classList.remove('is-armed'); } }
     });
     document.addEventListener('dblclick', (e) => {
       const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn')) return;
@@ -2973,7 +4740,7 @@ GROUP BY u.public_id, l.ip_address;`,
       snd('pop');
       toast('根拠欄に入力しました', td.textContent);
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state.started) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state && state.started) closeModal(); });
   }
 
   // ---------------------------------------------------------------- sound toggles
@@ -2986,13 +4753,16 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   // ---------------------------------------------------------------- boot
-  function start(data) {
+  // 100件そろってから、保存データを読む（7件だった頃の保存データは合わないので最初から）
+  function loadState(data) {
     const saved = validState(data) ? data : loadLocal();
-    if (validState(saved)) {
-      state = Object.assign(freshState(), saved);
+    state = freshState();
+    if (validState(saved) && validOrder(saved.order)) {
+      const fresh = freshState();
+      state = Object.assign(fresh, saved);
       state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
-      // 順番を持たない古い保存データは、元の並び順のまま続ける
-      if (!validOrder(saved.order)) state.order = CASES.map((_, i) => i);
+      if (!state.day) state.day = 1;
+      if (!state.dayLog) state.dayLog = {};
       delete state.history; // 実行履歴の機能は削除済み
       // 命名規則の変更前に保存された下書きのテーブル名を、新しい名前に置き換える
       const RENAMED = [['character_logs', 'log_character'], ['item_logs', 'log_item'], ['login_logs', 'log_login'], ['currency_logs', 'log_currency'],
@@ -3004,12 +4774,18 @@ GROUP BY u.public_id, l.ip_address;`,
         state.drafts[k] = s;
       });
     }
+  }
+  function start(data) {
     bind();
     bindSound();
     if (FXo()) document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = FXo().icon(el.dataset.icon, +el.dataset.scale || 3); });
-    renderAll();
-    if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
-    initDb();
+    showIntro(); // DBの準備中は「出社する」を押せない
+    initDb().then((ok) => {
+      if (!ok) return;
+      loadState(data);
+      renderAll();
+      if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
+    });
   }
   const hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) { try { hot.snapshot(() => state); } catch (e) { /* ignore */ } }

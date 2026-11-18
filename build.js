@@ -4,6 +4,7 @@ const src = (f) => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8');
 let html = src('index.html');
 html = html.replace('/*__CSS__*/', () => src('style.css'))
   .replace('/*__DATAGEN__*/', () => src('datagen.js'))
+  .replace('/*__CASEGEN__*/', () => src('casegen.js'))
   .replace('/*__AUDIO__*/', () => src('audio.js'))
   .replace('/*__FX__*/', () => src('fx.js'))
   .replace('/*__GAME__*/', () => src('game.js'));
