@@ -11,34 +11,48 @@
 - `WHERE` なしでは目的のログにたどり着けないよう、ノイズを大量に混ぜる。
 - 起動後に `PRAGMA query_only = 1` を設定し、書き込みはDB側でも拒否する。
 
+## テーブルの命名規則
+
+テーブル名の先頭で、何のデータかが分かるようにする。
+
+| 先頭 | 種類 | テーブル |
+|---|---|---|
+| `usr_` | ユーザーが持つデータ（今の状態） | `usr_users`、`usr_characters` |
+| `mst_` | マスター（運営が用意する定義データ） | `mst_worlds`、`mst_items`、`mst_products` |
+| `log_` | ログ（起きたことの記録、追記のみ） | `log_login`、`log_character`、`log_item`、`log_currency`、`log_payment`、`log_error` |
+
+- ログのテーブルは `log_` が付くので、末尾に `_logs` は付けない（`item_logs` ではなく `log_item`）。
+- 以前の名前からの対応：`users`→`usr_users`、`characters`→`usr_characters`、`worlds`→`mst_worlds`、`m_items`→`mst_items`、`m_products`→`mst_products`、`login_logs`→`log_login`、`character_logs`→`log_character`、`item_logs`→`log_item`、`currency_logs`→`log_currency`、`payment_logs`→`log_payment`、`error_logs`→`log_error`。
+- 新しいテーブルを足すときもこの規則に従う。
+
 ## 件数（現在の生成結果）
 
 | テーブル | 行数 |
 |---|---|
-| users | 160 |
-| characters | 324 |
-| login_logs | 2,985 |
-| character_logs | 360 |
-| item_logs | 9,884 |
-| currency_logs | 7,943 |
-| payment_logs | 107 |
-| error_logs | 226 |
+| usr_users | 160 |
+| usr_characters | 324 |
+| log_login | 2,985 |
+| log_character | 360 |
+| log_item | 9,884 |
+| log_currency | 7,943 |
+| log_payment | 107 |
+| log_error | 226 |
 
 ## テーブル定義
 
 | テーブル | 主な列 | 補足 |
 |---|---|---|
-| `users` | user_id, public_id, platform, status, created_at | 問い合わせには public_id（例 U-38127）が書かれる。user_id は作成順の連番 |
-| `characters` | character_id, user_id, world_id, name, job, level, created_at, deleted_at | 論理削除。名前はワールド内で一意（削除済みは除く） |
-| `worlds` | world_id, name | 1 アルファ、2 ベータ、3 ガンマ |
-| `character_logs` | log_id, user_id, character_id, action, detail(JSON), ip_address, device_id, created_at | CREATE / DELETE / RESTORE / RENAME / WORLD_TRANSFER |
-| `login_logs` | log_id, user_id, result, ip_address, country, device_id, created_at | SUCCESS / FAILED |
-| `item_logs` | log_id, user_id, character_id, item_id, item_uid, action, quantity, target_user_id, detail(JSON), created_at | GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE。item_uid は装備の個体ID |
-| `m_items` | item_id, name, category, rarity, tradable | 31種 |
-| `currency_logs` | log_id, user_id, currency, amount, balance_after, reason, ref_id, created_at | GOLD / GEM。ref_id に決済の transaction_id などが入る |
-| `payment_logs` | payment_id, user_id, product_id, price_jpy, store, transaction_id, status, created_at | SUCCESS / CANCELED |
-| `m_products` | product_id, name, price_jpy, gem | ジェムパック6種 |
-| `error_logs` | log_id, level, service, message, user_id, created_at | WARN / ERROR |
+| `usr_users` | user_id, public_id, platform, status, created_at | 問い合わせには public_id（例 U-38127）が書かれる。user_id は作成順の連番 |
+| `usr_characters` | character_id, user_id, world_id, name, job, level, created_at, deleted_at | 論理削除。名前はワールド内で一意（削除済みは除く） |
+| `mst_worlds` | world_id, name | 1 アルファ、2 ベータ、3 ガンマ |
+| `log_character` | log_id, user_id, character_id, action, detail(JSON), ip_address, device_id, created_at | CREATE / DELETE / RESTORE / RENAME / WORLD_TRANSFER |
+| `log_login` | log_id, user_id, result, ip_address, country, device_id, created_at | SUCCESS / FAILED |
+| `log_item` | log_id, user_id, character_id, item_id, item_uid, action, quantity, target_user_id, detail(JSON), created_at | GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE。item_uid は装備の個体ID |
+| `mst_items` | item_id, name, category, rarity, tradable | 31種 |
+| `log_currency` | log_id, user_id, currency, amount, balance_after, reason, ref_id, created_at | GOLD / GEM。ref_id に決済の transaction_id などが入る |
+| `log_payment` | payment_id, user_id, product_id, price_jpy, store, transaction_id, status, created_at | SUCCESS / CANCELED |
+| `mst_products` | product_id, name, price_jpy, gem | ジェムパック6種 |
+| `log_error` | log_id, level, service, message, user_id, created_at | WARN / ERROR |
 
 インデックスは user_id と created_at の組み合わせを中心に張っている。
 

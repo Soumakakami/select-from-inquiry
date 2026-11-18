@@ -11,7 +11,7 @@
 | ファイル | 役割 |
 |---|---|
 | `src/index.html` | テンプレート。`/*__CSS__*/`、`/*__DATAGEN__*/`、`/*__AUDIO__*/`、`/*__FX__*/`、`/*__GAME__*/` の位置に中身が埋め込まれる |
-| `src/style.css` | 見た目。冒頭の `:root` に色とフォントのトークン |
+| `src/style.css` | 見た目（ドット絵のUI）。冒頭の `:root` に色、フォント、ドットの角丸（`--notch`）のトークン |
 | `src/datagen.js` | ダミーDBの生成（[database.md](database.md)）。ブラウザでは `window.LogDB`、Node では `module.exports` |
 | `src/audio.js` | BGMと効果音（`window.Sound`）。Web Audio API で合成するので音声ファイルはない |
 | `src/fx.js` | 演出（`window.FX`）。ドット絵の登場人物（12×12の文字列からSVGを生成）、会話ウィンドウ、カットイン、フラッシュ、サイレン、紙吹雪、得点のポップアップとカウントアップ、起動ログ、タイトル背景のログ。画像ファイルはない |
@@ -51,7 +51,7 @@
 
 ## 状態と保存
 
-- `state`：現在のケース、ケースごとの状態（open / solved / gaveup）、誤答数、ヒント数、点数、クエリ数、選択中の結論と根拠、エディタの下書き、実行履歴（最大40件）、始末書の枚数。
+- `state`：現在のケース、ケースごとの状態（open / solved / gaveup）、誤答数、ヒント数、点数、クエリ数、選択中の結論と根拠、エディタの下書き、始末書の枚数、チケットの順番、コンボ、ゲーム内時計。
 - `localStorage` のキー `logs-dont-lie:v1` に保存。使えない環境でも動く（try/catch）。
 - Claude のアーティファクトで表示したときに状態を引き継ぐため、`window.claude.hot` があれば snapshot / ready を使う。GitHub Pages では無関係で、無視される。
 

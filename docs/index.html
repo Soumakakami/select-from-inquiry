@@ -7,514 +7,577 @@
 <meta name="description" content="ゲーム会社のサーバーエンジニアになって、ユーザーからの問い合わせをSQLとログで調査するゲーム">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Sans+JP:wght@400;600&family=M+PLUS+1+Code:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* 夜の運用デスク：青みのスレート地に、問い合わせ票だけが紙。強い色は朱印だけ。
+  /* ドット絵の運用デスク：夜の紺色の地に、問い合わせ票だけが連続帳票（ストライプ入りのプリンター用紙）。
+     ドットフォントはぼやけないサイズだけを使う：DotGothic16 は 16px / 32px / 48px / 64px、Press Start 2P は 8px の倍数。
      layout: 左に問い合わせ票、中央にSQLコンソール、右にテーブル定義 */
-  --bg: #11151c;
-  --panel: #171d26;
-  --raise: #1e2531;
-  --line: #2a3340;
-  --ink: #dbe1ea;
-  --muted: #8995a7;
-  --paper: #eef1f4;
-  --paper-ink: #1b2330;
-  --paper-line: #c5ccd6;
-  --amber: #efa63a;
-  --amber-ink: #241705;
-  --shu: #d4361f;
-  --ok: #3fb67f;
-  --font-display: 'DotGothic16', 'Osaka-Mono', 'MS Gothic', monospace;
-  --font-body: 'IBM Plex Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif;
-  --font-code: 'M PLUS 1 Code', 'Menlo', 'Consolas', 'Osaka-Mono', monospace;
+  --bg: #10121c;
+  --bg2: #0a0b13;
+  --panel: #1a1d2e;
+  --raise: #262a40;
+  --raise2: #30354f;
+  --line: #3a3f5c;
+  --line-hi: #5a6188;
+  --ink: #ece8da;
+  --muted: #9a9dba;
+  --dim: #5d6182;
+  --paper: #f4f1e4;
+  --paper-band: #dcebd0;
+  --paper-ink: #22202e;
+  --paper-line: #a9a38c;
+  --paper-mute: #5e5a4b;
+  --amber: #f7a823;
+  --amber-hi: #ffd166;
+  --amber-dk: #9c5a00;
+  --amber-ink: #241400;
+  --shu: #e43b44;
+  --shu-dk: #8a1c2c;
+  --ok: #63c74d;
+  --ok-dk: #265c42;
+  --cyan: #2ce8f5;
+  --blue: #4f8fe6;
+  --yellow: #fee761;
+  --pink: #f6757a;
+  --purple: #c38fff;
+  --font-jp: 'DotGothic16', 'MS Gothic', 'Osaka-Mono', monospace;
+  --font-px: 'Press Start 2P', 'DotGothic16', monospace;
+  /* 角を 1ドット欠いた「ドットの角丸」 */
+  --notch: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+  --notch-sm: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(239,166,58,.07), transparent 60%),
-    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px) 0 0 / 100% 28px,
-    var(--bg);
+  background: repeating-conic-gradient(#131628 0 25%, var(--bg) 0 50%) 0 0 / 4px 4px; /* 2×2 のディザ */
   color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-jp);
+  font-size: 16px;
+  line-height: 24px;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  text-rendering: optimizeSpeed;
 }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+em, i { font-style: normal; }
+svg { image-rendering: pixelated; }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 [hidden] { display: none !important; }
+
+/* ドットのスクロールバー */
+* { scrollbar-color: var(--line-hi) var(--bg2); }
+::-webkit-scrollbar { width: 12px; height: 12px; background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--line-hi); border: 2px solid var(--bg2); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+::-webkit-scrollbar-corner { background: var(--bg2); }
 
 .app { height: 100%; display: grid; grid-template-rows: auto 1fr; min-height: 0; }
 
 /* ---------- HUD ---------- */
 .hud {
   display: flex; align-items: center; gap: 20px;
-  padding: 10px 18px;
-  border-bottom: 1px solid var(--line);
+  padding: 8px 16px;
   background: var(--panel);
+  border-bottom: 4px solid var(--bg2);
+  box-shadow: inset 0 -2px 0 var(--line);
   min-width: 0;
 }
-.brand { display: flex; flex-direction: column; line-height: 1.15; flex: none; }
-.brand b { font-family: var(--font-display); font-weight: 400; font-size: 20px; letter-spacing: .04em; }
-.brand small { color: var(--muted); font-size: 11px; letter-spacing: .08em; }
-.queue { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; padding: 2px; }
+.brand { display: flex; flex-direction: column; line-height: 1; flex: none; gap: 6px; }
+.brand b { font-weight: 400; font-size: 16px; line-height: 16px; color: var(--amber-hi); text-shadow: 2px 2px 0 var(--amber-dk); }
+.brand small { color: var(--muted); font-size: 16px; line-height: 16px; }
+.queue { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; padding: 2px 2px 6px; }
 .chip {
-  flex: none; display: flex; align-items: center; gap: 6px;
-  padding: 4px 10px 4px 8px; border-radius: 4px;
-  border: 1px solid var(--line); background: var(--raise);
-  font-size: 12px; color: var(--muted); white-space: nowrap;
+  flex: none; display: flex; align-items: center; gap: 8px;
+  padding: 2px 10px 2px 8px;
+  border: 2px solid var(--bg2); background: var(--raise);
+  box-shadow: inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.07);
+  clip-path: var(--notch-sm);
+  font-size: 16px; color: var(--muted); white-space: nowrap;
 }
-.chip .no { font-family: var(--font-display); font-size: 13px; color: var(--ink); }
-.chip .lamp { width: 8px; height: 8px; border-radius: 50%; background: #3a4555; flex: none; }
-.chip.is-current { border-color: var(--amber); color: var(--ink); }
-.chip.is-current .lamp { background: var(--amber); box-shadow: 0 0 0 3px rgba(239,166,58,.18); animation: pager 1.6s ease-in-out infinite; }
+.chip .no { font-family: var(--font-px); font-size: 8px; color: var(--ink); }
+.chip .lamp { width: 8px; height: 8px; background: var(--dim); flex: none; }
+.chip.is-current { background: var(--raise2); color: var(--ink); border-color: var(--amber); }
+.chip.is-current .lamp { background: var(--amber); animation: blink 1s steps(1) infinite; }
 .chip.is-solved .lamp { background: var(--ok); }
 .chip.is-gaveup .lamp { background: var(--muted); }
-.chip:disabled { cursor: default; opacity: .55; }
-.stats { display: flex; gap: 18px; align-items: center; flex: none; font-family: var(--font-display); }
-.stat { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.stat span { font-size: 10px; color: var(--muted); font-family: var(--font-body); letter-spacing: .1em; }
-.stat b { font-weight: 400; font-size: 20px; font-variant-numeric: tabular-nums; }
-.stat.warn b { color: var(--shu); text-shadow: 0 0 10px rgba(212,54,31,.6); }
-.stat-score b { color: var(--amber); text-shadow: 0 0 12px rgba(239,166,58,.55); }
-.stat-score b.is-counting { transform: scale(1.12); }
-.stat b { transition: transform .15s ease; display: inline-block; }
-.stat-combo b { color: #ffdf6b; text-shadow: 0 0 12px rgba(255,223,107,.7); animation: comboPulse 1s ease-in-out infinite; }
-@keyframes comboPulse { 50% { transform: scale(1.12); } }
-.chip.is-new { border-color: #3fb67f; color: var(--ink); }
-.chip.is-new::after { content: "NEW"; font-family: var(--font-display); font-size: 10px; color: #0d1a12; background: #3fb67f; padding: 0 4px; border-radius: 2px; animation: blink 1s steps(1) infinite; }
-.chip .lock { letter-spacing: .1em; }
-.chip.is-final { border-color: #ffdf6b; color: #ffdf6b; animation: pager 1.6s ease-in-out infinite; }
-.sound { display: flex; gap: 4px; font-family: var(--font-display); }
+.chip:disabled { cursor: default; opacity: .5; }
+.chip .lock { letter-spacing: 2px; }
+.chip.is-new { border-color: var(--ok); color: var(--ink); }
+.chip.is-new::after { content: "NEW"; font-family: var(--font-px); font-size: 8px; line-height: 8px; color: var(--bg2); background: var(--ok); padding: 2px 4px; animation: blink 1s steps(1) infinite; }
+.chip.is-final { border-color: var(--yellow); color: var(--yellow); }
+.chip.is-final .lamp { background: var(--yellow); animation: blink .5s steps(1) infinite; }
+
+.stats { display: flex; gap: 16px; align-items: center; flex: none; }
+.stat { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.stat span { font-family: var(--font-px); font-size: 8px; line-height: 8px; color: var(--muted); }
+#stat-shimatsu span { font-family: var(--font-jp); font-size: 16px; line-height: 16px; }
+.stat b { font-family: var(--font-px); font-weight: 400; font-size: 16px; line-height: 16px; display: inline-block; font-variant-numeric: tabular-nums; }
+#clock { font-family: var(--font-jp); font-size: 16px; }
+.stat.warn b { color: var(--shu); }
+.stat-score b { color: var(--amber-hi); text-shadow: 2px 2px 0 var(--amber-dk); }
+.stat-score b.is-counting { color: var(--yellow); }
+.stat-combo b { color: var(--yellow); text-shadow: 2px 2px 0 var(--amber-dk); animation: comboPulse .5s steps(1) infinite; }
+@keyframes comboPulse { 50% { color: #fff; } }
+.sound { display: flex; gap: 4px; }
 .snd {
-  display: flex; align-items: center; gap: 5px;
-  padding: 3px 8px; border-radius: 4px;
-  border: 1px solid var(--line); background: var(--raise);
-  font-size: 12px; color: var(--muted); line-height: 1.4;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; border: 2px solid var(--bg2); background: var(--raise);
+  clip-path: var(--notch-sm);
+  font-family: var(--font-px); font-size: 8px; line-height: 8px; color: var(--muted);
 }
-.snd i { width: 6px; height: 6px; border-radius: 50%; background: #3a4555; flex: none; }
-.snd[aria-pressed="true"] { color: var(--ink); border-color: #3d4858; }
+.snd i { width: 8px; height: 8px; background: var(--dim); flex: none; }
+.snd[aria-pressed="true"] { color: var(--ink); }
 .snd[aria-pressed="true"] i { background: var(--ok); }
-.snd[aria-pressed="false"] { text-decoration: line-through; text-decoration-color: var(--muted); }
-@keyframes pager { 50% { box-shadow: 0 0 0 6px rgba(239,166,58,0); } }
+.snd[aria-pressed="false"] { text-decoration: line-through; }
 
 /* ---------- desk ---------- */
 .desk {
   display: grid;
-  grid-template-columns: minmax(330px, 380px) minmax(0, 1fr) minmax(250px, 290px);
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr) minmax(280px, 340px);
   min-height: 0;
 }
 .pane { min-height: 0; min-width: 0; display: flex; flex-direction: column; }
-.pane + .pane { border-left: 1px solid var(--line); }
-.pane-ticket { background: #141922; }
-.ticket-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.pane + .pane { border-left: 4px solid var(--bg2); box-shadow: inset 2px 0 0 var(--line); }
+.pane-ticket { background: var(--bg2); }
+.ticket-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 16px; }
 
-/* ---------- ticket (paper) ---------- */
+/* ---------- ticket（連続帳票） ---------- */
 .ticket {
+  --hole: var(--bg2);
   position: relative;
-  background: var(--paper); color: var(--paper-ink);
-  border-radius: 3px;
-  box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.35);
-  padding: 14px 16px 16px;
+  color: var(--paper-ink);
+  padding: 12px 34px 16px;
+  background:
+    linear-gradient(to bottom, var(--hole) 0 8px, transparent 8px) left 8px top 8px / 8px 24px repeat-y,
+    linear-gradient(to bottom, var(--hole) 0 8px, transparent 8px) right 8px top 8px / 8px 24px repeat-y,
+    repeating-linear-gradient(to bottom, var(--paper-line) 0 4px, transparent 4px 8px) left 24px top 0 / 2px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--paper-line) 0 4px, transparent 4px 8px) right 24px top 0 / 2px 100% no-repeat,
+    /* 緑の帯は送り穴のある左右の耳だけ。本文の下は無地にして読みやすく */
+    linear-gradient(to right, var(--paper-band) 0 24px, var(--paper) 24px calc(100% - 24px), var(--paper-band) calc(100% - 24px));
 }
-.ticket-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--paper-ink); padding-bottom: 6px; margin-bottom: 10px; }
-.ticket-head h2 { margin: 0; font-size: 15px; letter-spacing: .3em; font-weight: 600; }
-.ticket-head .tno { font-family: var(--font-code); font-size: 11px; color: #4b5666; }
-.ticket-grid { display: grid; grid-template-columns: auto 1fr; border: 1px solid var(--paper-line); font-size: 12.5px; margin: 0; }
-.ticket-grid dt, .ticket-grid dd { margin: 0; padding: 4px 8px; border-bottom: 1px solid var(--paper-line); }
-.ticket-grid dt { background: #e1e6ec; color: #4b5666; border-right: 1px solid var(--paper-line); white-space: nowrap; }
-.ticket-grid dd { font-family: var(--font-code); }
+.ticket-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 4px solid var(--paper-ink); padding-bottom: 4px; margin-bottom: 8px; }
+.ticket-head h2 { margin: 0; font-size: 16px; font-weight: 400; letter-spacing: 4px; }
+.ticket-head .tno { font-family: var(--font-px); font-size: 8px; color: var(--paper-mute); }
+.ticket-grid { display: grid; grid-template-columns: auto 1fr; border: 2px solid var(--paper-ink); margin: 0; background: var(--paper); }
+.ticket-grid dt, .ticket-grid dd { margin: 0; padding: 0 8px; border-bottom: 2px solid var(--paper-line); }
+.ticket-grid dt { background: #e6e1cd; color: var(--paper-mute); border-right: 2px solid var(--paper-line); white-space: nowrap; }
 .ticket-grid dt:nth-last-of-type(1), .ticket-grid dd:nth-last-of-type(1) { border-bottom: 0; }
-.ticket-body { margin: 12px 0 0; font-size: 14px; line-height: 1.85; white-space: pre-wrap; }
-.ticket-note { margin: 12px 0 0; padding: 8px 10px; border-left: 3px solid #9aa5b4; background: #e4e8ed; font-size: 12.5px; color: #3c4655; }
-.ticket-note b { font-weight: 600; }
+.ticket-body { margin: 16px 0 0; white-space: pre-wrap; }
+.ticket-note { margin: 16px 0 0; padding: 4px 8px; border-left: 4px solid var(--paper-mute); background: rgba(34,32,46,.06); color: #3a3748; }
+.ticket-note b { font-weight: 400; color: var(--paper-ink); }
 
+/* 印鑑（角印） */
 .stamp {
-  position: absolute; right: 14px; top: 84px;
-  width: 92px; height: 92px; border-radius: 50%;
-  border: 3px solid var(--shu); color: var(--shu);
+  position: absolute; right: 38px; top: 92px;
+  width: 96px; height: 96px;
+  border: 4px solid var(--shu); color: var(--shu);
   display: grid; place-items: center; text-align: center;
-  font-family: var(--font-body); font-weight: 600; line-height: 1;
-  transform: rotate(-14deg);
-  mix-blend-mode: multiply; opacity: .9; pointer-events: none;
+  line-height: 1; mix-blend-mode: multiply; pointer-events: none;
 }
-.stamp::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--shu); border-radius: 50%; }
-.stamp .s-main { font-size: 26px; letter-spacing: .1em; }
-.stamp .s-sub { display: block; font-size: 10px; margin-top: 4px; font-family: var(--font-code); letter-spacing: .05em; }
-.stamp.is-reject { border-radius: 4px; width: 104px; height: 54px; top: 100px; }
-.stamp.is-reject::before { border-radius: 2px; }
-.stamp.is-reject .s-main { font-size: 22px; }
-.stamp.is-gaveup { border-color: #6b7686; color: #6b7686; }
-.stamp.is-gaveup::before { border-color: #6b7686; }
-.stamp.slam { animation: slam .42s cubic-bezier(.2,1.6,.4,1) both; }
-.stamp.fade { animation: slam .42s cubic-bezier(.2,1.6,.4,1) both, fadeout .5s ease 1.4s forwards; }
-@keyframes slam { 0% { transform: rotate(-14deg) scale(2.4); opacity: 0; } 60% { opacity: .95; } 100% { transform: rotate(-14deg) scale(1); opacity: .9; } }
+.stamp::before { content: ""; position: absolute; inset: 4px; border: 2px solid var(--shu); }
+.stamp .s-main { display: block; font-size: 32px; line-height: 32px; letter-spacing: 0; }
+.stamp .s-sub { display: block; font-family: var(--font-px); font-size: 8px; line-height: 8px; margin-top: 8px; }
+.stamp.is-reject { width: 112px; height: 64px; top: 120px; }
+.stamp.is-gaveup { border-color: #6b6a78; color: #6b6a78; }
+.stamp.is-gaveup::before { border-color: #6b6a78; }
+.stamp.slam { animation: slam .32s steps(4, end) both; }
+.stamp.fade { animation: slam .32s steps(4, end) both, fadeout .4s steps(4, end) 1.4s forwards; }
+@keyframes slam { 0% { transform: scale(2.5); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes fadeout { to { opacity: 0; } }
-.ticket.shake { animation: shake .3s ease; }
-@keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-.shake-hard { animation: shakeHard .45s cubic-bezier(.36,.07,.19,.97); }
+.ticket.shake { animation: shake .3s steps(3) ; }
+@keyframes shake { 33% { transform: translateX(-4px); } 66% { transform: translateX(4px); } }
+.shake-hard { animation: shakeHard .4s steps(8); }
 @keyframes shakeHard {
-  10%, 90% { transform: translate(-2px, 1px) rotate(-.3deg); }
-  20%, 80% { transform: translate(4px, -1px) rotate(.4deg); }
-  30%, 50%, 70% { transform: translate(-7px, 2px) rotate(-.6deg); }
-  40%, 60% { transform: translate(7px, -2px) rotate(.6deg); }
+  12% { transform: translate(-4px, 0); } 25% { transform: translate(8px, -4px); } 37% { transform: translate(-8px, 4px); } 50% { transform: translate(8px, 0); }
+  62% { transform: translate(-8px, -4px); } 75% { transform: translate(4px, 4px); } 87% { transform: translate(-4px, 0); } 100% { transform: none; }
 }
-/* チケットが届くとき：プリンターから紙が出てくる */
-.ticket.arrive { animation: printOut .9s steps(9, end) both, settle .35s ease .9s both; }
-@keyframes printOut { from { clip-path: inset(0 0 100% 0); transform: translateY(-18px); } to { clip-path: inset(0 0 0 0); transform: translateY(0); } }
-@keyframes settle { 0% { transform: translateY(0) rotate(0); } 40% { transform: translateY(3px) rotate(-.6deg); } 100% { transform: translateY(0) rotate(0); } }
+/* 届いたチケット：プリンターから1行ずつ印字されて出てくる */
+.ticket.arrive { animation: printOut .9s steps(12, end) both; }
+@keyframes printOut { from { clip-path: inset(0 0 100% 0); transform: translateY(-24px); } to { clip-path: inset(0 0 0 0); transform: translateY(0); } }
 
 /* ユーザーの怒りゲージ */
-.anger { display: flex; align-items: center; gap: 8px; margin: -2px 0 10px; font-size: 11px; color: #4b5666; }
-.anger-label { letter-spacing: .08em; }
-.anger-bar { display: flex; gap: 3px; }
-.anger-bar i { width: 16px; height: 8px; background: #d3d9e1; border-radius: 1px; transition: background .3s ease; }
-.anger-bar i.on { background: #e8833a; }
+.anger { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--paper-mute); white-space: nowrap; }
+.anger-bar { display: flex; gap: 2px; padding: 2px; background: var(--paper-ink); }
+.anger-bar i { width: 16px; height: 8px; background: #4a4758; }
+.anger-bar i.on { background: var(--amber); }
 .anger.lv-4 .anger-bar i.on, .anger.lv-5 .anger-bar i.on { background: var(--shu); }
-.anger.lv-5 .anger-bar { animation: shake .25s ease infinite; }
-.anger-face { font-family: var(--font-display); font-size: 13px; color: var(--shu); }
-.anger.lv-0 .anger-face { color: var(--ok); }
+.anger.lv-5 .anger-bar { animation: shake .3s steps(3) infinite; }
+.anger-face { color: var(--shu); }
+.anger.lv-0 .anger-face { color: var(--ok-dk); }
 .anger.lv-0 .anger-label { text-decoration: line-through; }
 
-/* ---------- answer ---------- */
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
-.card h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
-.opts { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; padding: 0; border: 0; }
-.opt { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--raise); cursor: pointer; font-size: 13px; line-height: 1.5; }
-.opt input { margin: 3px 0 0; accent-color: var(--amber); }
-.opt:has(input:checked) { border-color: var(--amber); background: #2a2519; }
-.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-.field input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: #0e1218; font-family: var(--font-code); font-size: 13px; }
-.field input:focus { border-color: var(--amber); outline: none; }
-.btn { border: 1px solid var(--line); background: var(--raise); padding: 7px 12px; border-radius: 4px; font-size: 13px; }
-.btn:hover { border-color: #3d4858; background: #252d3a; }
-.btn-primary { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-weight: 600; box-shadow: 0 3px 0 #a5660f, 0 0 18px rgba(239,166,58,.25); transition: transform .06s ease, box-shadow .06s ease; }
-.btn-primary:hover { background: #f7b450; border-color: #f7b450; }
-.btn-primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #a5660f; }
-.btn-ghost { background: transparent; color: var(--muted); }
-.btn-danger { color: #ff8b78; border-color: #5a2a24; }
+/* ---------- 共通の部品 ---------- */
+.card {
+  background: var(--panel); padding: 12px 14px 14px;
+  border: 2px solid var(--bg2);
+  box-shadow: inset 0 0 0 2px var(--line);
+  clip-path: var(--notch-sm);
+}
+.card h3 { margin: 0 0 8px; font-size: 16px; line-height: 24px; font-weight: 400; color: var(--amber); }
+.card h3::before { content: "▶ "; }
+.btn {
+  border: 2px solid var(--bg2); background: var(--raise); color: var(--ink);
+  padding: 6px 14px; font-size: 16px; line-height: 24px;
+  box-shadow: inset -4px -4px 0 rgba(0,0,0,.3), inset 4px 4px 0 rgba(255,255,255,.1);
+  clip-path: var(--notch-sm);
+}
+.btn:hover:not(:disabled) { background: var(--raise2); }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 4px 4px 0 rgba(0,0,0,.3); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn-primary { background: var(--amber); color: var(--amber-ink); box-shadow: inset -4px -4px 0 var(--amber-dk), inset 4px 4px 0 var(--amber-hi); }
+.btn-primary:hover:not(:disabled) { background: #ffbb3d; }
+.btn-primary:active:not(:disabled) { box-shadow: inset 4px 4px 0 var(--amber-dk); }
+.btn-ghost { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 2px var(--line); }
+.btn-ghost:hover:not(:disabled) { background: var(--raise); }
+.btn-danger { color: var(--pink); box-shadow: inset 0 0 0 2px var(--shu-dk); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .btn-row .btn-primary { flex: 1; }
-.feedback { margin: 12px 0 0; font-size: 13px; padding: 8px 10px; border-radius: 4px; background: #2a1c1a; border: 1px solid #5a2a24; color: #ffc2b7; }
+kbd { font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 2px 4px; background: rgba(0,0,0,.18); }
+
+/* ---------- answer ---------- */
+.opts { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; padding: 0; border: 0; }
+.opt { display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: start; padding: 6px 10px; border: 2px solid var(--line); background: var(--raise); cursor: pointer; }
+.opt:hover { border-color: var(--line-hi); }
+.opt input { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin: 4px 0 0; border: 2px solid var(--line-hi); background: var(--bg2); cursor: pointer; }
+.opt input:checked { background: var(--amber); box-shadow: inset 0 0 0 2px var(--bg2); border-color: var(--amber); }
+.opt:has(input:checked) { border-color: var(--amber); background: #3a2c10; }
+.field label { display: block; color: var(--muted); margin-bottom: 4px; }
+.field input { width: 100%; padding: 6px 10px; border: 2px solid var(--line-hi); background: var(--bg2); color: var(--yellow); }
+.field input::placeholder { color: var(--dim); }
+.field input:focus { border-color: var(--amber); outline: none; }
+.feedback { margin: 12px 0 0; padding: 6px 10px; background: #2a1218; border: 2px solid var(--shu-dk); color: #ffc0b8; }
 .feedback.is-info { background: var(--raise); border-color: var(--line); color: var(--ink); }
 .hints { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.hints li { font-size: 12.5px; padding: 8px 10px; background: #1b2230; border: 1px dashed #3a4658; border-radius: 4px; }
-.hints li b { color: var(--amber); font-weight: 600; margin-right: 6px; font-family: var(--font-display); font-weight: 400; }
-.hints code, .resolution code, .notes code { font-family: var(--font-code); font-size: .92em; background: rgba(255,255,255,.06); padding: 0 4px; border-radius: 3px; }
+.hints li { padding: 6px 10px; background: var(--bg2); border: 2px dashed var(--line-hi); }
+.hints li b { color: var(--amber); font-family: var(--font-px); font-size: 8px; font-weight: 400; margin-right: 8px; }
+.hints code, .resolution code, .notes code, .comm-text code { font-family: var(--font-jp); color: var(--cyan); background: rgba(44,232,245,.08); padding: 0 4px; }
 
 .resolution { display: flex; flex-direction: column; gap: 14px; }
-.reply { margin: 0; padding: 12px 14px; background: var(--paper); color: var(--paper-ink); border-radius: 3px; font-size: 13px; line-height: 1.8; }
-.reaction { margin: 0; font-size: 13px; color: var(--ink); padding-left: 10px; border-left: 3px solid var(--ok); }
-.explain { margin: 0; font-size: 13px; line-height: 1.8; }
-.model { margin: 0; padding: 10px 12px; background: #0d1117; border: 1px solid var(--line); border-radius: 4px; font-family: var(--font-code); font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; }
-.points { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); }
-.points b { font-size: 30px; font-weight: 400; color: var(--amber); }
-.points span { color: var(--muted); font-family: var(--font-body); font-size: 12px; }
+.reply { margin: 0; padding: 8px 12px; background: var(--paper); color: var(--paper-ink); border-left: 4px solid var(--paper-mute); }
+.reaction { margin: 0; padding-left: 10px; border-left: 4px solid var(--ok); }
+.explain { margin: 0; }
+.model { margin: 0; padding: 8px 12px; background: var(--bg2); border: 2px solid var(--line); font-family: var(--font-jp); font-size: 16px; line-height: 24px; overflow-x: auto; white-space: pre; }
+.points { display: flex; align-items: baseline; gap: 12px; }
+.points b { font-family: var(--font-px); font-size: 24px; line-height: 24px; font-weight: 400; color: var(--amber-hi); text-shadow: 4px 4px 0 var(--amber-dk); }
+.points span { color: var(--muted); }
 
 /* ---------- console ---------- */
-.pane-console { background: #0f1319; }
-.console-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-.conn { display: flex; align-items: center; gap: 8px; font-family: var(--font-code); font-size: 12px; color: var(--muted); }
-.conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-.conn.is-ready .dot { background: var(--ok); }
+.pane-console { background: var(--bg2); }
+.console-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 12px; background: var(--panel); border-bottom: 4px solid var(--bg2); box-shadow: inset 0 -2px 0 var(--line); flex-wrap: wrap; }
+.conn { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.conn .dot { width: 8px; height: 8px; background: var(--muted); }
+.conn.is-ready .dot { background: var(--ok); animation: blink 2s steps(1) infinite; }
 .conn.is-error .dot { background: var(--shu); }
-.conn .ro { border: 1px solid var(--line); padding: 0 6px; border-radius: 3px; font-size: 11px; }
+.conn .ro { font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 4px 6px; border: 2px solid var(--line); color: var(--ok); }
 .bar-actions { display: flex; gap: 8px; align-items: center; }
-kbd { font-family: var(--font-code); font-size: 10.5px; padding: 0 4px; border: 1px solid rgba(0,0,0,.25); border-radius: 3px; background: rgba(0,0,0,.12); }
-.btn-run { display: flex; align-items: center; gap: 6px; }
-.btn-run:disabled { opacity: .5; cursor: wait; }
+.btn-run { display: flex; align-items: center; gap: 8px; }
+.btn-run:disabled { cursor: wait; }
 
-.editor { position: relative; height: clamp(150px, 30vh, 300px); flex: none; border-bottom: 1px solid var(--line); background: #0d1117; }
+.editor { position: relative; height: clamp(168px, 30vh, 312px); flex: none; background: #07080e; border-bottom: 4px solid var(--panel); }
 .editor pre, .editor textarea {
   position: absolute; inset: 0; margin: 0; border: 0;
-  padding: 12px 14px;
-  font-family: var(--font-code); font-size: 13.5px; line-height: 1.65; letter-spacing: 0; tab-size: 2;
+  padding: 12px 16px;
+  font-family: var(--font-jp); font-size: 16px; line-height: 24px; letter-spacing: 0; tab-size: 2;
   white-space: pre; overflow-wrap: normal; word-break: normal;
 }
 .editor pre { overflow: hidden; pointer-events: none; color: var(--ink); }
-.editor textarea { resize: none; background: transparent; color: transparent; caret-color: var(--amber); overflow: auto; outline: none; }
-.editor textarea::selection { background: rgba(239,166,58,.28); }
-.t-kw { color: #efa63a; }
-.t-fn { color: #d6b2ff; }
-.t-str { color: #93d4a8; }
-.t-num { color: #8db7ff; }
-.t-com { color: #687386; font-style: italic; }
-.t-id { color: #c6d0dd; }
+.editor textarea { resize: none; background: transparent; color: transparent; caret-color: var(--yellow); overflow: auto; outline: none; }
+.editor textarea::selection { background: rgba(247,168,35,.35); }
+.t-kw { color: var(--amber); }
+.t-fn { color: var(--purple); }
+.t-str { color: var(--ok); }
+.t-num { color: var(--cyan); }
+.t-com { color: var(--dim); }
+.t-id { color: var(--pink); }
 
 .results { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
-.results.is-fresh .rblock { animation: rowsIn .28s ease both; }
-.results.is-fresh .rblock:nth-child(2) { animation-delay: .06s; }
-.results.is-fresh .rblock:nth-child(3) { animation-delay: .12s; }
-@keyframes rowsIn { from { opacity: 0; transform: translateY(6px); filter: brightness(1.8); } }
-.results-empty { margin: auto; text-align: center; color: var(--muted); font-size: 13px; max-width: 34em; }
-.results-empty b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
+.results.is-fresh .rblock { animation: rowsIn .24s steps(3) both; }
+.results.is-fresh .rblock:nth-child(2) { animation-delay: .08s; }
+.results.is-fresh .rblock:nth-child(3) { animation-delay: .16s; }
+@keyframes rowsIn { from { opacity: 0; transform: translateY(8px); } }
+.results-empty { margin: auto; text-align: center; color: var(--muted); max-width: 30em; }
+.results-empty b { display: block; font-weight: 400; color: var(--amber); margin-bottom: 8px; }
 .rblock { display: flex; flex-direction: column; min-height: 0; }
-.rmeta { display: flex; gap: 10px; align-items: baseline; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: var(--font-code); }
-.rmeta .rsql { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; color: #6d7889; }
-.rmeta b { color: var(--ink); font-weight: 600; }
-.twrap { overflow: auto; max-height: 420px; border: 1px solid var(--line); border-radius: 4px; }
+.rmeta { display: flex; gap: 12px; align-items: baseline; color: var(--muted); margin-bottom: 6px; white-space: nowrap; }
+.rmeta .rsql { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; color: var(--dim); }
+.rmeta b { color: var(--ink); font-weight: 400; }
+.twrap { overflow: auto; max-height: 432px; border: 2px solid var(--line); }
 .rblock:only-child { flex: 0 1 auto; min-height: 0; }
 .rblock:only-child .twrap { max-height: none; flex: 0 1 auto; min-height: 0; }
-table.grid { border-collapse: collapse; font-family: var(--font-code); font-size: 12.5px; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; }
-.grid th, .grid td { padding: 4px 10px; border-bottom: 1px solid #222a35; border-right: 1px solid #1d242e; text-align: left; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
-.grid th { position: sticky; top: 0; background: var(--raise); color: var(--muted); font-weight: 600; z-index: 1; }
-.grid td.num { text-align: right; }
-.grid td.null { color: #555f6e; font-style: italic; }
-.grid tbody tr:hover td { background: #18202b; }
-.grid td.picked { background: #3a2e17 !important; }
-.grid .rn { color: #4d5767; text-align: right; user-select: none; }
-.rerr { padding: 10px 12px; border: 1px solid #5a2a24; background: #22161a; border-radius: 4px; font-family: var(--font-code); font-size: 12.5px; color: #ffb4a6; white-space: pre-wrap; }
-.rerr small { display: block; color: #d8c3bf; font-family: var(--font-body); margin-top: 4px; }
-.rnote { font-size: 12px; color: var(--muted); }
+table.grid { border-collapse: collapse; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; }
+.grid th, .grid td { padding: 0 10px; border-bottom: 2px solid #191c2b; border-right: 2px solid #191c2b; text-align: left; white-space: nowrap; max-width: 432px; overflow: hidden; text-overflow: ellipsis; }
+.grid th { position: sticky; top: 0; background: var(--raise); color: var(--amber); font-weight: 400; z-index: 1; border-bottom-color: var(--line); }
+.grid td.num { text-align: right; color: var(--cyan); }
+.grid td.null { color: var(--dim); }
+.grid tbody tr:nth-child(even) td { background: rgba(255,255,255,.025); }
+.grid tbody tr:hover td { background: #222743; }
+.grid td.picked { background: #4a3510 !important; color: var(--yellow); }
+.grid .rn { color: var(--dim); text-align: right; user-select: none; }
+.rerr { padding: 8px 12px; border: 2px solid var(--shu-dk); background: #1e0d14; color: var(--pink); white-space: pre-wrap; }
+.rerr small { display: block; color: #e3c9c5; font-size: 16px; margin-top: 4px; }
+.rnote { color: var(--muted); }
 
 /* ---------- reference ---------- */
 .pane-ref { background: var(--panel); }
-.tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
-.tabs button { flex: 1; border: 0; background: transparent; padding: 9px 6px; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; }
-.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--amber); }
+.tabs { display: flex; flex: none; background: var(--bg2); padding: 4px 4px 0; gap: 4px; }
+.tabs button { flex: 1; border: 0; background: var(--raise); padding: 4px 6px; color: var(--muted); clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% 100%, 0 100%); }
+.tabs button[aria-selected="true"] { background: var(--panel); color: var(--amber); }
 .tab-panel { overflow-y: auto; padding: 12px; flex: 1; min-height: 0; }
-.notes { margin: 0 0 14px; padding: 10px 12px; border: 1px solid #4a3a1c; background: #1f1a10; border-radius: 4px; font-size: 12px; line-height: 1.7; }
-.notes h4 { margin: 0 0 4px; font-size: 11px; letter-spacing: .14em; color: var(--amber); }
-.notes ul { margin: 0; padding-left: 1.1em; }
-.tbl { border-top: 1px solid var(--line); padding: 8px 0; }
+.notes { margin: 0; padding: 8px 12px; border: 2px solid var(--amber-dk); background: #211a0c; }
+.notes ul { margin: 0; padding-left: 0; list-style: none; }
+.notes li { padding-left: 16px; position: relative; margin-bottom: 4px; }
+.notes li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; background: var(--amber); }
+.notes em { color: var(--yellow); }
+.tbl { border-top: 2px solid var(--line); padding: 8px 0; }
 .tbl summary { cursor: pointer; display: flex; align-items: baseline; gap: 8px; list-style: none; }
 .tbl summary::-webkit-details-marker { display: none; }
-.tbl summary::before { content: "▸"; color: var(--muted); font-size: 10px; width: 10px; }
-.tbl[open] summary::before { content: "▾"; }
-.tbl-name { font-family: var(--font-code); font-size: 13px; color: var(--ink); }
-.tbl-count { margin-left: auto; font-family: var(--font-code); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.tbl-desc { font-size: 11.5px; color: var(--muted); margin: 4px 0 6px 18px; }
-.cols { list-style: none; margin: 0 0 4px 18px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.cols li { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; font-size: 11.5px; }
-.cols button { border: 0; background: none; padding: 0; font-family: var(--font-code); color: #c6d0dd; font-size: 12px; text-align: left; }
+.tbl summary::before { content: "▶"; color: var(--muted); width: 16px; }
+.tbl[open] summary::before { content: "▼"; color: var(--amber); }
+.tbl-name { color: var(--ink); }
+.tbl-count { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tbl-desc { color: var(--muted); margin: 4px 0 6px 24px; }
+.cols { list-style: none; margin: 0 0 4px 24px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cols li { display: flex; flex-direction: column; }
+.cols button { border: 0; background: none; padding: 0; color: var(--pink); text-align: left; align-self: flex-start; }
 .cols button:hover, .tbl-insert:hover { color: var(--amber); }
-.cols .cmt { color: var(--muted); }
-.cols .cmt em { font-style: normal; color: #f3c27a; }
-.tbl-insert { border: 0; background: none; padding: 0; font-size: 11px; color: var(--muted); margin-left: 18px; text-decoration: underline; text-underline-offset: 2px; }
-.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.hist button { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--raise); border-radius: 4px; padding: 6px 8px; font-family: var(--font-code); font-size: 11.5px; white-space: pre-wrap; max-height: 5.4em; overflow: hidden; }
-.hist button:hover { border-color: #3d4858; }
-.hist .hmeta { display: block; color: var(--muted); font-family: var(--font-body); font-size: 10.5px; margin-bottom: 2px; }
-.hist .is-err .hmeta { color: #ff8b78; }
+.cols .cmt { color: var(--muted); padding-left: 8px; border-left: 2px solid var(--line); }
+.cols .cmt em { color: var(--yellow); }
+.tbl-insert { border: 0; background: none; padding: 0; color: var(--muted); margin: 4px 0 0 24px; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
 
-/* ---------- overlay / modal ---------- */
-.overlay { position: fixed; inset: 0; background: rgba(8,10,14,.72); backdrop-filter: blur(3px); display: grid; place-items: center; padding: 16px; z-index: 20; overflow-y: auto; }
-.modal { width: min(640px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 28px 28px 24px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
-.modal .eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--muted); margin: 0 0 6px; }
-.modal h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 46px); line-height: 1.15; margin: 0 0 4px; letter-spacing: .04em; text-wrap: balance; }
-.modal h1 .cursor { display: inline-block; width: .5em; height: .9em; background: var(--amber); vertical-align: -0.08em; margin-left: .1em; animation: blink 1s steps(1) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-.modal .lead { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+/* ---------- overlay / modal（RPGのウィンドウ風） ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  background: repeating-conic-gradient(rgba(5,6,12,.88) 0 25%, rgba(5,6,12,.55) 0 50%) 0 0 / 4px 4px;
+  display: grid; place-items: center; padding: 16px; overflow-y: auto;
+}
+.modal {
+  width: min(680px, 100%); background: var(--panel);
+  border: 4px solid var(--ink);
+  box-shadow: inset 0 0 0 4px var(--bg2), inset 0 0 0 6px var(--line);
+  clip-path: var(--notch);
+  padding: 28px 28px 24px;
+}
+.modal .eyebrow { color: var(--muted); margin: 0 0 8px; }
 .modal p { margin: 0 0 12px; max-width: 60ch; }
-.rules { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 16px 0 20px; padding: 14px 16px; background: var(--raise); border-radius: 6px; font-size: 13px; }
-.rules dt { color: var(--amber); font-family: var(--font-display); }
+.rules { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 16px 0 20px; padding: 12px 16px; background: var(--bg2); border: 2px solid var(--line); }
+.rules dt { color: var(--amber); }
 .rules dd { margin: 0; }
-.modal .btn-row .btn { padding: 10px 18px; font-size: 14px; }
-.final-score { display: flex; align-items: baseline; gap: 14px; margin: 10px 0 4px; font-family: var(--font-display); }
-.final-score b { font-size: 56px; font-weight: 400; color: var(--amber); line-height: 1; }
-.final-title { font-size: 20px; margin: 0 0 16px; }
-.final-title span { color: var(--muted); font-size: 12px; display: block; letter-spacing: .14em; }
-table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.summary th, .summary td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-.summary th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.modal .btn-row .btn { padding: 8px 20px; }
+.final-score { display: flex; align-items: baseline; gap: 16px; margin: 8px 0 4px; flex-wrap: wrap; }
+.final-score b { font-family: var(--font-px); font-size: 48px; line-height: 48px; font-weight: 400; color: var(--amber-hi); text-shadow: 4px 4px 0 var(--amber-dk); font-variant-numeric: tabular-nums; }
+.final-score span { color: var(--muted); }
+table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.summary th, .summary td { padding: 2px 8px; border-bottom: 2px solid var(--line); text-align: left; }
+.summary th { color: var(--amber); font-weight: 400; }
 .summary td.r, .summary th.r { text-align: right; }
 .summary .ok { color: var(--ok); }
 .summary .ng { color: var(--muted); }
+.summary tfoot td { color: var(--muted); border-bottom: 0; }
 
 .toasts { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 30; width: min(560px, calc(100% - 32px)); pointer-events: none; }
-.toast { background: #252d3a; border: 1px solid #3a4658; border-left: 4px solid var(--amber); padding: 10px 14px; border-radius: 4px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: rise .25s ease both; }
-.toast.is-bad { border-left-color: var(--shu); }
-.toast b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 15px; }
-@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+.toast { background: var(--raise); border: 2px solid var(--bg2); box-shadow: inset 4px 0 0 var(--amber), inset 0 0 0 2px var(--line-hi); padding: 8px 14px 8px 18px; clip-path: var(--notch-sm); animation: rise .2s steps(3) both; }
+.toast.is-bad { box-shadow: inset 4px 0 0 var(--shu), inset 0 0 0 2px var(--line-hi); }
+.toast b { display: block; font-weight: 400; color: var(--amber); }
+@keyframes rise { from { transform: translateY(12px); opacity: 0; } }
 
-.loading { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--amber); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ---------- responsive ---------- */
-@media (max-width: 1180px) {
-  .desk { grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 34%); }
-  .pane-ticket { grid-row: 1 / span 2; }
-  .pane-ref { grid-column: 2; border-left: 1px solid var(--line); border-top: 1px solid var(--line); }
-}
-@media (max-width: 760px) {
-  html, body { height: auto; }
-  .app { height: auto; display: block; }
-  .hud { flex-wrap: wrap; gap: 10px; }
-  .brand b { font-size: 18px; }
-  .stat b { font-size: 17px; }
-  .queue { order: 3; flex-basis: 100%; }
-  .stats { margin-left: auto; }
-  .desk { display: flex; flex-direction: column; }
-  .pane + .pane { border-left: 0; border-top: 1px solid var(--line); }
-  .ticket-scroll { overflow: visible; }
-  .editor { height: 180px; }
-  .results { max-height: 70vh; }
-  .tab-panel { max-height: 60vh; }
-  .modal { padding: 22px 18px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
-}
+.loading { display: inline-block; width: 12px; height: 12px; background: var(--amber); animation: blink .6s steps(1) infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes blink { 50% { opacity: 0; } }
 
 /* =====================================================================
    演出（fx.js）
    ===================================================================== */
 
-/* ---------- CRT の走査線とビネット ---------- */
+/* ---------- ブラウン管の走査線とビネット ---------- */
 .crt { position: fixed; inset: 0; pointer-events: none; z-index: 50;
   background:
-    repeating-linear-gradient(to bottom, rgba(0,0,0,.08) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,.38) 100%);
-  mix-blend-mode: multiply; }
+    repeating-linear-gradient(to bottom, rgba(0,0,0,.06) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, transparent 65%, rgba(0,0,0,.35) 100%); }
 
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 
 /* ---------- カットイン ---------- */
-.cutin { position: absolute; left: 0; right: 0; top: 38%; display: grid; place-items: center; }
+.cutin { position: absolute; left: 0; right: 0; top: 36%; }
 .cutin-band {
-  position: relative; width: 120%; margin-left: -10%; padding: 16px 0 14px;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  transform: skewY(-4deg);
-  background: linear-gradient(90deg, transparent, rgba(16,20,27,.94) 12%, rgba(16,20,27,.94) 88%, transparent);
-  border-top: 3px solid var(--amber); border-bottom: 3px solid var(--amber);
-  animation: cutBand 1.6s cubic-bezier(.2,.9,.2,1) both;
+  --band: var(--bg2); --edge: var(--amber);
+  position: relative; padding: 20px 16px 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: var(--band);
+  border-top: 8px solid var(--edge); border-bottom: 8px solid var(--edge);
+  animation: cutBand 1.6s steps(1, end) both;
 }
-.cutin-band b { font-family: var(--font-display); font-weight: 400; font-size: clamp(34px, 7vw, 76px); letter-spacing: .08em; line-height: 1.05; color: #fff; text-shadow: 0 0 18px rgba(239,166,58,.8), 3px 3px 0 rgba(0,0,0,.6); animation: cutText 1.6s cubic-bezier(.2,.9,.2,1) both; }
-.cutin-band span { font-family: var(--font-display); font-size: clamp(14px, 2.4vw, 22px); color: var(--amber); letter-spacing: .12em; }
-@keyframes cutBand { 0% { transform: skewY(-4deg) scaleY(0); } 12% { transform: skewY(-4deg) scaleY(1); } 82% { transform: skewY(-4deg) scaleY(1); opacity: 1; } 100% { transform: skewY(-4deg) scaleY(0); opacity: 0; } }
-@keyframes cutText { 0% { transform: translateX(-60vw); } 16% { transform: translateX(0); } 80% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(60vw); opacity: 0; } }
-.cutin.is-solve .cutin-band { border-color: var(--ok); }
-.cutin.is-solve .cutin-band b { text-shadow: 0 0 20px rgba(63,182,127,.9), 3px 3px 0 rgba(0,0,0,.6); }
-.cutin.is-solve .cutin-band span { color: #8ff0bf; }
-.cutin.is-reject .cutin-band, .cutin.is-shimatsu .cutin-band { border-color: var(--shu); background: linear-gradient(90deg, transparent, rgba(40,10,8,.94) 12%, rgba(40,10,8,.94) 88%, transparent); }
-.cutin.is-reject .cutin-band b, .cutin.is-shimatsu .cutin-band b { text-shadow: 0 0 20px rgba(212,54,31,.9), 3px 3px 0 rgba(0,0,0,.6); }
-.cutin.is-reject .cutin-band span, .cutin.is-shimatsu .cutin-band span { color: #ff9a88; }
-.cutin.is-combo { top: 54%; }
-.cutin.is-combo .cutin-band { border-color: #ffdf6b; }
-.cutin.is-combo .cutin-band b { color: #ffdf6b; text-shadow: 0 0 20px rgba(255,223,107,.9), 3px 3px 0 rgba(0,0,0,.6); }
-.cutin.is-incoming { top: 22%; }
-.cutin.is-incoming .cutin-band { border-color: #8db7ff; }
-.cutin.is-incoming .cutin-band b { font-size: clamp(26px, 5vw, 52px); text-shadow: 0 0 18px rgba(141,183,255,.9), 3px 3px 0 rgba(0,0,0,.6); }
-.cutin.is-incoming .cutin-band span { color: #b9d1ff; }
+/* 帯の上下に市松模様のディザ */
+.cutin-band::before, .cutin-band::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 8px;
+  background: repeating-conic-gradient(var(--edge) 0 25%, transparent 0 50%) 0 0 / 8px 8px;
+}
+.cutin-band::before { top: -16px; }
+.cutin-band::after { bottom: -16px; }
+.cutin-band b { font-family: var(--font-px); font-weight: 400; font-size: 48px; line-height: 56px; color: #fff; text-shadow: 4px 4px 0 var(--edge), 8px 8px 0 #000; text-align: center; animation: cutText 1.6s steps(1, end) both; }
+.cutin-band span { font-size: 32px; line-height: 32px; color: var(--edge); text-shadow: 4px 4px 0 #000; text-align: center; }
+@keyframes cutBand {
+  0% { clip-path: inset(50% 0 50% 0); } 4% { clip-path: inset(35% 0 35% 0); } 8% { clip-path: inset(15% 0 15% 0); } 12% { clip-path: inset(-20px 0 -20px 0); }
+  84% { clip-path: inset(-20px 0 -20px 0); } 88% { clip-path: inset(15% 0 15% 0); } 92% { clip-path: inset(35% 0 35% 0); } 96%, 100% { clip-path: inset(50% 0 50% 0); }
+}
+@keyframes cutText {
+  0% { transform: translateX(-100vw); } 6% { transform: translateX(-48px); } 10% { transform: translateX(16px); } 14% { transform: translateX(0); }
+  82% { transform: translateX(0); } 88% { transform: translateX(48px); } 94%, 100% { transform: translateX(100vw); }
+}
+.cutin.is-solve .cutin-band { --edge: var(--ok); }
+.cutin.is-reject .cutin-band, .cutin.is-shimatsu .cutin-band { --edge: var(--shu); --band: #1c0710; }
+.cutin.is-combo { top: 56%; }
+.cutin.is-combo .cutin-band { --edge: var(--yellow); }
+.cutin.is-incoming { top: 20%; }
+.cutin.is-incoming .cutin-band { --edge: var(--cyan); }
+.cutin.is-incoming .cutin-band b { font-size: 32px; line-height: 40px; }
 
 /* ---------- フラッシュ・サイレン ---------- */
-.flash { position: absolute; inset: 0; animation: flash .6s ease-out both; }
-.flash.is-white { background: rgba(255,255,255,.35); }
-.flash.is-red { background: rgba(212,54,31,.32); }
-.flash.is-amber { background: rgba(239,166,58,.22); }
+.flash { position: absolute; inset: 0; animation: flash .5s steps(4, end) both; }
+.flash.is-white { background: rgba(255,255,255,.4); }
+.flash.is-red { background: rgba(228,59,68,.4); }
+.flash.is-amber { background: rgba(247,168,35,.28); }
 @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
-.siren { position: absolute; inset: 0; animation: siren .45s linear 4; box-shadow: inset 0 0 120px 30px rgba(212,54,31,.75); }
-@keyframes siren { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+.siren { position: absolute; inset: 0; box-shadow: inset 0 0 0 16px var(--shu), inset 0 0 0 32px rgba(228,59,68,.5); animation: blink .4s steps(1) 4; }
 
 /* ---------- パーティクル・得点 ---------- */
-.particle { position: absolute; display: block; border-radius: 1px; will-change: transform, opacity; }
-.float-text { position: absolute; transform: translateX(-50%); font-family: var(--font-display); font-size: 26px; animation: floatUp 1.3s ease-out both; text-shadow: 2px 2px 0 rgba(0,0,0,.6); white-space: nowrap; }
-.float-text.is-plus { color: #ffdf6b; }
-.float-text.is-minus { color: #ff7a66; }
-@keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.6); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, 46px) scale(1); } }
+.particle { position: absolute; display: block; will-change: transform, opacity; }
+.float-text { position: absolute; transform: translateX(-50%); font-family: var(--font-px); font-size: 16px; line-height: 16px; animation: floatUp 1.2s steps(10, end) both; text-shadow: 4px 4px 0 #000; white-space: nowrap; }
+.float-text.is-plus { color: var(--yellow); }
+.float-text.is-minus { color: var(--shu); }
+@keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 8px); } 15% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 48px); } }
 
-/* ---------- 会話ウィンドウ ---------- */
-.comm-dock { position: fixed; right: 16px; bottom: 16px; z-index: 25; width: min(440px, calc(100% - 32px)); pointer-events: none; }
+/* ---------- 会話ウィンドウ（RPGのメッセージ枠） ---------- */
+.comm-dock { position: fixed; right: 16px; bottom: 16px; z-index: 25; width: min(480px, calc(100% - 32px)); pointer-events: none; }
 .comm {
+  --edge: var(--ink);
   pointer-events: auto; cursor: pointer;
-  display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start;
-  padding: 12px 14px 12px 12px;
-  background: rgba(14,18,25,.96); border: 2px solid #3d4858; border-radius: 6px;
-  box-shadow: 0 14px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.03);
-  transform: translateY(20px); opacity: 0; transition: transform .2s ease, opacity .2s ease;
+  display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start;
+  padding: 14px 18px 14px 14px;
+  background: var(--bg2);
+  border: 4px solid var(--edge);
+  box-shadow: inset 0 0 0 2px #000;
+  clip-path: var(--notch);
+  opacity: 0; transform: translateY(16px);
   position: relative;
 }
-.comm.is-in { transform: none; opacity: 1; }
-.comm.is-out { transform: translateY(12px); opacity: 0; }
-.comm-face { width: 64px; height: 64px; background: #232b38; border: 2px solid #3d4858; border-radius: 4px; overflow: hidden; }
-.comm-face svg { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
-.comm:not(.is-done) .comm-face svg { animation: talk .18s steps(2) infinite; }
-@keyframes talk { 50% { transform: translateY(1px); } }
-.comm-name { font-family: var(--font-display); font-size: 15px; color: var(--amber); line-height: 1.2; margin-bottom: 4px; }
-.comm-name small { font-family: var(--font-body); font-size: 10.5px; color: var(--muted); margin-left: 8px; letter-spacing: .08em; }
-.comm-text { margin: 0; font-size: 13.5px; line-height: 1.7; min-height: 2.6em; }
-.comm-text code { font-family: var(--font-code); font-size: .92em; background: rgba(255,255,255,.08); padding: 0 4px; border-radius: 3px; }
-.comm-close { position: absolute; right: 8px; bottom: 6px; border: 0; background: none; color: var(--amber); font-size: 10px; padding: 2px; animation: blink 1s steps(1) infinite; }
+.comm.is-in { animation: commIn .2s steps(3, end) forwards; }
+.comm.is-out { animation: commOut .2s steps(3, end) forwards; }
+@keyframes commIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes commOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(12px); } }
+.comm-face { box-sizing: content-box; width: 72px; height: 72px; background: var(--raise); border: 4px solid var(--line); }
+.comm-face svg { width: 72px; height: 72px; display: block; }
+.comm:not(.is-done) .comm-face svg { animation: talk .24s steps(1) infinite; }
+@keyframes talk { 50% { transform: translateY(4px); } }
+.comm-name { color: var(--edge); margin-bottom: 4px; }
+.comm-name small { font-size: 16px; color: var(--muted); margin-left: 8px; }
+.comm-text { margin: 0; min-height: 48px; }
+.comm-close { position: absolute; right: 10px; bottom: 6px; border: 0; background: none; color: var(--edge); font-size: 16px; padding: 0; animation: blink 1s steps(1) infinite; }
 .comm:not(.is-done) .comm-close { visibility: hidden; }
-.comm-cs { border-color: #7a4a3a; }
-.comm-cs .comm-name { color: #ff9f80; }
-.comm-infra { border-color: #2f6b52; }
-.comm-infra .comm-name { color: #6fd4a4; }
-.comm-bucho { border-color: var(--shu); box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 24px rgba(212,54,31,.35); }
-.comm-bucho .comm-name { color: #ff7a66; }
+.comm-senpai { --edge: var(--ink); }
+.comm-cs { --edge: #ff9f80; }
+.comm-infra { --edge: #6fd48a; }
+.comm-bucho { --edge: var(--shu); }
 
 /* ---------- 起動ログ ---------- */
-.boot { position: fixed; inset: 0; z-index: 60; background: #07090c; display: grid; place-items: center; padding: 24px; cursor: pointer; transition: opacity .35s ease; }
-.boot.is-out { opacity: 0; }
-.boot-text { margin: 0; width: min(640px, 100%); font-family: var(--font-code); font-size: clamp(12px, 2.4vw, 15px); line-height: 1.9; color: #9ff0c4; text-shadow: 0 0 8px rgba(63,182,127,.6); white-space: pre-wrap; }
-.boot-skip { position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; color: #3e5a4a; font-size: 11px; letter-spacing: .14em; margin: 0; }
+.boot { position: fixed; inset: 0; z-index: 60; background: #05060a; display: grid; place-items: center; padding: 24px; cursor: pointer; }
+.boot.is-out { animation: fadeout .36s steps(4, end) forwards; }
+.boot-text { margin: 0; width: min(680px, 100%); font-family: var(--font-jp); font-size: 16px; line-height: 32px; color: var(--ok); text-shadow: 0 0 4px rgba(99,199,77,.5); white-space: pre-wrap; }
+.boot-skip { position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; color: var(--ok-dk); margin: 0; }
 
 /* ---------- タイトル画面 ---------- */
-.overlay.is-title { background: #07090c; backdrop-filter: none; padding: 0; }
-.overlay.is-title .modal { width: 100%; max-width: none; min-height: 100%; background: transparent; border: 0; box-shadow: none; border-radius: 0; padding: 0; display: grid; place-items: center; position: relative; }
-.title-rain { position: fixed; inset: 0; overflow: hidden; z-index: 0; opacity: .22; mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent); }
-.title-rain pre { margin: 0; font-family: var(--font-code); font-size: 12px; line-height: 1.6; color: #5f7a6d; animation: rain 60s linear infinite; }
-.title-rain .lv-warn { color: #b88a3a; }
-.title-rain .lv-error { color: #b4513f; }
+.overlay.is-title { background: #05060a; padding: 0; }
+.overlay.is-title .modal { width: 100%; max-width: none; min-height: 100%; background: transparent; border: 0; box-shadow: none; clip-path: none; padding: 0; display: grid; place-items: center; position: relative; }
+.title-rain { position: fixed; inset: 0; overflow: hidden; z-index: 0; opacity: .18;
+  mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent); }
+.title-rain pre { margin: 0; font-family: var(--font-jp); font-size: 16px; line-height: 24px; color: var(--ok); animation: rain 90s steps(900) infinite; }
+.title-rain .lv-warn { color: var(--amber); }
+.title-rain .lv-error { color: var(--shu); }
 @keyframes rain { from { transform: translateY(0); } to { transform: translateY(-50%); } }
-.title-inner { position: relative; z-index: 1; width: min(760px, 100%); padding: 40px 24px; text-align: center; }
-.title-inner .eyebrow { font-family: var(--font-code); letter-spacing: .3em; color: #6f8a7d; font-size: 11px; }
-.logo { margin: 6px 0 2px; font-family: var(--font-display); font-weight: 400; font-size: clamp(38px, 9vw, 84px); line-height: 1.1; letter-spacing: .04em; }
-.logo-ja { position: relative; display: inline-block; color: #fff6e6; text-shadow: 0 0 6px rgba(239,166,58,.9), 0 0 28px rgba(239,166,58,.55), 4px 4px 0 #3a2508; animation: flicker 6s infinite; }
-.logo-ja::before, .logo-ja::after { content: attr(data-text); position: absolute; inset: 0; pointer-events: none; text-shadow: none; }
-.logo-ja::before { color: #ff4d6d; clip-path: inset(0 0 60% 0); animation: glitch 3.2s steps(1) infinite; opacity: .7; }
-.logo-ja::after { color: #4dd2ff; clip-path: inset(55% 0 0 0); animation: glitch 3.2s steps(1) infinite reverse; opacity: .7; }
-@keyframes glitch { 0%, 88%, 100% { transform: none; opacity: 0; } 89% { transform: translate(-4px, 1px); opacity: .8; } 92% { transform: translate(4px, -1px); opacity: .8; } 95% { transform: translate(-2px, 0); opacity: .6; } }
-@keyframes flicker { 0%, 96%, 100% { opacity: 1; } 97% { opacity: .55; } 98% { opacity: 1; } 99% { opacity: .7; } }
-.title-inner .cursor { display: inline-block; width: .45em; height: .85em; background: var(--amber); vertical-align: -0.06em; margin-left: .08em; animation: blink 1s steps(1) infinite; box-shadow: 0 0 14px rgba(239,166,58,.8); }
+.title-inner { position: relative; z-index: 1; width: min(800px, 100%); padding: 40px 24px; text-align: center; }
 .title-inner p { margin-left: auto; margin-right: auto; }
-.logo-en { max-width: none !important; margin: 6px auto 22px !important; line-height: 1.6; font-family: var(--font-code); font-size: 12px; letter-spacing: .18em; color: var(--muted); }
-.cast { display: flex; justify-content: center; gap: 18px; margin: 0 0 18px; flex-wrap: wrap; }
-.cast figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: bob 2.4s ease-in-out infinite; }
+.title-inner .eyebrow { color: var(--ok); font-family: var(--font-px); font-size: 8px; line-height: 16px; }
+.logo-sub { margin: 0 auto 28px !important; color: var(--ink); }
+.logo { margin: 8px 0 0; font-weight: 400; font-size: 64px; line-height: 80px; }
+.logo-ja { position: relative; display: inline-block; color: #fff1c1; text-shadow: 4px 4px 0 var(--amber), 8px 8px 0 var(--amber-dk), 12px 12px 0 #000; }
+.logo-ja::before, .logo-ja::after { content: attr(data-text); position: absolute; inset: 0; pointer-events: none; text-shadow: none; opacity: 0; }
+.logo-ja::before { color: var(--pink); clip-path: inset(0 0 55% 0); animation: glitch 3.2s steps(1) infinite; }
+.logo-ja::after { color: var(--cyan); clip-path: inset(55% 0 0 0); animation: glitch 3.2s steps(1) infinite reverse; }
+@keyframes glitch { 0%, 88%, 100% { transform: none; opacity: 0; } 89% { transform: translate(-8px, 0); opacity: .9; } 92% { transform: translate(8px, 0); opacity: .9; } 95% { transform: translate(-4px, 0); opacity: .7; } }
+.title-inner .cursor { display: inline-block; width: 32px; height: 56px; background: var(--amber); vertical-align: -4px; margin-left: 8px; animation: blink 1s steps(1) infinite; }
+.logo-en { max-width: none !important; margin: 16px auto 8px !important; font-family: var(--font-px); font-size: 16px; line-height: 24px; color: var(--cyan); text-shadow: 4px 4px 0 #0b3d52; }
+.cast { display: flex; justify-content: center; gap: 24px; margin: 0 0 24px; flex-wrap: wrap; }
+.cast figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; animation: bob 1.2s steps(1) infinite; }
 .cast figure:nth-child(2) { animation-delay: .3s; } .cast figure:nth-child(3) { animation-delay: .6s; } .cast figure:nth-child(4) { animation-delay: .9s; }
-@keyframes bob { 50% { transform: translateY(-5px); } }
-.cast svg { width: 64px; height: 64px; background: #161c26; border: 2px solid #3d4858; border-radius: 4px; image-rendering: pixelated; }
-.cast figcaption { font-family: var(--font-display); font-size: 13px; line-height: 1.2; }
-.cast small { display: block; font-family: var(--font-body); font-size: 10px; color: var(--muted); }
-.story { max-width: 46em; margin: 0 auto 14px !important; font-size: 14px; line-height: 1.9; color: #c9d1dc; }
-.story b { color: var(--amber); font-weight: 600; }
-.overlay.is-title .rules { text-align: left; max-width: 620px; margin: 0 auto 22px; background: rgba(30,37,49,.85); border: 1px solid var(--line); }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.cast svg { box-sizing: content-box; width: 60px; height: 60px; background: var(--raise); border: 4px solid var(--line-hi); }
+.cast figcaption { line-height: 16px; }
+.cast small { display: block; font-size: 16px; line-height: 24px; color: var(--muted); }
+.story { max-width: 44em; margin: 0 auto 16px !important; color: #d6d2c4; }
+.story b { color: var(--amber); font-weight: 400; }
+.overlay.is-title .rules { text-align: left; max-width: 660px; margin: 0 auto 28px; background: rgba(10,11,19,.92); border: 4px solid var(--line-hi); box-shadow: inset 0 0 0 2px #000; }
 .title-actions { justify-content: center; }
 .title-actions .btn-primary { flex: 0 1 auto; }
-.btn-start { font-family: var(--font-display); font-weight: 400; font-size: 20px !important; padding: 12px 36px !important; letter-spacing: .1em; animation: startPulse 1.6s ease-in-out infinite; }
-@keyframes startPulse { 50% { box-shadow: 0 3px 0 #a5660f, 0 0 34px rgba(239,166,58,.6); } }
+.btn-start { font-size: 32px !important; line-height: 40px !important; padding: 12px 40px 16px !important; animation: startBlink 1s steps(1) infinite; }
+@keyframes startBlink { 50% { background: var(--amber-hi); } }
 
 /* ---------- 結果画面 ---------- */
-.overlay.is-final .modal { border-color: #4a3a1c; box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 60px rgba(239,166,58,.12); }
-.final-score b { text-shadow: 0 0 20px rgba(239,166,58,.6); font-variant-numeric: tabular-nums; }
-.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
-.badge { font-family: var(--font-display); font-size: 13px; padding: 2px 10px; border-radius: 3px; border: 1px solid var(--line); background: var(--raise); }
-.badge.is-good { border-color: #2b6b4c; color: #8ff0bf; }
-.badge.is-bad { border-color: #6b2b24; color: #ff9a88; }
-.modal.revealing .reveal-row { opacity: 0; transform: translateX(-12px); }
-.reveal-row { transition: opacity .2s ease, transform .2s ease; }
-.modal.revealing .reveal-row.is-in { opacity: 1; transform: none; }
-.final-rank { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin: 18px 0 4px; padding: 14px 16px; background: var(--raise); border-radius: 6px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+.badge { padding: 2px 10px; border: 2px solid var(--line); background: var(--raise); clip-path: var(--notch-sm); }
+.badge.is-good { border-color: var(--ok-dk); color: var(--ok); }
+.badge.is-bad { border-color: var(--shu-dk); color: var(--pink); }
+.modal.revealing .reveal-row { visibility: hidden; }
+.modal.revealing .reveal-row.is-in { visibility: visible; animation: rowIn .2s steps(2) both; }
+@keyframes rowIn { from { transform: translateX(-16px); } }
+.final-rank { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; margin: 20px 0 4px; padding: 16px; background: var(--bg2); border: 2px solid var(--line); }
 .modal.revealing .final-rank { visibility: hidden; }
-.modal.revealed .final-rank .rank-stamp { animation: slamRank .5s cubic-bezier(.2,1.6,.4,1) both; }
-@keyframes slamRank { 0% { transform: rotate(-12deg) scale(2.6); opacity: 0; } 100% { transform: rotate(-12deg) scale(1); opacity: 1; } }
-.rank-stamp { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--shu); color: var(--shu); display: grid; place-items: center; transform: rotate(-12deg); font-weight: 600; font-size: 15px; letter-spacing: .1em; box-shadow: inset 0 0 0 3px rgba(212,54,31,.25); }
-.final-rank .final-title { font-family: var(--font-display); font-size: clamp(20px, 4vw, 28px); margin: 0 0 4px; color: #fff6e6; }
-.final-line { margin: 0 !important; color: var(--muted); font-size: 13px; }
+.modal.revealed .final-rank .rank-stamp { animation: slam .32s steps(4, end) both; }
+.rank-stamp { position: relative; width: 72px; height: 72px; border: 4px solid var(--shu); color: var(--shu); display: grid; place-items: center; font-size: 16px; }
+.rank-stamp::before { content: ""; position: absolute; inset: 4px; border: 2px solid var(--shu); }
+.final-rank .final-title { font-size: 32px; line-height: 40px; margin: 0 0 4px; color: var(--amber-hi); text-shadow: 4px 4px 0 var(--amber-dk); }
+.final-line { margin: 0 !important; color: var(--muted); }
 
+/* ---------- responsive ---------- */
+@media (max-width: 1280px) {
+  .desk { grid-template-columns: minmax(340px, 380px) minmax(0, 1fr) minmax(260px, 300px); }
+}
+@media (max-width: 1180px) {
+  .desk { grid-template-columns: minmax(340px, 380px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 36%); }
+  .pane-ticket { grid-row: 1 / span 2; }
+  .pane-ref { grid-column: 2; border-left: 4px solid var(--bg2); border-top: 4px solid var(--bg2); }
+}
 @media (max-width: 760px) {
+  html, body { height: auto; }
+  .app { height: auto; display: block; }
+  .hud { flex-wrap: wrap; gap: 10px; }
+  .queue { order: 3; flex-basis: 100%; }
+  .brand { flex-basis: 100%; }
+  .stats { flex-basis: 100%; gap: 12px; flex-wrap: wrap; justify-content: space-between; row-gap: 8px; }
+  .desk { display: flex; flex-direction: column; }
+  .pane + .pane { border-left: 0; box-shadow: none; border-top: 4px solid var(--bg2); }
+  .ticket-scroll { overflow: visible; }
+  .editor { height: 192px; }
+  .results { max-height: 70vh; }
+  .tab-panel { max-height: 60vh; }
+  .modal { padding: 22px 18px; }
+  .stamp { right: 40px; }
+  .cutin-band b { font-size: 24px; line-height: 32px; }
+  .cutin-band span { font-size: 16px; line-height: 24px; }
+  .cutin.is-incoming .cutin-band b { font-size: 16px; line-height: 24px; }
   .comm-dock { right: 8px; left: 8px; bottom: 8px; width: auto; }
-  .comm { grid-template-columns: 48px 1fr; }
-  .comm-face { width: 48px; height: 48px; }
+  .comm-face, .comm-face svg { width: 48px; height: 48px; }
   .cast svg { width: 48px; height: 48px; }
   .title-inner { padding: 28px 16px; }
+  .logo { font-size: 32px; line-height: 48px; }
+  .title-inner .cursor { width: 16px; height: 32px; }
+  .btn-start { font-size: 16px !important; line-height: 24px !important; padding: 12px 32px !important; }
+  .final-score b { font-size: 32px; line-height: 32px; }
+  .final-rank .final-title { font-size: 16px; line-height: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
   .crt { display: none; }
   .title-rain pre { animation: none; }
 }
@@ -564,10 +627,10 @@ table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-
     <aside class="pane pane-ref" aria-label="資料">
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-btn-schema" aria-selected="true" aria-controls="tab-schema" type="button">テーブル定義</button>
-        <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="tab-history" type="button">実行履歴</button>
+        <button role="tab" id="tab-btn-notes" aria-selected="false" aria-controls="tab-notes" type="button">運用メモ</button>
       </div>
       <div class="tab-panel" id="tab-schema" role="tabpanel" aria-labelledby="tab-btn-schema"></div>
-      <div class="tab-panel" id="tab-history" role="tabpanel" aria-labelledby="tab-btn-history" hidden></div>
+      <div class="tab-panel" id="tab-notes" role="tabpanel" aria-labelledby="tab-btn-notes" hidden></div>
     </aside>
   </main>
 </div>
@@ -609,18 +672,18 @@ table.summary { width: 100%; border-collapse: collapse; font-size: 12.5px; font-
   const WEND = '2026-11-13 01:00:00'; // UTC。JST 11/13 10:00 = ゲーム内の「今」
 
   const SCHEMA = `
-CREATE TABLE worlds (
+CREATE TABLE mst_worlds (
   world_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL
 );
-CREATE TABLE users (
+CREATE TABLE usr_users (
   user_id INTEGER PRIMARY KEY,
   public_id TEXT NOT NULL UNIQUE,
   platform TEXT NOT NULL,
   status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE TABLE characters (
+CREATE TABLE usr_characters (
   character_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   world_id INTEGER NOT NULL,
@@ -630,20 +693,20 @@ CREATE TABLE characters (
   created_at TEXT NOT NULL,
   deleted_at TEXT
 );
-CREATE TABLE m_items (
+CREATE TABLE mst_items (
   item_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   category TEXT NOT NULL,
   rarity TEXT NOT NULL,
   tradable INTEGER NOT NULL
 );
-CREATE TABLE m_products (
+CREATE TABLE mst_products (
   product_id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   price_jpy INTEGER NOT NULL,
   gem INTEGER NOT NULL
 );
-CREATE TABLE login_logs (
+CREATE TABLE log_login (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   result TEXT NOT NULL,
@@ -652,7 +715,7 @@ CREATE TABLE login_logs (
   device_id TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE TABLE character_logs (
+CREATE TABLE log_character (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   character_id INTEGER NOT NULL,
@@ -662,7 +725,7 @@ CREATE TABLE character_logs (
   device_id TEXT,
   created_at TEXT NOT NULL
 );
-CREATE TABLE item_logs (
+CREATE TABLE log_item (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   character_id INTEGER,
@@ -674,7 +737,7 @@ CREATE TABLE item_logs (
   detail TEXT,
   created_at TEXT NOT NULL
 );
-CREATE TABLE currency_logs (
+CREATE TABLE log_currency (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   currency TEXT NOT NULL,
@@ -684,7 +747,7 @@ CREATE TABLE currency_logs (
   ref_id TEXT,
   created_at TEXT NOT NULL
 );
-CREATE TABLE payment_logs (
+CREATE TABLE log_payment (
   payment_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   product_id TEXT NOT NULL,
@@ -694,7 +757,7 @@ CREATE TABLE payment_logs (
   status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE TABLE error_logs (
+CREATE TABLE log_error (
   log_id INTEGER PRIMARY KEY,
   level TEXT NOT NULL,
   service TEXT NOT NULL,
@@ -702,12 +765,12 @@ CREATE TABLE error_logs (
   user_id INTEGER,
   created_at TEXT NOT NULL
 );
-CREATE INDEX idx_chars_user ON characters(user_id);
-CREATE INDEX idx_login_user ON login_logs(user_id, created_at);
-CREATE INDEX idx_charlog_user ON character_logs(user_id, created_at);
-CREATE INDEX idx_item_user ON item_logs(user_id, created_at);
-CREATE INDEX idx_cur_user ON currency_logs(user_id, created_at);
-CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
+CREATE INDEX idx_chars_user ON usr_characters(user_id);
+CREATE INDEX idx_login_user ON log_login(user_id, created_at);
+CREATE INDEX idx_charlog_user ON log_character(user_id, created_at);
+CREATE INDEX idx_item_user ON log_item(user_id, created_at);
+CREATE INDEX idx_cur_user ON log_currency(user_id, created_at);
+CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
 `;
 
   const ITEMS = [
@@ -1031,7 +1094,7 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
       ['WARN', 'GameAPI', () => `slow request: POST /api/v2/battle/result took ${int(1200, 4800)}ms`],
       ['WARN', 'GameAPI', () => `rate limit exceeded: /api/v2/gacha/draw (ip=${randIp('JP')})`],
       ['ERROR', 'GameAPI', () => 'upstream timeout: matchmaking-svc (30000ms)'],
-      ['WARN', 'MySQL', () => `slow query detected (${(int(20, 90) / 10).toFixed(1)}s): SELECT ... FROM item_logs WHERE ...`],
+      ['WARN', 'MySQL', () => `slow query detected (${(int(20, 90) / 10).toFixed(1)}s): SELECT ... FROM log_item WHERE ...`],
       ['ERROR', 'Redis', () => 'connection reset by peer (ranking-cache-02)'],
       ['WARN', 'ChatService', () => `message rejected by NG word filter (len=${int(5, 80)})`],
       ['ERROR', 'AuctionService', () => `bid conflict, rolled back (auction:${int(80000, 99999)})`],
@@ -1204,12 +1267,12 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
       for (const r of rows) st.run(r);
       st.free();
     };
-    ins('worlds', g.worlds); ins('m_items', g.items); ins('m_products', g.products);
-    ins('users', g.users); ins('characters', g.characters);
-    ins('login_logs', g.login); ins('character_logs', g.charlog); ins('item_logs', g.item);
-    ins('currency_logs', g.cur); ins('payment_logs', g.pay); ins('error_logs', g.err);
+    ins('mst_worlds', g.worlds); ins('mst_items', g.items); ins('mst_products', g.products);
+    ins('usr_users', g.users); ins('usr_characters', g.characters);
+    ins('log_login', g.login); ins('log_character', g.charlog); ins('log_item', g.item);
+    ins('log_currency', g.cur); ins('log_payment', g.pay); ins('log_error', g.err);
     db.run('COMMIT');
-    return { db, keys: g.keys, counts: { users: g.users.length, characters: g.characters.length, login_logs: g.login.length, character_logs: g.charlog.length, item_logs: g.item.length, currency_logs: g.cur.length, payment_logs: g.pay.length, error_logs: g.err.length } };
+    return { db, keys: g.keys, counts: { usr_users: g.users.length, usr_characters: g.characters.length, log_login: g.login.length, log_character: g.charlog.length, log_item: g.item.length, log_currency: g.cur.length, log_payment: g.pay.length, log_error: g.err.length } };
   }
 
   const api = { buildDatabase, generate, toT, fmt, fmtJ, WEND };
@@ -1515,17 +1578,17 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
   const BASE_PAL = { k: '#1b2330', s: '#f1c8a0', e: '#1b2330', m: '#b0504a', w: '#eef1f4' };
   const PEOPLE = {
     senpai: {
-      name: '黒田', role: '先輩エンジニア',
+      name: 'Kさん', role: '先輩エンジニア',
       pal: { h: '#262a33', g: '#9fd0ff', c: '#4a5568' },
       px: ['...hhhhhh...', '..hhhhhhhh..', '.hhhhhhhhhh.', '.hhsssssssh.', '.hsgggsgggsh', '.hsgegsgegsh', '.hssssssssh.', '..sssmmsss..', '...ssssss...', '..cccsscccc.', '.cccccccccc.', 'cccccccccccc'],
     },
     cs: {
-      name: '佐倉', role: 'CSチーム',
+      name: 'Uさん', role: 'CSチーム',
       pal: { h: '#8a5232', p: '#c0c8d4', c: '#e07a5f' },
       px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'phhhhhhhhhhp', 'phhsssssshhp', 'phsesssseshp', 'phsssssssshp', 'phssmmmmsshp', '.hhssssssshh', '.hh..pp..hh.', '...cccccc...', '..cccwwccc..', '.cccccccccc.'],
     },
     infra: {
-      name: '大森', role: 'インフラ担当',
+      name: 'Hさん', role: 'インフラ担当',
       pal: { r: '#2f7d5b', h: '#3a3026', d: '#5a4030', c: '#556070' },
       px: ['...rrrrrr...', '..rrrrrrrr..', '.rrrrrrrrrrr', '..hssssssh..', '..sesssses..', '..ssssssss..', '..sssmmsss..', '..dddddddd..', '...dddddd...', '...cccccc...', '.cccccccccc.', 'cccccccccccc'],
     },
@@ -1627,14 +1690,14 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
   function burst(x, y, opts) {
     if (reduced()) return;
     opts = opts || {};
-    const colors = opts.colors || ['#efa63a', '#3fb67f', '#eef1f4', '#d4361f', '#8db7ff'];
+    const colors = opts.colors || ['#f7a823', '#63c74d', '#f4f1e4', '#e43b44', '#2ce8f5', '#fee761'];
     const n = opts.count || 36;
     const layer = $('#fx-layer');
     for (let i = 0; i < n; i++) {
       const p = document.createElement('i');
       p.className = 'particle';
-      const size = 4 + Math.random() * 6;
-      p.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size * (Math.random() < 0.5 ? 1 : 0.5)}px;background:${colors[i % colors.length]}`;
+      const size = Math.random() < 0.6 ? 4 : 8; // ドットに合わせて 4px 単位の正方形
+      p.style.cssText = `left:${Math.round(x)}px;top:${Math.round(y)}px;width:${size}px;height:${size}px;background:${colors[i % colors.length]}`;
       layer.appendChild(p);
       const ang = Math.random() * Math.PI * 2, sp = 90 + Math.random() * 220;
       const dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp - 120;
@@ -1741,8 +1804,8 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
 
   // ---------------------------------------------------------------- 資料
   const NOTES = `
-    <h4>運用メモ</h4>
     <ul>
+      <li>テーブル名の頭で種類が分かります。<code>usr_</code> ユーザーのデータ、<code>mst_</code> マスター、<code>log_</code> ログ。</li>
       <li>DBの日時はすべて <em>日本時間（JST）</em>。問い合わせの日時もJSTなので、そのまま比べられます。</li>
       <li>SQLite方言。日付で絞るなら <code>created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'</code> や <code>date(created_at) = '2026-11-08'</code>。<code>NOW()</code> も使えます。</li>
       <li>JSON列は <code>json_extract(detail, '$.from')</code> で取り出せます。</li>
@@ -1751,41 +1814,41 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
     </ul>`;
 
   const TABLE_DOCS = [
-    { name: 'users', desc: 'アカウント。問い合わせには公開ID（public_id）が書かれています。', cols: [
+    { name: 'usr_users', desc: 'アカウント。問い合わせには公開ID（public_id）が書かれています。', cols: [
       ['user_id', '内部ID。他のテーブルはこれで参照'], ['public_id', 'ゲーム内に表示されるID（例: U-38127）'], ['platform', 'iOS / Android / PC'],
       ['status', 'ACTIVE / BANNED'], ['created_at', 'アカウント作成日時 <em>JST</em>']] },
-    { name: 'characters', desc: 'キャラクター。削除は論理削除。名前はワールド内で一意。', cols: [
-      ['character_id', 'キャラID'], ['user_id', '持ち主 → users'], ['world_id', '所属ワールド → worlds'], ['name', 'キャラ名'],
+    { name: 'usr_characters', desc: 'キャラクター。削除は論理削除。名前はワールド内で一意。', cols: [
+      ['character_id', 'キャラID'], ['user_id', '持ち主 → usr_users'], ['world_id', '所属ワールド → mst_worlds'], ['name', 'キャラ名'],
       ['job', '職業'], ['level', 'レベル'], ['created_at', '作成日時 <em>JST</em>'], ['deleted_at', '削除日時 <em>JST</em>。NULLなら未削除']] },
-    { name: 'worlds', desc: 'ワールド（サーバー）。', cols: [['world_id', 'ワールドID'], ['name', 'ワールド名']] },
-    { name: 'character_logs', desc: 'キャラクターの操作ログ。', cols: [
+    { name: 'mst_worlds', desc: 'ワールド（サーバー）。', cols: [['world_id', 'ワールドID'], ['name', 'ワールド名']] },
+    { name: 'log_character', desc: 'キャラクターの操作ログ。', cols: [
       ['log_id', 'ログID'], ['user_id', '操作したユーザー'], ['character_id', '対象キャラ'],
       ['action', 'CREATE / DELETE / RESTORE / RENAME / WORLD_TRANSFER'], ['detail', 'JSON。変更前後の値など'],
       ['ip_address', '操作元IP'], ['device_id', '操作元の端末'], ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'login_logs', desc: 'ログイン試行の記録（失敗も含む）。', cols: [
+    { name: 'log_login', desc: 'ログイン試行の記録（失敗も含む）。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ログイン先アカウント'], ['result', 'SUCCESS / FAILED'], ['ip_address', '接続元IP'],
       ['country', 'IPから推定した国コード'], ['device_id', '端末ID'], ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'item_logs', desc: 'アイテムの増減・移動。', cols: [
-      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['item_id', 'アイテム → m_items'],
+    { name: 'log_item', desc: 'アイテムの増減・移動。', cols: [
+      ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['character_id', 'キャラ'], ['item_id', 'アイテム → mst_items'],
       ['item_uid', '装備の個体ID（消耗品はNULL）'],
       ['action', 'GET / USE / SELL / TRADE_OUT / TRADE_IN / ENHANCE_SUCCESS / ENHANCE_FAIL / ENHANCE_DESTROY / STORAGE_IN / STORAGE_OUT / EXPIRE'],
       ['quantity', '個数'], ['target_user_id', 'トレード相手の user_id'], ['detail', 'JSON。入手元、強化前後のレベル、保護の巻物の使用（protect）など'],
       ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'm_items', desc: 'アイテムマスタ。', cols: [
+    { name: 'mst_items', desc: 'アイテムマスタ。', cols: [
       ['item_id', 'アイテムID'], ['name', '名前'], ['category', '武器 / 防具 / 消耗品 など'], ['rarity', 'N / R / SR / SSR / UR'], ['tradable', '1 = トレード可、0 = 不可']] },
-    { name: 'currency_logs', desc: 'ゴールド・ジェムの増減。', cols: [
+    { name: 'log_currency', desc: 'ゴールド・ジェムの増減。', cols: [
       ['log_id', 'ログID'], ['user_id', 'ユーザー'], ['currency', 'GOLD / GEM'], ['amount', '増減（マイナスは消費）'], ['balance_after', '変動後の残高'],
       ['reason', 'QUEST_REWARD / SHOP_BUY / SELL_ITEM / ENHANCE_COST / GUILD_DONATE / AUCTION_BUY / AUCTION_SELL / GACHA / PURCHASE'],
       ['ref_id', '関連ID（ギルド、決済の transaction_id など）'], ['created_at', '発生日時 <em>JST</em>']] },
-    { name: 'payment_logs', desc: 'ストア決済の記録。', cols: [
-      ['payment_id', '決済ID'], ['user_id', 'ユーザー'], ['product_id', '商品 → m_products'], ['price_jpy', '金額（円）'],
+    { name: 'log_payment', desc: 'ストア決済の記録。', cols: [
+      ['payment_id', '決済ID'], ['user_id', 'ユーザー'], ['product_id', '商品 → mst_products'], ['price_jpy', '金額（円）'],
       ['store', 'GooglePlay / AppStore / WebShop'], ['transaction_id', 'ストアの取引ID'], ['status', 'SUCCESS / CANCELED'], ['created_at', '決済日時 <em>JST</em>']] },
-    { name: 'm_products', desc: '課金商品マスタ。', cols: [['product_id', '商品ID'], ['name', '商品名'], ['price_jpy', '価格（円）'], ['gem', '付与されるジェム数']] },
-    { name: 'error_logs', desc: 'サーバーのエラー・警告ログ。', cols: [
+    { name: 'mst_products', desc: '課金商品マスタ。', cols: [['product_id', '商品ID'], ['name', '商品名'], ['price_jpy', '価格（円）'], ['gem', '付与されるジェム数']] },
+    { name: 'log_error', desc: 'サーバーのエラー・警告ログ。', cols: [
       ['log_id', 'ログID'], ['level', 'WARN / ERROR'], ['service', '発生したサービス'], ['message', 'メッセージ'], ['user_id', '関連ユーザー（NULLあり）'], ['created_at', '発生日時 <em>JST</em>']] },
   ];
 
-  const sub = (pub) => `(SELECT user_id FROM users WHERE public_id = '${pub}')`;
+  const sub = (pub) => `(SELECT user_id FROM usr_users WHERE public_id = '${pub}')`;
   const norm = (s) => String(s || '').normalize('NFKC').replace(/[\s#"'`]/g, '').toUpperCase();
   const pubAccept = (id) => (v) => { const n = norm(v); return n === id || n === id.replace('U-', ''); };
 
@@ -1802,29 +1865,29 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
         ['d', 'キャラクターは消えていない（表示の問題）'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（character_logs）', placeholder: '例: 1234', key: 'c1_delete' },
+      evidence: { label: '決め手になったログの log_id（log_character）', placeholder: '例: 1234', key: 'c1_delete' },
       hints: [
-        'users テーブルで公開ID（U-38127）を検索すると、内部の <code>user_id</code> が分かります。ほかのテーブルは user_id で絞り込みます。',
-        'characters でそのユーザーのキャラを確認しましょう。<code>deleted_at</code> に日時が入っていれば削除済みです。',
-        "character_logs で <code>action = 'DELETE'</code> を探し、ip_address と device_id を login_logs の普段のログインと比べましょう。",
+        'usr_users テーブルで公開ID（U-38127）を検索すると、内部の <code>user_id</code> が分かります。ほかのテーブルは user_id で絞り込みます。',
+        'usr_characters でそのユーザーのキャラを確認しましょう。<code>deleted_at</code> に日時が入っていれば削除済みです。',
+        "log_character で <code>action = 'DELETE'</code> を探し、ip_address と device_id を log_login の普段のログインと比べましょう。",
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月3日 21:42 に、お客様が普段ご利用の端末から、キャラクター名の入力確認を経て『シルフィ』の削除操作が行われた記録を確認いたしました。削除から30日以内のため復旧申請が可能ですが、同じ名前が他のお客様に使用されているため、復旧時に名前の変更が必要です。',
       reaction: '……あっ。サブキャラを消すつもりで、間違えたかもしれません。復旧申請します。すみませんでした。',
       explain: 'シルフィは 11/3 21:42:18 に削除されています。直前に普段と同じiPhone・同じIPでログインしており、キャラ名入力による削除確認（<code>confirm: name_input</code>）も通っています。本人の操作と判断できます。削除の直前にエリクサーを友人へ渡しているのも、整理していた様子をうかがわせます。なお、アルファでは 11/5 に別のユーザーが「シルフィ」を作成済み。復旧には名前変更が必要になる点も添えておくと親切です。',
       model: `-- 公開IDから内部の user_id を引く
-SELECT * FROM users WHERE public_id = 'U-38127';
+SELECT * FROM usr_users WHERE public_id = 'U-38127';
 
 -- キャラの状態
-SELECT * FROM characters WHERE user_id = ${sub('U-38127')};
+SELECT * FROM usr_characters WHERE user_id = ${sub('U-38127')};
 
 -- 削除ログ
 SELECT log_id, action, detail, ip_address, device_id, created_at
-FROM character_logs
+FROM log_character
 WHERE user_id = ${sub('U-38127')} AND action = 'DELETE';
 
 -- 普段のログイン元
 SELECT ip_address, device_id, COUNT(*) AS cnt
-FROM login_logs
+FROM log_login
 WHERE user_id = ${sub('U-38127')}
 GROUP BY ip_address, device_id;`,
     },
@@ -1839,21 +1902,21 @@ GROUP BY ip_address, device_id;`,
         ['d', '倉庫の不具合による消失'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（item_logs）', placeholder: '例: 1234', key: 'c2_destroy' },
+      evidence: { label: '決め手になったログの log_id（log_item）', placeholder: '例: 1234', key: 'c2_destroy' },
       hints: [
-        'アイテム名は <code>m_items</code> にあります。item_id を調べて item_logs を絞り込みましょう。',
-        'item_logs をそのユーザー・そのアイテムで絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。',
+        'アイテム名は <code>mst_items</code> にあります。item_id を調べて log_item を絞り込みましょう。',
+        'log_item をそのユーザー・そのアイテムで絞り込み、<code>ORDER BY created_at</code> で時系列に並べましょう。',
         '最後のほうのログに注目。倉庫から出した後、何をしている？ detail の <code>protect</code> は保護の巻物を使ったかどうかです。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、『煌星の大剣』は11月11日 22:01 に倉庫から取り出され、22:03 に+9への強化に成功した後、22:05 に保護の巻物を使用せずに+10への強化を行い、強化失敗により消滅したことを確認いたしました。仕様どおりの挙動のため、補填はいたしかねます。何卒ご理解ください。',
       reaction: '……+9になった勢いでいけると思ったんです。巻物、ケチるんじゃなかった。',
-      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>m_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
-      model: `SELECT * FROM m_items WHERE name = '煌星の大剣';
+      explain: '大剣は 11/10 に倉庫へ入れられた後、11/11 22:01 に倉庫から取り出されています。22:03 に +8→+9 の強化に成功し、22:05 に +9→+10 の強化を保護の巻物なし（<code>protect: false</code>）で行って ENHANCE_DESTROY。以前は保護の巻物を使っていたこともログから分かります。また『煌星の大剣』はトレード不可（<code>mst_items.tradable = 0</code>）なので、トレードの線はそもそもありません。別ユーザーも同じ大剣を持っていますが、item_uid が違う別の個体です。',
+      model: `SELECT * FROM mst_items WHERE name = '煌星の大剣';
 
 SELECT log_id, action, item_uid, detail, created_at
-FROM item_logs
+FROM log_item
 WHERE user_id = ${sub('U-52904')}
-  AND item_id = (SELECT item_id FROM m_items WHERE name = '煌星の大剣')
+  AND item_id = (SELECT item_id FROM mst_items WHERE name = '煌星の大剣')
 ORDER BY created_at;`,
     },
     {
@@ -1867,23 +1930,23 @@ ORDER BY created_at;`,
         ['d', '該当時間帯にゴールド減少の記録はない'],
       ],
       answer: 'a',
-      evidence: { label: '決め手になったログの log_id（currency_logs）', placeholder: '例: 1234', key: 'c3_donate' },
+      evidence: { label: '決め手になったログの log_id（log_currency）', placeholder: '例: 1234', key: 'c3_donate' },
       hints: [
-        "currency_logs をそのユーザーの <code>currency = 'GOLD'</code> で絞り込みましょう。",
+        "log_currency をそのユーザーの <code>currency = 'GOLD'</code> で絞り込みましょう。",
         "11月8日に絞り込みましょう。<code>created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'</code> のように書けます。",
-        'amount の大きなマイナスと reason に注目。login_logs で、その直前に誰がどの端末からログインしたかも確かめましょう。',
+        'amount の大きなマイナスと reason に注目。log_login で、その直前に誰がどの端末からログインしたかも確かめましょう。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月8日 7:47 にお客様の普段の端末からログインがあり、7:51 にギルドへ 4,800,000 ゴールドを寄付する操作が行われていたことを確認いたしました。第三者によるログインの形跡はございません。',
       reaction: '4,800,000……48万のつもりで、ゼロをひとつ多く押してました。ギルマスに相談してきます……。',
       explain: '11/8 07:47 に普段のスマホ・IPでログインし、07:51 に GUILD_DONATE で 4,800,000 ゴールドを寄付しています。「ログインしたら減っていた」という言い分とは逆で、減ったのはログインした後、本人の端末からの操作です。同じ日の夜にも 1万ゴールドの寄付がありますが、こちらは金額が合いません。',
       model: `SELECT log_id, amount, balance_after, reason, ref_id, created_at
-FROM currency_logs
+FROM log_currency
 WHERE user_id = ${sub('U-27730')}
   AND currency = 'GOLD'
   AND created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59'
 ORDER BY created_at;
 
-SELECT * FROM login_logs
+SELECT * FROM log_login
 WHERE user_id = ${sub('U-27730')}
   AND created_at BETWEEN '2026-11-08 00:00:00' AND '2026-11-08 23:59:59';`,
     },
@@ -1900,19 +1963,19 @@ WHERE user_id = ${sub('U-27730')}
       answer: 'b',
       evidence: { label: '『漆黒の堕天使』が今いるワールド名', placeholder: '例: ベータ', accept: (v) => { const n = norm(v); return n.includes('ガンマ') || n === '3' || n === 'GAMMA' || n === 'WORLD3' || n === 'ワールド3'; } },
       hints: [
-        "characters で <code>name = '漆黒の堕天使'</code> を検索すると……複数ヒットするかも。user_id で持ち主を確かめましょう。",
-        'world_id は <code>worlds</code> テーブルと対応しています。問い合わせのワールドと一致していますか？',
-        'character_logs でこのキャラの action を確認しましょう。detail に移動元と移動先が入っています。',
+        "usr_characters で <code>name = '漆黒の堕天使'</code> を検索すると……複数ヒットするかも。user_id で持ち主を確かめましょう。",
+        'world_id は <code>mst_worlds</code> テーブルと対応しています。問い合わせのワールドと一致していますか？',
+        'log_character でこのキャラの action を確認しましょう。detail に移動元と移動先が入っています。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、『漆黒の堕天使』は11月9日 19:14 にワールド移動チケットを使用して、アルファからガンマへ移動しております。キャラクターは削除されておりませんので、ガンマにログインしてご確認ください。',
       reaction: 'ガンマのイベントに行くために移動したの、完全に忘れてました……。いました。よかった……。',
       explain: '11/9 19:14 に、ジェムショップで買ったワールド移動チケットを使い、アルファ（1）からガンマ（3）へ移動しています（<code>WORLD_TRANSFER</code>）。キャラクターは削除されていません。ベータにも同じ名前のキャラがいますが、別のユーザーのものです。',
       model: `SELECT c.*, w.name AS world_name
-FROM characters c JOIN worlds w USING (world_id)
+FROM usr_characters c JOIN mst_worlds w USING (world_id)
 WHERE c.name = '漆黒の堕天使';
 
 SELECT log_id, action, detail, created_at
-FROM character_logs
+FROM log_character
 WHERE user_id = ${sub('U-44590')}
 ORDER BY created_at;`,
     },
@@ -1929,21 +1992,21 @@ ORDER BY created_at;`,
       answer: 'c',
       evidence: { label: '該当する決済の transaction_id', placeholder: '例: GPA.0000-0000-0000-00000', accept: (v) => norm(v) === 'GPA.3391-0042-7781-55102' },
       hints: [
-        'payment_logs をそのユーザーで見てみましょう。<code>status</code> にも注目。',
-        "決済が SUCCESS なら、currency_logs に <code>ref_id = transaction_id</code> の GEM 付与（reason = 'PURCHASE'）があるはずです。",
-        'error_logs の同じ時刻あたりも確認してみましょう。',
+        'log_payment をそのユーザーで見てみましょう。<code>status</code> にも注目。',
+        "決済が SUCCESS なら、log_currency に <code>ref_id = transaction_id</code> の GEM 付与（reason = 'PURCHASE'）があるはずです。",
+        'log_error の同じ時刻あたりも確認してみましょう。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月10日 20:20 のご購入（取引ID: GPA.3391-0042-7781-55102）について、決済は完了していたものの、サーバーの不具合によりジェムが付与されていなかったことを確認いたしました。ご迷惑をおかけし申し訳ございません。ジェム 1,800 個を補填いたします。',
       reaction: 'ちゃんと調べてもらえて安心しました！ありがとうございます！',
-      explain: '11/10 20:18 の決済はユーザーがキャンセル（CANCELED）、20:20 の決済が SUCCESS です。正常な購入なら currency_logs に同じ transaction_id を ref_id に持つ PURCHASE が記録されますが、この決済には存在しません。直後の error_logs には GemGrantService のデッドロックによる付与中断が残っています。不具合として 1,800 ジェムの補填対象です。11/5 の購入は正常に付与されています。',
+      explain: '11/10 20:18 の決済はユーザーがキャンセル（CANCELED）、20:20 の決済が SUCCESS です。正常な購入なら log_currency に同じ transaction_id を ref_id に持つ PURCHASE が記録されますが、この決済には存在しません。直後の log_error には GemGrantService のデッドロックによる付与中断が残っています。不具合として 1,800 ジェムの補填対象です。11/5 の購入は正常に付与されています。',
       model: `SELECT p.*, c.log_id AS grant_log_id, c.amount AS granted
-FROM payment_logs p
-LEFT JOIN currency_logs c
+FROM log_payment p
+LEFT JOIN log_currency c
   ON c.ref_id = p.transaction_id AND c.reason = 'PURCHASE'
 WHERE p.user_id = ${sub('U-73315')}
 ORDER BY p.created_at;
 
-SELECT * FROM error_logs
+SELECT * FROM log_error
 WHERE user_id = ${sub('U-73315')};`,
     },
     {
@@ -1959,24 +2022,24 @@ WHERE user_id = ${sub('U-73315')};`,
       answer: 'b',
       evidence: { label: 'アイテムの移動先アカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-90417') },
       hints: [
-        'login_logs で直近のログインを見てみましょう。result・ip_address・country・device_id に注目。',
-        "item_logs の <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> はアイテムを渡した相手の user_id です。",
-        'target_user_id を users と JOIN すると公開IDが分かります。いつ作られたアカウントかも見てみましょう。',
+        'log_login で直近のログインを見てみましょう。result・ip_address・country・device_id に注目。',
+        "log_item の <code>action = 'TRADE_OUT'</code> を確認。<code>target_user_id</code> はアイテムを渡した相手の user_id です。",
+        'target_user_id を usr_users と JOIN すると公開IDが分かります。いつ作られたアカウントかも見てみましょう。',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、11月12日 12:10 に、お客様が普段ご利用の端末とは異なる海外の環境からログインがあり、その直後にアイテムが別のアカウントへ移動していたことを確認いたしました。第三者による不正ログインの可能性が高いため、至急パスワードの変更をお願いいたします。アイテムの扱いについては、担当部署で調査のうえ改めてご連絡いたします。',
       reaction: 'パスワード、他のサイトと同じのを使ってました……。すぐ変えます。',
       explain: '11/12 12:02〜12:08 に、オランダのIP・見慣れないPC端末から5回ログインに失敗した後、12:10 にログインが成功しています。その直後、天穹の弓・竜鱗の外套・星詠みの耳飾り・エリクサー30個が、11/11 の深夜に作られたばかりのアカウント U-90417 へトレードされました。U-90417 も同じIPからログインしています。11/8 のハイポーションのトレードは普段の端末からの本人操作で、今回とは無関係です。乗っ取りの疑いが強いので、パスワード再設定の案内とセキュリティチームへのエスカレーションが必要です。',
       model: `SELECT log_id, result, ip_address, country, device_id, created_at
-FROM login_logs
+FROM log_login
 WHERE user_id = ${sub('U-61458')}
   AND created_at >= '2026-11-10'
 ORDER BY created_at;
 
 SELECT i.log_id, m.name, i.quantity, u.public_id AS to_public_id,
        u.created_at AS to_created_at, i.created_at
-FROM item_logs i
-JOIN m_items m USING (item_id)
-JOIN users u ON u.user_id = i.target_user_id
+FROM log_item i
+JOIN mst_items m USING (item_id)
+JOIN usr_users u ON u.user_id = i.target_user_id
 WHERE i.user_id = ${sub('U-61458')} AND i.action = 'TRADE_OUT'
 ORDER BY i.created_at;`,
     },
@@ -1994,25 +2057,25 @@ ORDER BY i.created_at;`,
       evidence: { label: '『ミルク』がいるアカウントの公開ID', placeholder: '例: U-12345', accept: pubAccept('U-31846') },
       hints: [
         '問い合わせアカウント（U-15562）の作成日時と、持っているキャラを確認しましょう。',
-        "『ミルク』という名前のキャラは何人もいます。characters を name で検索し、持ち主を洗い出しましょう。",
+        "『ミルク』という名前のキャラは何人もいます。usr_characters を name で検索し、持ち主を洗い出しましょう。",
         '問い合わせアカウントがログインした ip_address から、ほかにログインしているアカウントはありませんか？',
       ],
       reply: 'お問い合わせありがとうございます。調査の結果、現在ご利用のアカウントは11月12日に新しく作成されたもので、『ミルク』は以前の端末でご利用のアカウントに残っていることを確認いたしました。以前の端末で引き継ぎコードを発行し、新しい端末で入力していただくと、『ミルク』のデータを引き継げます。',
       reaction: '引き継ぎコード、発行しただけで入力してませんでした……！前のスマホ、まだ捨ててなくてよかった。',
       explain: 'U-15562 は 11/12 20:02 に新しいiPhoneで作られたアカウントで、『ミルク』の作成記録はありません（よく似た『みるく』があるだけ）。『ミルク』を持つアカウントは複数ありますが、アルファの『ミルク』の持ち主 U-31846 だけが、問い合わせアカウントと同じ自宅回線のIP（114.150.82.9）からログインしています。最終ログインは 11/12 08:05 で「昨日の朝まで遊んでいた」とも一致。引き継ぎをせずに新しいアカウントを作ってしまったと考えられます。',
-      model: `SELECT * FROM users WHERE public_id = 'U-15562';
-SELECT * FROM characters WHERE user_id = ${sub('U-15562')};
+      model: `SELECT * FROM usr_users WHERE public_id = 'U-15562';
+SELECT * FROM usr_characters WHERE user_id = ${sub('U-15562')};
 
 -- 『ミルク』の持ち主たち
-SELECT c.*, u.public_id FROM characters c JOIN users u USING (user_id)
+SELECT c.*, u.public_id FROM usr_characters c JOIN usr_users u USING (user_id)
 WHERE c.name = 'ミルク';
 
 -- 同じIPからログインしているアカウント
 SELECT u.public_id, l.ip_address, COUNT(*) AS cnt,
        MAX(l.created_at) AS last_login
-FROM login_logs l JOIN users u USING (user_id)
+FROM log_login l JOIN usr_users u USING (user_id)
 WHERE l.ip_address IN (
-  SELECT ip_address FROM login_logs WHERE user_id = ${sub('U-15562')}
+  SELECT ip_address FROM log_login WHERE user_id = ${sub('U-15562')}
 )
 GROUP BY u.public_id, l.ip_address;`,
     },
@@ -2025,7 +2088,7 @@ GROUP BY u.public_id, l.ip_address;`,
     [700, '頼れるサーバーエンジニア', 'CSチームから名指しで依頼が来るようになりました。'],
     [520, '一人前の調査担当', 'ユーザーの言い分とログの食い違いにも、もう惑わされません。'],
     [340, '見習いエンジニア', 'ログを読む手つきが板についてきました。'],
-    [0, '研修やり直し', 'まずは users テーブルから。焦らず WHERE を書きましょう。'],
+    [0, '研修やり直し', 'まずは usr_users テーブルから。焦らず WHERE を書きましょう。'],
   ];
   // ユーザーの怒り（問い合わせ時点、5段階）
   const TEMPER = [4, 3, 4, 5, 3, 4, 2];
@@ -2045,7 +2108,7 @@ GROUP BY u.public_id, l.ip_address;`,
     return {
       started: false, current: order[0], shimatsu: 0, order, combo: 0, maxCombo: 0, minutes: 0,
       cases: CASES.map(() => ({ status: 'open', wrong: 0, hints: 0, score: 0, bonus: 0, queries: 0, heavy: false, choice: null, evidence: '', seen: false })),
-      drafts: {}, history: [],
+      drafts: {},
     };
   }
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
@@ -2065,8 +2128,8 @@ GROUP BY u.public_id, l.ip_address;`,
   function advance(kind) { state.minutes += CLOCK[kind] || 0; }
   function starterFor(i) {
     const c = CASES[i];
-    if (posOf(i) === 0 && !state.history.length) {
-      return `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行\n-- まずは問い合わせてきたユーザーを探してみよう\nSELECT * FROM users WHERE public_id = '${c.user}';\n`;
+    if (posOf(i) === 0 && state.cases.every((c) => !c.queries)) {
+      return `-- ここにSQLを書いて Ctrl+Enter（Macは ⌘+Enter）で実行\n-- まずは問い合わせてきたユーザーを探してみよう\nSELECT * FROM usr_users WHERE public_id = '${c.user}';\n`;
     }
     return `-- #${posOf(i) + 1} ${c.label}（${c.user}）\n`;
   }
@@ -2179,7 +2242,7 @@ GROUP BY u.public_id, l.ip_address;`,
     [/no such function: DATE_FORMAT/i, "SQLite では strftime('%Y-%m-%d %H:%M', created_at) を使います。"],
     [/no such function: (IFNULL2|IF)\b/i, 'SQLite では iif(条件, 真, 偽) か CASE WHEN を使います。'],
     [/no such column/i, '列名はテーブル定義で確認できます。文字列は "ダブル" ではなく \'シングル\' クォートで囲みます。'],
-    [/no such table/i, 'テーブル名は右の「テーブル定義」に一覧があります。'],
+    [/no such table/i, 'テーブル名は usr_（ユーザーのデータ）・mst_（マスター）・log_（ログ）で始まります。一覧は右の「テーブル定義」にあります。'],
     [/readonly|read-only/i, 'このDBは参照専用です。'],
     [/syntax error/i, 'カンマ・括弧・クォートの閉じ忘れがないか確認しましょう。'],
   ];
@@ -2197,7 +2260,6 @@ GROUP BY u.public_id, l.ip_address;`,
     if (bad) {
       issueShimatsu(firstWord(bad));
       out.innerHTML = `<div class="rerr">実行を止めました: ${esc(firstWord(bad) || 'この文')} は参照系ではありません。<small>このコンソールで使えるのは SELECT / WITH / EXPLAIN と PRAGMA table_info だけです。</small></div>`;
-      pushHistory(src, false, '始末書');
       return;
     }
     const cs = state.cases[state.current];
@@ -2230,7 +2292,6 @@ GROUP BY u.public_id, l.ip_address;`,
     out.innerHTML = blocks.join('');
     out.scrollTop = 0;
     out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
-    pushHistory(src, ok, ok ? `${totalRows.toLocaleString()}行` : 'エラー');
     snd('run');
     if (heavy && !cs.heavy) {
       cs.heavy = true;
@@ -2259,11 +2320,6 @@ GROUP BY u.public_id, l.ip_address;`,
     $('#results').innerHTML = `<div class="results-empty"><b>SELECT * FROM 問い合わせ;</b>左の問い合わせ票を読み、SQLでログを調べましょう。右のテーブル定義のテーブル名をクリックすると、SELECT文がエディタに入ります。</div>`;
   }
 
-  function pushHistory(sql, ok, meta) {
-    state.history.unshift({ sql: sql.trim().slice(0, 2000), ok, meta, c: posOf(state.current) + 1 });
-    state.history = state.history.slice(0, 40);
-    renderHistory();
-  }
 
   // ---------------------------------------------------------------- editor
   const KW = new Set(('SELECT FROM WHERE AND OR NOT IN IS NULL AS ON JOIN LEFT RIGHT INNER OUTER CROSS GROUP BY ORDER HAVING LIMIT OFFSET DISTINCT CASE WHEN THEN ELSE END LIKE BETWEEN UNION ALL WITH ASC DESC EXISTS USING INSERT UPDATE DELETE DROP CREATE TABLE INTO VALUES SET ALTER TRUNCATE EXPLAIN PRAGMA GLOB ESCAPE CAST REPLACE NATURAL INTERSECT EXCEPT COLLATE').split(' '));
@@ -2325,7 +2381,7 @@ GROUP BY u.public_id, l.ip_address;`,
     $('#stat-shimatsu').classList.toggle('warn', state.shimatsu > 0);
     const comboEl = $('#stat-combo');
     comboEl.hidden = state.combo < 2;
-    $('#combo').textContent = `×${state.combo}`;
+    $('#combo').textContent = `x${state.combo}`;
     renderClock();
     const q = $('#queue');
     const unlockedPos = posOf(firstOpen());
@@ -2346,7 +2402,7 @@ GROUP BY u.public_id, l.ip_address;`,
   function angerHtml(i) {
     const lv = angerOf(i), st = state.cases[i];
     const face = st.status === 'solved' ? '鎮火' : lv >= 5 ? '激怒' : lv >= 4 ? '激おこ' : lv >= 3 ? 'イライラ' : 'ムッ';
-    return `<div class="anger lv-${lv}" aria-label="ユーザーの怒り ${lv}/5"><span class="anger-label">ユーザーの怒り</span><span class="anger-bar">${[1, 2, 3, 4, 5].map((k) => `<i class="${k <= lv ? 'on' : ''}"></i>`).join('')}</span><span class="anger-face">${face}</span></div>`;
+    return `<div class="anger lv-${lv}" aria-label="ユーザーの怒り ${lv}/5"><span class="anger-label">怒り</span><span class="anger-bar">${[1, 2, 3, 4, 5].map((k) => `<i class="${k <= lv ? 'on' : ''}"></i>`).join('')}</span><span class="anger-face">${face}</span></div>`;
   }
 
   function renderTicket(arrive) {
@@ -2415,7 +2471,7 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   function renderSchema() {
-    $('#tab-schema').innerHTML = `<div class="notes">${NOTES}</div>` + TABLE_DOCS.map((t, k) => `
+    $('#tab-schema').innerHTML = TABLE_DOCS.map((t, k) => `
       <details class="tbl" ${k < 2 ? 'open' : ''}>
         <summary><span class="tbl-name">${t.name}</span><span class="tbl-count">${COUNTS[t.name] != null ? COUNTS[t.name].toLocaleString() + '行' : ''}</span></summary>
         <p class="tbl-desc">${t.desc}</p>
@@ -2423,14 +2479,12 @@ GROUP BY u.public_id, l.ip_address;`,
         <button class="tbl-insert" type="button" data-table="${t.name}">SELECT文をエディタに入れる</button>
       </details>`).join('');
   }
-  function renderHistory() {
-    const h = state.history;
-    $('#tab-history').innerHTML = h.length ? `<ul class="hist">${h.map((x, k) => `<li class="${x.ok ? '' : 'is-err'}"><button type="button" data-hist="${k}"><span class="hmeta">#${x.c} · ${esc(x.meta)}</span>${esc(x.sql)}</button></li>`).join('')}</ul>`
-      : '<p class="rnote">まだSQLを実行していません。実行したSQLはここに残り、クリックするとエディタに戻せます。</p>';
+  function renderNotes() {
+    $('#tab-notes').innerHTML = `<div class="notes">${NOTES}</div>`;
   }
 
   function renderAll() {
-    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderHistory();
+    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderNotes();
     const draft = state.drafts[state.current];
     setEditor(draft != null ? draft : starterFor(state.current));
     if (!$('#results').dataset.used) renderResultsEmpty();
@@ -2568,9 +2622,10 @@ GROUP BY u.public_id, l.ip_address;`,
     openModal(`
       <div class="title-rain" aria-hidden="true"><pre>${rain}${rain}</pre></div>
       <div class="title-inner">
-        <p class="eyebrow">NOCT GAMES ／ OPS TEAM ／ DAY 1</p>
+        <p class="eyebrow">NOCT GAMES / OPS TEAM / DAY 1</p>
         <h1 class="logo"><span class="logo-ja" data-text="ログは嘘をつかない">ログは嘘をつかない</span><span class="cursor"></span></h1>
-        <p class="logo-en">LOGS DON'T LIE ── サーバーエンジニア問い合わせ対応シミュレーター</p>
+        <p class="logo-en">LOGS DON'T LIE</p>
+        <p class="logo-sub">サーバーエンジニア問い合わせ対応シミュレーター</p>
         <div class="cast">${cast}</div>
         <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
         <dl class="rules">
@@ -2710,12 +2765,11 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
       else if (b.dataset.col) insertAtCursor(b.dataset.col);
-      else if (b.dataset.hist != null) { const h = state.history[+b.dataset.hist]; if (h) setEditor(h.sql, true); }
-      else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-history') {
-        const hist = b.id === 'tab-btn-history';
-        $('#tab-btn-schema').setAttribute('aria-selected', String(!hist));
-        $('#tab-btn-history').setAttribute('aria-selected', String(hist));
-        $('#tab-schema').hidden = hist; $('#tab-history').hidden = !hist;
+      else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-notes') {
+        const notes = b.id === 'tab-btn-notes';
+        $('#tab-btn-schema').setAttribute('aria-selected', String(!notes));
+        $('#tab-btn-notes').setAttribute('aria-selected', String(notes));
+        $('#tab-schema').hidden = notes; $('#tab-notes').hidden = !notes;
       } else if (b.dataset.act) {
         const a = b.dataset.act;
         if (a === 'start' || a === 'resume') { state.started = true; save(); beginDay(a === 'resume'); }
@@ -2763,6 +2817,7 @@ GROUP BY u.public_id, l.ip_address;`,
       state.cases = state.cases.map((c, i) => Object.assign(freshState().cases[i], c));
       // 順番を持たない古い保存データは、元の並び順のまま続ける
       if (!validOrder(saved.order)) state.order = CASES.map((_, i) => i);
+      delete state.history; // 実行履歴の機能は削除済み
     }
     bind();
     bindSound();

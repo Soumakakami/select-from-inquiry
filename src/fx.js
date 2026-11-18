@@ -15,17 +15,17 @@
   const BASE_PAL = { k: '#1b2330', s: '#f1c8a0', e: '#1b2330', m: '#b0504a', w: '#eef1f4' };
   const PEOPLE = {
     senpai: {
-      name: '黒田', role: '先輩エンジニア',
+      name: 'Kさん', role: '先輩エンジニア',
       pal: { h: '#262a33', g: '#9fd0ff', c: '#4a5568' },
       px: ['...hhhhhh...', '..hhhhhhhh..', '.hhhhhhhhhh.', '.hhsssssssh.', '.hsgggsgggsh', '.hsgegsgegsh', '.hssssssssh.', '..sssmmsss..', '...ssssss...', '..cccsscccc.', '.cccccccccc.', 'cccccccccccc'],
     },
     cs: {
-      name: '佐倉', role: 'CSチーム',
+      name: 'Uさん', role: 'CSチーム',
       pal: { h: '#8a5232', p: '#c0c8d4', c: '#e07a5f' },
       px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'phhhhhhhhhhp', 'phhsssssshhp', 'phsesssseshp', 'phsssssssshp', 'phssmmmmsshp', '.hhssssssshh', '.hh..pp..hh.', '...cccccc...', '..cccwwccc..', '.cccccccccc.'],
     },
     infra: {
-      name: '大森', role: 'インフラ担当',
+      name: 'Hさん', role: 'インフラ担当',
       pal: { r: '#2f7d5b', h: '#3a3026', d: '#5a4030', c: '#556070' },
       px: ['...rrrrrr...', '..rrrrrrrr..', '.rrrrrrrrrrr', '..hssssssh..', '..sesssses..', '..ssssssss..', '..sssmmsss..', '..dddddddd..', '...dddddd...', '...cccccc...', '.cccccccccc.', 'cccccccccccc'],
     },
@@ -127,14 +127,14 @@
   function burst(x, y, opts) {
     if (reduced()) return;
     opts = opts || {};
-    const colors = opts.colors || ['#efa63a', '#3fb67f', '#eef1f4', '#d4361f', '#8db7ff'];
+    const colors = opts.colors || ['#f7a823', '#63c74d', '#f4f1e4', '#e43b44', '#2ce8f5', '#fee761'];
     const n = opts.count || 36;
     const layer = $('#fx-layer');
     for (let i = 0; i < n; i++) {
       const p = document.createElement('i');
       p.className = 'particle';
-      const size = 4 + Math.random() * 6;
-      p.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size * (Math.random() < 0.5 ? 1 : 0.5)}px;background:${colors[i % colors.length]}`;
+      const size = Math.random() < 0.6 ? 4 : 8; // ドットに合わせて 4px 単位の正方形
+      p.style.cssText = `left:${Math.round(x)}px;top:${Math.round(y)}px;width:${size}px;height:${size}px;background:${colors[i % colors.length]}`;
       layer.appendChild(p);
       const ang = Math.random() * Math.PI * 2, sp = 90 + Math.random() * 220;
       const dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp - 120;

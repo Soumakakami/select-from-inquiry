@@ -26,15 +26,15 @@ try:
     pg.check('input[name=choice][value=b]'); pg.fill('#evidence','1'); pg.click('#answer-form button[type=submit]')
     pg.wait_for_timeout(500); pg.screenshot(path='test/shots/03_reject.png')
     # shimatsu
-    pg.fill('#sql', "DELETE FROM users;"); pg.click('#run'); pg.wait_for_timeout(300)
+    pg.fill('#sql', "DELETE FROM usr_users;"); pg.click('#run'); pg.wait_for_timeout(300)
     pg.screenshot(path='test/shots/04_shimatsu.png')
     # heavy
-    pg.fill('#sql', "SELECT * FROM item_logs;"); pg.click('#run'); pg.wait_for_timeout(300)
+    pg.fill('#sql', "SELECT * FROM log_item;"); pg.click('#run'); pg.wait_for_timeout(300)
     pg.screenshot(path='test/shots/05_heavy.png')
     # mysql-ism error
-    pg.fill('#sql', "SELECT DATE_ADD(created_at, INTERVAL 9 HOUR) FROM users"); pg.click('#run'); pg.wait_for_timeout(200)
+    pg.fill('#sql', "SELECT DATE_ADD(created_at, INTERVAL 9 HOUR) FROM usr_users"); pg.click('#run'); pg.wait_for_timeout(200)
     print('ERR:', pg.inner_text('#results')[:200])
-    pg.fill('#sql', "SELECT created_at, CONVERT_TZ(created_at,'+09:00','+00:00') utc, NOW() now, concat('x','y') d FROM users LIMIT 1"); pg.click('#run'); pg.wait_for_timeout(200)
+    pg.fill('#sql', "SELECT created_at, CONVERT_TZ(created_at,'+09:00','+00:00') utc, NOW() now, concat('x','y') d FROM usr_users LIMIT 1"); pg.click('#run'); pg.wait_for_timeout(200)
     print('FUNCS:', pg.inner_text('#results')[:300])
     for i in range(len(ANS)):
       pg.wait_for_selector('#answer-form')

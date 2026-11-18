@@ -27,18 +27,18 @@
   const WEND = '2026-11-13 01:00:00'; // UTC。JST 11/13 10:00 = ゲーム内の「今」
 
   const SCHEMA = `
-CREATE TABLE worlds (
+CREATE TABLE mst_worlds (
   world_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL
 );
-CREATE TABLE users (
+CREATE TABLE usr_users (
   user_id INTEGER PRIMARY KEY,
   public_id TEXT NOT NULL UNIQUE,
   platform TEXT NOT NULL,
   status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE TABLE characters (
+CREATE TABLE usr_characters (
   character_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   world_id INTEGER NOT NULL,
@@ -48,20 +48,20 @@ CREATE TABLE characters (
   created_at TEXT NOT NULL,
   deleted_at TEXT
 );
-CREATE TABLE m_items (
+CREATE TABLE mst_items (
   item_id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   category TEXT NOT NULL,
   rarity TEXT NOT NULL,
   tradable INTEGER NOT NULL
 );
-CREATE TABLE m_products (
+CREATE TABLE mst_products (
   product_id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   price_jpy INTEGER NOT NULL,
   gem INTEGER NOT NULL
 );
-CREATE TABLE login_logs (
+CREATE TABLE log_login (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   result TEXT NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE login_logs (
   device_id TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE TABLE character_logs (
+CREATE TABLE log_character (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   character_id INTEGER NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE character_logs (
   device_id TEXT,
   created_at TEXT NOT NULL
 );
-CREATE TABLE item_logs (
+CREATE TABLE log_item (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   character_id INTEGER,
@@ -92,7 +92,7 @@ CREATE TABLE item_logs (
   detail TEXT,
   created_at TEXT NOT NULL
 );
-CREATE TABLE currency_logs (
+CREATE TABLE log_currency (
   log_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   currency TEXT NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE currency_logs (
   ref_id TEXT,
   created_at TEXT NOT NULL
 );
-CREATE TABLE payment_logs (
+CREATE TABLE log_payment (
   payment_id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   product_id TEXT NOT NULL,
@@ -112,7 +112,7 @@ CREATE TABLE payment_logs (
   status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE TABLE error_logs (
+CREATE TABLE log_error (
   log_id INTEGER PRIMARY KEY,
   level TEXT NOT NULL,
   service TEXT NOT NULL,
@@ -120,12 +120,12 @@ CREATE TABLE error_logs (
   user_id INTEGER,
   created_at TEXT NOT NULL
 );
-CREATE INDEX idx_chars_user ON characters(user_id);
-CREATE INDEX idx_login_user ON login_logs(user_id, created_at);
-CREATE INDEX idx_charlog_user ON character_logs(user_id, created_at);
-CREATE INDEX idx_item_user ON item_logs(user_id, created_at);
-CREATE INDEX idx_cur_user ON currency_logs(user_id, created_at);
-CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
+CREATE INDEX idx_chars_user ON usr_characters(user_id);
+CREATE INDEX idx_login_user ON log_login(user_id, created_at);
+CREATE INDEX idx_charlog_user ON log_character(user_id, created_at);
+CREATE INDEX idx_item_user ON log_item(user_id, created_at);
+CREATE INDEX idx_cur_user ON log_currency(user_id, created_at);
+CREATE INDEX idx_pay_user ON log_payment(user_id, created_at);
 `;
 
   const ITEMS = [
@@ -449,7 +449,7 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
       ['WARN', 'GameAPI', () => `slow request: POST /api/v2/battle/result took ${int(1200, 4800)}ms`],
       ['WARN', 'GameAPI', () => `rate limit exceeded: /api/v2/gacha/draw (ip=${randIp('JP')})`],
       ['ERROR', 'GameAPI', () => 'upstream timeout: matchmaking-svc (30000ms)'],
-      ['WARN', 'MySQL', () => `slow query detected (${(int(20, 90) / 10).toFixed(1)}s): SELECT ... FROM item_logs WHERE ...`],
+      ['WARN', 'MySQL', () => `slow query detected (${(int(20, 90) / 10).toFixed(1)}s): SELECT ... FROM log_item WHERE ...`],
       ['ERROR', 'Redis', () => 'connection reset by peer (ranking-cache-02)'],
       ['WARN', 'ChatService', () => `message rejected by NG word filter (len=${int(5, 80)})`],
       ['ERROR', 'AuctionService', () => `bid conflict, rolled back (auction:${int(80000, 99999)})`],
@@ -622,12 +622,12 @@ CREATE INDEX idx_pay_user ON payment_logs(user_id, created_at);
       for (const r of rows) st.run(r);
       st.free();
     };
-    ins('worlds', g.worlds); ins('m_items', g.items); ins('m_products', g.products);
-    ins('users', g.users); ins('characters', g.characters);
-    ins('login_logs', g.login); ins('character_logs', g.charlog); ins('item_logs', g.item);
-    ins('currency_logs', g.cur); ins('payment_logs', g.pay); ins('error_logs', g.err);
+    ins('mst_worlds', g.worlds); ins('mst_items', g.items); ins('mst_products', g.products);
+    ins('usr_users', g.users); ins('usr_characters', g.characters);
+    ins('log_login', g.login); ins('log_character', g.charlog); ins('log_item', g.item);
+    ins('log_currency', g.cur); ins('log_payment', g.pay); ins('log_error', g.err);
     db.run('COMMIT');
-    return { db, keys: g.keys, counts: { users: g.users.length, characters: g.characters.length, login_logs: g.login.length, character_logs: g.charlog.length, item_logs: g.item.length, currency_logs: g.cur.length, payment_logs: g.pay.length, error_logs: g.err.length } };
+    return { db, keys: g.keys, counts: { usr_users: g.users.length, usr_characters: g.characters.length, log_login: g.login.length, log_character: g.charlog.length, log_item: g.item.length, log_currency: g.cur.length, log_payment: g.pay.length, log_error: g.err.length } };
   }
 
   const api = { buildDatabase, generate, toT, fmt, fmtJ, WEND };

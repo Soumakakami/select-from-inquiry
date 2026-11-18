@@ -41,4 +41,4 @@ npm run verify    # 各ケースの模範SQLを Node で実行して結果を表
 ## 使用ライブラリ
 
 - [sql.js](https://github.com/sql-js/sql.js) 1.10.3（MIT License）… `docs/` に同梱
-- フォント：Google Fonts（DotGothic16、IBM Plex Sans JP、M PLUS 1 Code）
+- フォント：Google Fonts（DotGothic16、Press Start 2P）。どちらも SIL Open Font License
