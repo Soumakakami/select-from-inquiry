@@ -15,13 +15,13 @@
 <body>
 <div class="app">
   <header class="hud">
-    <div class="brand"><b>ログは嘘をつかない</b><small>クロノリア・オンライン 運用チーム</small></div>
+    <div class="brand"><i class="ico" data-icon="search"></i><div><b>ログは嘘をつかない</b><small>クロノリア・オンライン 運用チーム</small></div></div>
     <nav class="queue" id="queue" aria-label="調査依頼チケット"></nav>
     <div class="stats">
-      <div class="stat"><span>JST</span><b id="clock">11/13 10:00</b></div>
-      <div class="stat stat-score"><span>SCORE</span><b id="score">0</b></div>
-      <div class="stat stat-combo" id="stat-combo" hidden><span>COMBO</span><b id="combo">0</b></div>
-      <div class="stat" id="stat-shimatsu"><span>始末書</span><b id="shimatsu">0</b></div>
+      <div class="stat stat-clock"><i class="ico" data-icon="clock"></i><div><span>JST</span><b id="clock">11/13 10:00</b></div></div>
+      <div class="stat stat-score"><i class="ico" data-icon="coin"></i><div><span>SCORE</span><b id="score">0</b></div></div>
+      <div class="stat stat-combo" id="stat-combo" hidden><i class="ico" data-icon="flame"></i><div><span>COMBO</span><b id="combo">0</b></div></div>
+      <div class="stat" id="stat-shimatsu"><i class="ico" data-icon="paper"></i><div><span>始末書</span><b id="shimatsu">0</b></div></div>
       <div class="sound" role="group" aria-label="サウンド">
         <button class="snd" id="btn-bgm" type="button" aria-pressed="true" title="BGMのオン／オフ"><i></i>BGM</button>
         <button class="snd" id="btn-sfx" type="button" aria-pressed="true" title="効果音のオン／オフ"><i></i>SE</button>
@@ -38,6 +38,7 @@
     </section>
 
     <section class="pane pane-console" aria-label="SQLコンソール">
+      <div class="screen">
       <div class="console-bar">
         <span class="conn" id="conn"><i class="dot"></i><span id="conn-label">prod-replica-01 に接続中…</span><span class="ro">READ ONLY</span></span>
         <div class="bar-actions">
@@ -50,6 +51,8 @@
         <textarea id="sql" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQLエディタ"></textarea>
       </div>
       <div class="results" id="results" aria-live="polite"></div>
+      </div>
+      <div class="bezel-label" aria-hidden="true"><span>NOCT TERM-26</span><i class="led"></i></div>
     </section>
 
     <aside class="pane pane-ref" aria-label="資料">
@@ -67,8 +70,6 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="comm-dock" id="comm" aria-live="polite"></div>
 <div class="fx-layer" id="fx-layer" aria-hidden="true"></div>
-<div class="crt" aria-hidden="true"></div>
-
 <script src="sql-wasm.js"></script>
 <script>
 /*__DATAGEN__*/

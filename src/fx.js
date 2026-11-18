@@ -206,19 +206,87 @@
     tick();
   }
 
-  // ------------------------------------------------------------ タイトル背景のログ
-  function logRain(n) {
-    const svc = ['GameAPI', 'AuthService', 'ItemService', 'GemGrantService', 'MySQL', 'Redis', 'Batch', 'ChatService'];
-    const act = ['LOGIN SUCCESS', 'ENHANCE_SUCCESS', 'TRADE_OUT', 'GUILD_DONATE', 'PURCHASE', 'STORAGE_IN', 'DELETE', 'WORLD_TRANSFER', 'LOGIN FAILED', 'GACHA'];
-    const lv = ['INFO', 'INFO', 'INFO', 'WARN', 'ERROR'];
-    let s = '';
-    for (let i = 0; i < n; i++) {
-      const h = String(Math.floor(Math.random() * 24)).padStart(2, '0'), m = String(Math.floor(Math.random() * 60)).padStart(2, '0'), sec = String(Math.floor(Math.random() * 60)).padStart(2, '0');
-      const l = lv[Math.floor(Math.random() * lv.length)];
-      s += `<span class="lv-${l.toLowerCase()}">2026-11-12 ${h}:${m}:${sec} ${l.padEnd(5)} ${svc[i % svc.length]} user=${10000 + Math.floor(Math.random() * 89999)} ${act[Math.floor(Math.random() * act.length)]}</span>\n`;
-    }
-    return s;
+  // ------------------------------------------------------------ ドットのアイコン（8×8）
+  const ICON_PAL = { k: '#1c1f33', w: '#fbf7ea', y: '#fee761', o: '#f7a823', r: '#e43b44', c: '#2ce8f5', g: '#63c74d', b: '#8890cf' };
+  const ICONS = {
+    clock: ['..kkkk..', '.kwwwwk.', 'kwwkwwwk', 'kwwkwwwk', 'kwwkkkwk', 'kwwwwwwk', '.kwwwwk.', '..kkkk..'],
+    coin: ['..kkkk..', '.kyyyyk.', 'kyywyyyk', 'kyywyyok', 'kyywyyok', 'kyyyyook', '.kyoook.', '..kkkk..'],
+    paper: ['kkkkkk..', 'kwwwwkk.', 'kwkkwwwk', 'kwwwwwwk', 'kwkkkkwk', 'kwwwrrwk', 'kwwwrrwk', 'kkkkkkkk'],
+    flame: ['...r....', '..rr..r.', '..rrr.r.', '.rroorr.', '.rooyor.', 'rroyyorr', '.royyor.', '..rrrr..'],
+    search: ['.kkkk...', 'kcwcck..', 'kwccck..', 'kcccck..', '.kkkko..', '.....oo.', '......oo', '.......o'],
+    ticket: ['........', 'kkkkkkkk', 'kwwwwwwk', 'kwkkkkwk', 'kwwwwwwk', 'kwkkwwwk', 'kkkkkkkk', '........'],
+  };
+  function icon(name, scale) {
+    const px = ICONS[name]; if (!px) return '';
+    const s = scale || 3;
+    let rects = '';
+    px.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = ICON_PAL[row[x]]; if (c) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; } });
+    return `<svg width="${8 * s}" height="${8 * s}" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
   }
 
-  root.FX = { avatar, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, logRain, reduced, PEOPLE };
+  // ------------------------------------------------------------ タイトル背景：夕暮れの街（ドット絵）
+  function skyline() {
+    const W = 320, H = 180;
+    let seed = 4242;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+    let s = '', defs = '';
+    const rect = (x, y, w, h, c, extra) => { s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"${extra || ''}/>`; };
+    // 空：色の帯と、帯のつなぎ目の市松ディザ
+    const sky = ['#2a2560', '#3a2d74', '#523a88', '#714795', '#965596', '#bd6690', '#e27d84', '#f59c78', '#fbbd7a'];
+    const bh = 13;
+    sky.forEach((c, i) => {
+      rect(0, i * bh, W, bh, c);
+      if (i < sky.length - 1) {
+        defs += `<pattern id="d${i}" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="${sky[i + 1]}"/><rect x="1" y="1" width="1" height="1" fill="${sky[i + 1]}"/></pattern>`;
+        rect(0, (i + 1) * bh - 3, W, 3, `url(#d${i})`);
+      }
+    });
+    rect(0, sky.length * bh, W, H - sky.length * bh, sky[sky.length - 1]);
+    // 星
+    for (let i = 0; i < 46; i++) {
+      const tw = rnd() < 0.35 ? ` class="tw" style="animation-delay:${(rnd() * 3).toFixed(1)}s"` : '';
+      rect(ri(0, W - 1), ri(2, 52), 1, 1, rnd() < 0.3 ? '#fee761' : '#fbf7ea', tw);
+    }
+    // 月
+    const mx = 258, my = 26, mr = 9;
+    for (let dy = -mr; dy <= mr; dy++) { const hw = Math.floor(Math.sqrt(mr * mr - dy * dy)); rect(mx - hw, my + dy, hw * 2 + 1, 1, '#fff1c1'); }
+    rect(mx - 3, my - 2, 2, 2, '#f1dca0'); rect(mx + 2, my + 3, 3, 2, '#f1dca0'); rect(mx + 4, my - 5, 1, 1, '#f1dca0');
+    // 雲
+    [[30, 40, 34], [196, 58, 44], [96, 70, 30]].forEach(([x, y, w]) => { rect(x, y, w, 2, '#f7b2a0'); rect(x + 4, y - 2, w - 10, 2, '#f7b2a0'); rect(x + 2, y + 2, w - 2, 1, '#d98a94'); });
+    // ビル（奥 → 手前）。窓の明かりはランダム、一部はまたたく
+    const layer = (color, hMin, hMax, wMin, wMax, lit, winColor) => {
+      let x = -ri(0, 10);
+      while (x < W) {
+        const w = ri(wMin, wMax), h = ri(hMin, hMax), top = H - h;
+        rect(x, top, w, h, color);
+        if (rnd() < 0.3) rect(x + Math.floor(w / 2), top - ri(3, 8), 1, 8, color); // アンテナ
+        if (lit) {
+          for (let wy = top + 4; wy < H - 8; wy += 5) for (let wx = x + 3; wx < x + w - 3; wx += 4) {
+            if (rnd() < lit) {
+              const tw = rnd() < 0.06 ? ` class="tw" style="animation-delay:${(rnd() * 4).toFixed(1)}s"` : '';
+              rect(wx, wy, 2, 2, rnd() < 0.8 ? winColor : '#fbf7ea', tw);
+            }
+          }
+        }
+        x += w + ri(0, 3);
+      }
+    };
+    layer('#7a4f8a', 46, 88, 14, 28, 0, null);
+    layer('#4e3672', 36, 70, 16, 30, 0.22, '#ffd27a');
+    // 会社のビル（中央・いちばん高い）
+    const ox = 138, ow = 46, oh = 132, ot = H - oh;
+    rect(ox, ot, ow, oh, '#2f2350'); rect(ox + 2, ot - 4, ow - 4, 4, '#2f2350');
+    rect(ox + ow / 2, ot - 18, 1, 14, '#2f2350'); rect(ox + ow / 2 - 1, ot - 20, 3, 3, '#e43b44', ' class="tw"');
+    rect(ox + 6, ot + 6, ow - 12, 8, '#f7a823'); rect(ox + 8, ot + 8, ow - 16, 4, '#ffd166'); // 看板
+    for (let wy = ot + 20; wy < H - 10; wy += 6) for (let wx = ox + 4; wx < ox + ow - 4; wx += 5) {
+      const on = rnd() < 0.55 || (wy > H - 60 && wx > ox + 18 && wx < ox + 30);
+      if (on) rect(wx, wy, 3, 3, rnd() < 0.85 ? '#ffe28a' : '#9fe8ff');
+    }
+    layer('#1f1838', 22, 46, 18, 34, 0.3, '#ffc65a');
+    rect(0, H - 4, W, 4, '#151027');
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" aria-hidden="true"><defs>${defs}</defs>${s}</svg>`;
+  }
+
+  root.FX = { avatar, icon, skyline, say, closeSay: () => { queue.length = 0; close(true); }, cutin, flash, shake, siren, burst, burstFrom, floatText, countUp, boot, reduced, PEOPLE };
 })(window);

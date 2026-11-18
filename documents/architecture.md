@@ -14,7 +14,7 @@
 | `src/style.css` | 見た目（ドット絵のUI）。冒頭の `:root` に色、フォント、ドットの角丸（`--notch`）のトークン |
 | `src/datagen.js` | ダミーDBの生成（[database.md](database.md)）。ブラウザでは `window.LogDB`、Node では `module.exports` |
 | `src/audio.js` | BGMと効果音（`window.Sound`）。Web Audio API で合成するので音声ファイルはない |
-| `src/fx.js` | 演出（`window.FX`）。ドット絵の登場人物（12×12の文字列からSVGを生成）、会話ウィンドウ、カットイン、フラッシュ、サイレン、紙吹雪、得点のポップアップとカウントアップ、起動ログ、タイトル背景のログ。画像ファイルはない |
+| `src/fx.js` | 演出（`window.FX`）。ドット絵の登場人物（12×12の文字列からSVGを生成）、HUDのアイコン（8×8）、タイトル背景の街（`skyline()`）、会話ウィンドウ、カットイン、フラッシュ、サイレン、紙吹雪、得点のポップアップとカウントアップ、起動ログ。画像ファイルはない |
 | `src/game.js` | ゲーム本体。資料（テーブル定義）、ケース定義、SQL実行、採点、画面描画、保存 |
 | `build.js` | `src/` を1枚の `docs/index.html` にまとめ、`node_modules/sql.js/dist` から3ファイルを `docs/` にコピー |
 | `docs/` | 公開物：`index.html`、`sql-wasm.js`、`sql-wasm.wasm`、`sql-asm.js`、`.nojekyll` |

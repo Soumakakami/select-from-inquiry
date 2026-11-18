@@ -527,7 +527,7 @@ GROUP BY u.public_id, l.ip_address;`,
       <div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
   }
   function renderResultsEmpty() {
-    $('#results').innerHTML = `<div class="results-empty"><b>SELECT * FROM 問い合わせ;</b>左の問い合わせ票を読み、SQLでログを調べましょう。右のテーブル定義のテーブル名をクリックすると、SELECT文がエディタに入ります。</div>`;
+    $('#results').innerHTML = `<div class="results-empty"><b>READY<span class="blink-cursor"></span></b>左の問い合わせ票を読み、SQLでログを調べましょう。右のテーブル定義のテーブル名をクリックすると、SELECT文がエディタに入ります。</div>`;
   }
 
 
@@ -827,27 +827,29 @@ GROUP BY u.public_id, l.ip_address;`,
   function showIntro() {
     const resume = state.started && !allDone();
     const f = FXo();
-    const rain = f ? f.logRain(70) : '';
+    const sky = f ? f.skyline() : '';
     const cast = f ? ['senpai', 'cs', 'infra', 'bucho'].map((k) => `<figure class="cast-${k}">${f.avatar(k)}<figcaption>${esc(f.PEOPLE[k].name)}<small>${esc(f.PEOPLE[k].role)}</small></figcaption></figure>`).join('') : '';
     openModal(`
-      <div class="title-rain" aria-hidden="true"><pre>${rain}${rain}</pre></div>
+      <div class="title-sky" aria-hidden="true">${sky}</div>
       <div class="title-inner">
         <p class="eyebrow">NOCT GAMES / OPS TEAM / DAY 1</p>
         <h1 class="logo"><span class="logo-ja" data-text="ログは嘘をつかない">ログは嘘をつかない</span><span class="cursor"></span></h1>
         <p class="logo-en">LOGS DON'T LIE</p>
         <p class="logo-sub">サーバーエンジニア問い合わせ対応シミュレーター</p>
-        <div class="cast">${cast}</div>
-        <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
-        <dl class="rules">
-          <dt>任務</dt><dd>ランダムな順番で届く7件のチケットを調査し、結論と決め手の値（ログIDなど）で回答</dd>
-          <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス</dd>
-          <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
-          <dt>時計</dt><dd>10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
-          <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
-        </dl>
-        <div class="btn-row title-actions">
-          ${resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
-            : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
+        <div class="title-card">
+          <div class="cast">${cast}</div>
+          <p class="story">運営中のMMORPG『クロノリア・オンライン』。今日もCSチームから「キャラが消えた」「課金が反映されない」と調査依頼が飛んでくる。本番DBにSQLを投げ、ログから真実を暴け。<b>ユーザーの言い分が正しいとは限らない。</b></p>
+          <dl class="rules">
+            <dt>任務</dt><dd>ランダムな順番で届く7件のチケットを調査し、結論と決め手の値（ログIDなど）で回答</dd>
+            <dt>得点</dt><dd>1件 ${BASE} 点。差し戻し −${WRONG}、ヒント −${HINT}。ノーミスで連続解決するとコンボボーナス</dd>
+            <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
+            <dt>時計</dt><dd>10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
+            <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
+          </dl>
+          <div class="btn-row title-actions">
+            ${resume ? `<button class="btn btn-primary btn-start" type="button" data-act="resume">▶ 続きから（#${posOf(firstOpen()) + 1}）</button><button class="btn" type="button" data-act="reset">最初からやり直す</button>`
+              : '<button class="btn btn-primary btn-start" type="button" data-act="start">▶ 出社する</button>'}
+          </div>
         </div>
       </div>`, 'title');
   }
@@ -1028,9 +1030,19 @@ GROUP BY u.public_id, l.ip_address;`,
       // 順番を持たない古い保存データは、元の並び順のまま続ける
       if (!validOrder(saved.order)) state.order = CASES.map((_, i) => i);
       delete state.history; // 実行履歴の機能は削除済み
+      // 命名規則の変更前に保存された下書きのテーブル名を、新しい名前に置き換える
+      const RENAMED = [['character_logs', 'log_character'], ['item_logs', 'log_item'], ['login_logs', 'log_login'], ['currency_logs', 'log_currency'],
+        ['payment_logs', 'log_payment'], ['error_logs', 'log_error'], ['m_items', 'mst_items'], ['m_products', 'mst_products'],
+        ['worlds', 'mst_worlds'], ['characters', 'usr_characters'], ['users', 'usr_users']];
+      Object.keys(state.drafts || {}).forEach((k) => {
+        let s = String(state.drafts[k] || '');
+        RENAMED.forEach(([from, to]) => { s = s.replace(new RegExp(`(?<![A-Za-z0-9_])${from}(?![A-Za-z0-9_])`, 'g'), to); });
+        state.drafts[k] = s;
+      });
     }
     bind();
     bindSound();
+    if (FXo()) document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = FXo().icon(el.dataset.icon, +el.dataset.scale || 3); });
     renderAll();
     if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
     initDb();
