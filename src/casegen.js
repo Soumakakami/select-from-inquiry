@@ -623,6 +623,115 @@ WHERE user_id = ${sub(r.pub)} AND source = 'EVENT';`,
     return out.slice(0, 93);
   }
 
-  root.CaseGen = { build };
-  if (typeof module !== 'undefined' && module.exports) module.exports = { build };
+  // ========================================================================== 研修（DAY 1 の前のチュートリアル）
+  // 本番の100件と重ならないユーザーから、手順を教えやすい3件を毎回同じように選ぶ。
+  // facts には、研修の各ステップの達成判定に使う値（user_id など）を入れておく。
+  function training(DB, excludePubs) {
+    const rows = (sql) => { const r = DB.exec(sql); if (!r.length) return []; const cols = r[0].columns; return r[0].values.map((v) => Object.fromEntries(cols.map((c, i) => [c, v[i]]))); };
+    const pubs = [...new Set([...EXCLUDE, ...(excludePubs || [])])];
+    const used = new Set(rows(`SELECT user_id FROM usr_users WHERE public_id IN (${pubs.map((p) => `'${p}'`).join(',')})`).map((r) => r.user_id));
+    const first = (list) => { const r = list.find((x) => !used.has(x.user_id)); if (r) used.add(r.user_id); return r; };
+    const fixed = (o) => ({ generated: true, training: true, tier: 0, temper: 2, spec: false, ...o });
+    const out = [];
+
+    // 研修1：キャラが消えた？ → usr_users で user_id を引き、usr_characters を見るだけ（消えていない）
+    const a = first(rows(`
+      SELECT u.user_id, u.public_id pub, c.character_id, c.name chara, c.level, c.job, w.name world
+      FROM usr_users u JOIN usr_characters c USING (user_id) JOIN mst_worlds w USING (world_id)
+      WHERE c.deleted_at IS NULL AND c.level >= 20
+        AND (SELECT COUNT(*) FROM usr_characters x WHERE x.user_id = u.user_id) = 1
+        AND (SELECT COUNT(*) FROM usr_characters x WHERE x.name = c.name) = 1
+        AND NOT EXISTS (SELECT 1 FROM log_character x WHERE x.user_id = u.user_id AND x.action <> 'CREATE')
+      ORDER BY u.user_id`));
+    if (a) {
+      out.push(fixed({
+        id: 't1', no: 'TR-0001', label: 'キャラが消えた？', received: '2026-11-13 09:05', user: a.pub, world: a.world, category: 'キャラクター',
+        body: `アプリを入れ直したら、キャラクター選択画面に『${a.chara}』がいません！レベル${a.level}まで育てたのに……消えてしまったんですか？`,
+        note: '研修用のチケットです。まずは、キャラクターが本当に消えているかを確かめましょう。',
+        options: [['a', 'キャラクターは消えていない（今もアカウントに残っている）'], ['b', '本人の操作による削除'], ['c', '第三者の不正ログインによる削除'], ['d', '不具合によるデータ消失']],
+        answer: 'a',
+        evidence: { label: `『${a.chara}』の character_id`, placeholder: '例: 123', table: null, value: String(a.character_id), accept: numAccept(a.character_id) },
+        hints: ['usr_users を公開ID（public_id）で検索すると、内部の <code>user_id</code> が分かります。', `usr_characters を <code>WHERE user_id = ${a.user_id}</code> で絞り込みましょう。`, '<code>deleted_at</code> が NULL なら、削除されていません。'],
+        reply: `お問い合わせありがとうございます。調査の結果、『${a.chara}』（レベル${a.level}）はお客様のアカウントに残っており、削除などの操作も行われていないことを確認いたしました。アプリの再インストール後は、引き継ぎ済みのアカウントでログインされているかご確認ください。`,
+        reaction: 'ゲストでログインしてました！引き継ぎしたら出てきました！',
+        explain: `usr_users で ${esc(a.pub)} を引くと user_id は ${a.user_id}。usr_characters を user_id で絞ると『${esc(a.chara)}』（character_id ${a.character_id}）が見つかり、<code>deleted_at</code> は NULL（未削除）です。log_character にも作成以外の操作はありません。消えていないので、ログインしているアカウントが違う可能性が高いです。`,
+        model: `SELECT * FROM usr_users WHERE public_id = '${a.pub}';
+
+SELECT * FROM usr_characters WHERE user_id = ${a.user_id};`,
+        honest: '消えていません。たぶん、ログインしているアカウントが違います。',
+        facts: { user_id: a.user_id, character_id: a.character_id },
+      }));
+    }
+
+    // 研修2：ポーションが減った → ログを時系列に並べ、マスターと JOIN する（本人が使った）
+    const b = first(rows(`
+      SELECT l.log_id, l.user_id, u.public_id pub, l.quantity, l.created_at ts, m.name item, m.item_id
+      FROM log_item l JOIN usr_users u USING (user_id) JOIN mst_items m USING (item_id)
+      WHERE l.item_id = 1001 AND l.action = 'USE' AND l.quantity >= 3 AND l.created_at BETWEEN '2026-11-10 00:00:00' AND '2026-11-12 22:00:00'
+        AND NOT EXISTS (SELECT 1 FROM log_item x WHERE x.user_id = l.user_id AND x.item_id = l.item_id AND x.created_at > l.created_at)
+        AND NOT EXISTS (SELECT 1 FROM log_item x WHERE x.user_id = l.user_id AND x.item_id = l.item_id AND x.action IN ('TRADE_OUT', 'EXPIRE'))
+      ORDER BY l.log_id`));
+    if (b) {
+      const w = rows(`SELECT w.name FROM usr_characters c JOIN mst_worlds w USING (world_id) WHERE c.user_id = ${b.user_id} AND c.deleted_at IS NULL ORDER BY c.level DESC LIMIT 1`);
+      out.push(fixed({
+        id: 't2', no: 'TR-0002', label: 'ポーションが減った', received: receivedAfter(b.ts, 3), user: b.pub, world: w.length ? w[0].name : '（未記入）', category: 'アイテム',
+        body: `ポーションが${b.quantity}個、勝手に減っています！前に確認したときは、まだあったはずです。`,
+        note: '研修用のチケットです。アイテムの増減は log_item に記録されています。',
+        options: [['a', '他のプレイヤーへのトレード'], ['b', '期限切れによる消滅'], ['c', '本人が使用した（使用の記録がある）'], ['d', '不具合による消失']],
+        answer: 'c',
+        evidence: { label: '決め手になったログの log_id（log_item）', placeholder: '例: 1234', table: 'log_item', id: b.log_id, accept: numAccept(b.log_id) },
+        hints: ['まずは usr_users で <code>user_id</code> を調べましょう。', `log_item を <code>WHERE user_id = ${b.user_id}</code> で絞り、<code>ORDER BY created_at DESC</code> で新しい順に並べましょう。`, "item_id だけでは何のアイテムか分かりません。<code>JOIN mst_items USING (item_id)</code> で名前を付けて、ポーションの <code>USE</code> を探しましょう。"],
+        reply: `お問い合わせありがとうございます。調査の結果、${when(b.ts)}に、お客様のキャラクターがポーションを${b.quantity}個使用された記録を確認いたしました。トレードや不具合による消失ではございません。`,
+        reaction: 'ボス戦で連打してました……。',
+        explain: `log_item を user_id ${b.user_id} で絞って新しい順に並べ、mst_items と JOIN すると、item_id ${b.item_id} はポーション。ポーションの最後の記録は ${when(b.ts)} の <code>USE</code>（${b.quantity}個、log_id ${b.log_id}）で、本人が使っています。トレード（TRADE_OUT）や期限切れ（EXPIRE）の記録はありません。`,
+        model: `SELECT * FROM usr_users WHERE public_id = '${b.pub}';
+
+SELECT l.log_id, m.name, l.action, l.quantity, l.created_at
+FROM log_item l
+JOIN mst_items m USING (item_id)
+WHERE l.user_id = ${b.user_id}
+ORDER BY l.created_at DESC;`,
+        honest: `ご自分で飲んでいます。${b.quantity}個まとめて。`,
+        facts: { user_id: b.user_id, log_id: b.log_id },
+      }));
+    }
+
+    // 研修3：ログインできなかった → 日付と AND で絞り込む（その日も普通にログインしている）
+    const c = first(rows(`
+      SELECT l.user_id, u.public_id pub, COUNT(*) n, MIN(l.log_id) log_id, MIN(l.created_at) ts
+      FROM log_login l JOIN usr_users u USING (user_id)
+      WHERE date(l.created_at) = '2026-11-11'
+      GROUP BY l.user_id
+      HAVING n >= 2 AND SUM(l.result = 'SUCCESS') = n
+      ORDER BY l.user_id`));
+    if (c) {
+      const ok = rows(`SELECT log_id, created_at FROM log_login WHERE user_id = ${c.user_id} AND date(created_at) = '2026-11-11' AND result = 'SUCCESS' ORDER BY created_at`);
+      const w = rows(`SELECT w.name FROM usr_characters x JOIN mst_worlds w USING (world_id) WHERE x.user_id = ${c.user_id} AND x.deleted_at IS NULL ORDER BY x.level DESC LIMIT 1`);
+      out.push(fixed({
+        id: 't3', no: 'TR-0003', label: 'ログインできない', received: '2026-11-12 10:20', user: c.pub, world: w.length ? w[0].name : '（未記入）', category: 'アカウント',
+        body: '11月11日は一日中ログインできませんでした！サーバーが落ちていたんですよね？ログインボーナスを取り逃したので補填してください。',
+        note: '研修用のチケットです。11月11日にサーバー障害は起きていません。',
+        options: [['a', 'サーバー障害でログインできなかった'], ['b', 'その日もログインできている（成功の記録がある）'], ['c', 'パスワードの入力ミスが続いてロックされた'], ['d', '第三者にパスワードを変えられた']],
+        answer: 'b',
+        evidence: { label: '11月11日のログインの log_id（log_login）', placeholder: '例: 1234', table: 'log_login', id: ok[0].log_id, accept: numAccept(...ok.map((r) => r.log_id)) },
+        hints: ['usr_users で <code>user_id</code> を調べましょう。', "log_login を user_id で絞り、さらに <code>AND date(created_at) = '2026-11-11'</code> で日付を絞りましょう。", '<code>result</code> が SUCCESS なら、ログインに成功しています。'],
+        reply: `お問い合わせありがとうございます。調査の結果、11月11日は${ok.map((r) => r.created_at.slice(11, 16)).join('、')}に、お客様のアカウントへのログインに成功した記録を確認いたしました。また、同日にサーバー障害は発生しておりません。そのため、補填の対象外となります。`,
+        reaction: '別の日と勘違いしてました……。',
+        explain: `log_login を user_id ${c.user_id} と <code>date(created_at) = '2026-11-11'</code> の AND で絞ると、${ok.length}件ともすべて <code>SUCCESS</code>（最初は ${when(ok[0].created_at)}、log_id ${ok[0].log_id}）。失敗の記録はありません。ユーザーの言い分とログが食い違ったら、ログを信じます。`,
+        model: `SELECT * FROM usr_users WHERE public_id = '${c.pub}';
+
+SELECT log_id, result, ip_address, device_id, created_at
+FROM log_login
+WHERE user_id = ${c.user_id}
+  AND date(created_at) = '2026-11-11'
+ORDER BY created_at;`,
+        honest: `普通にログインしています。${ok.length}回も。`,
+        facts: { user_id: c.user_id, log_ids: ok.map((r) => r.log_id) },
+      }));
+    }
+    return out;
+  }
+
+  root.CaseGen = { build, training };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { build, training };
 })(typeof window !== 'undefined' ? window : globalThis);

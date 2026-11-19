@@ -1,17 +1,21 @@
-// 自動生成した問い合わせ票（src/casegen.js）が、すべて解ける状態かを確かめる
+// 自動生成した問い合わせ票（src/casegen.js）と研修の3件が、すべて解ける状態かを確かめる
 //   node test/cases.js
 const initSqlJs = require('sql.js');
 const { buildDatabase } = require('../src/datagen.js');
-const { build } = require('../src/casegen.js');
+const { build, training } = require('../src/casegen.js');
 
 (async () => {
   const SQL = await initSqlJs();
   const { db } = buildDatabase(SQL);
-  const cases = build(db);
+  const generated = build(db);
+  const lessons = training(db, generated.map((c) => c.user));
+  const cases = [...generated, ...lessons];
   const problems = [];
+  if (lessons.length !== 3) problems.push(`training: expected 3 cases, got ${lessons.length}`);
   const users = new Set(), nos = new Set();
   const byKind = {}, byTier = {}, byAnswer = {};
   for (const c of cases) {
+    if (!c.kind) c.kind = 'training';
     byKind[c.kind] = (byKind[c.kind] || 0) + 1;
     byTier[c.tier] = (byTier[c.tier] || 0) + 1;
     byAnswer[c.answer] = (byAnswer[c.answer] || 0) + 1;
@@ -40,8 +44,8 @@ const { build } = require('../src/casegen.js');
       if (c.kind !== 'trade' && owner !== c.user) problems.push(`${c.id} ${c.kind}: evidence row belongs to ${owner}, not ${c.user}`);
     }
   }
-  console.log('cases:', cases.length, 'kinds:', byKind);
+  console.log('cases:', generated.length, '+ training', lessons.length, 'kinds:', byKind);
   console.log('tiers:', byTier, 'answer letters:', byAnswer);
-  console.log(problems.length ? `PROBLEMS (${problems.length}):\n` + problems.join('\n') : 'all generated cases OK');
+  console.log(problems.length ? `PROBLEMS (${problems.length}):\n` + problems.join('\n') : 'all generated and training cases OK');
   process.exitCode = problems.length ? 1 : 0;
 })();

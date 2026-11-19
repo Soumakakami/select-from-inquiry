@@ -13,10 +13,10 @@
 | `src/index.html` | テンプレート。`/*__CSS__*/`、`/*__DATAGEN__*/`、`/*__CASEGEN__*/`、`/*__AUDIO__*/`、`/*__FX__*/`、`/*__GAME__*/` の位置に中身が埋め込まれる |
 | `src/style.css` | 見た目（ドット絵のUI）。冒頭の `:root` に色、フォント、ドットの角丸（`--notch`）のトークン |
 | `src/datagen.js` | ダミーDBの生成（[database.md](database.md)）。ブラウザでは `window.LogDB`、Node では `module.exports` |
-| `src/casegen.js` | 問い合わせ票93件の自動生成（`window.CaseGen.build(DB)`、Node では `module.exports`）。DBの実データから、正解・根拠・解説・模範SQLまで組み立てる（[cases.md](cases.md)） |
+| `src/casegen.js` | 問い合わせ票93件の自動生成（`window.CaseGen.build(DB)`）と、研修の3件（`CaseGen.training(DB, 除外する公開ID)`）。Node では `module.exports`。DBの実データから、正解・根拠・解説・模範SQLまで組み立てる（[cases.md](cases.md)） |
 | `src/audio.js` | BGMと効果音（`window.Sound`）。Web Audio API で合成するので音声ファイルはない |
 | `src/fx.js` | 演出（`window.FX`）。ドット絵の登場人物（12×12の文字列からSVGを生成）、HUDのアイコン（8×8）、ハンマー・丸めた紙・ゴミ箱のスプライト、タイトル背景の街（`skyline()`）、証拠カード（`evidence()`）、禁断のDROP（`dropSequence()`）、始末書のゴミ箱ミニゲーム（`trashThrow()`）、BANハンマー（`banHammer()`）、会話ウィンドウ、カットイン、フラッシュ、サイレン、紙吹雪、得点のポップアップとカウントアップ、起動ログ。画像ファイルはない |
-| `src/game.js` | ゲーム本体。資料（テーブル定義）、ケース定義、SQL実行、採点、画面描画、保存 |
+| `src/game.js` | ゲーム本体。資料（テーブル定義）、ケース定義、研修のレクチャー（`LESSONS`）、SQL実行、採点、画面描画、保存 |
 | `build.js` | `src/` を1枚の `docs/index.html` にまとめ、`node_modules/sql.js/dist` から3ファイルを `docs/` にコピー |
 | `docs/` | 公開物：`index.html`、`sql-wasm.js`、`sql-wasm.wasm`、`sql-asm.js`、`.nojekyll` |
 
@@ -52,8 +52,9 @@
 
 ## 状態と保存
 
-- 起動の順番：画面を描く → DBを作る → `CaseGen.build(DB)` で93件を `CASES` に足して100件にする（書き込み禁止にする前） → 保存データを読む（`loadState`） → 描画。DBができるまでタイトル画面の「出社する」は押せない。
-- `state`：今の日（`day`）と各日の退勤時刻・得点（`dayLog`）、現在のケース、100件のチケットの順番（前から5件ずつが1日分）、ケースごとの状態（open / solved / gaveup）、誤答数、ヒント数、点数、クエリ数、選択中の結論と根拠、エディタの下書き、始末書の枚数、コンボ、ゲーム内時計、「仕様です」を使った日（`specDay`）。
+- 起動の順番：画面を描く → DBを作る → `CaseGen.build(DB)` で93件を `CASES` に足して100件にする → `CaseGen.training()` で研修の3件をその後ろに足す（どちらも書き込み禁止にする前） → 保存データを読む（`loadState`） → 描画。DBができるまでタイトル画面のボタンは押せない。
+- `CASES` の並び：`[0, WORK)` が本番の100件、`[WORK, CASES.length)` が研修の3件。日・得点・最終結果は本番の分だけで数える。研修の各ステップ（`steps`）は `game.js` の `LESSONS` にあり、SQLの実行結果・タブの切り替え・解決を `lessonEvent()` に渡して進める。
+- `state`：研修中か本番か（`phase`）、研修を修了したか（`trainDone`）、研修を受け直す前のチケット（`workCurrent`）、今の日（`day`）と各日の退勤時刻・得点（`dayLog`）、現在のケース、100件のチケットの順番（前から5件ずつが1日分）、ケースごとの状態（open / solved / gaveup、研修はステップの進み `step` も）、誤答数、ヒント数、点数、クエリ数、選択中の結論と根拠、エディタの下書き、始末書の枚数、コンボ、ゲーム内時計、「仕様です」を使った日（`specDay`）。
 - `localStorage` のキー `logs-dont-lie:v1` に保存。使えない環境でも動く（try/catch）。
 - Claude のアーティファクトで表示したときに状態を引き継ぐため、`window.claude.hot` があれば snapshot / ready を使う。GitHub Pages では無関係で、無視される。
 
@@ -62,8 +63,8 @@
 | コマンド | 内容 |
 |---|---|
 | `npm run verify` | Node で DB を作り、各ケースの模範SQLとデータの整合性（残高がマイナスにならない、同じワールドで生きているキャラの名前が重複しない、など）を出力する |
-| `npm run cases` | 自動生成した93件を検証する：選択肢に正解がある、根拠が自分の値を受け付けて他は受け付けない、模範SQLがエラーなく動いて行を返す、決め手のログがそのユーザーのもの、ユーザーとチケット番号が重複しない、受付日時が範囲内 |
-| `python3 test/play.py` | Playwright（Chromium）で `docs/` を配信し、誤答、始末書、重いクエリのあと、20日×5件の100件をすべて解いて、1日の結果画面と最終結果画面まで通しでプレイ。自動生成の答えは、ページの中で同じDBを作って `CaseGen.build` から引く。`test/shots/` にスクリーンショットを保存 |
+| `npm run cases` | 自動生成した93件と研修の3件を検証する：研修が3件ある、選択肢に正解がある、根拠が自分の値を受け付けて他は受け付けない、模範SQLがエラーなく動いて行を返す、決め手のログがそのユーザーのもの、ユーザーとチケット番号が重複しない、受付日時が範囲内（研修のユーザーも本番の100件と重ならない） |
+| `python3 test/play.py` | Playwright（Chromium）で `docs/` を配信し、研修をスキップして、誤答、始末書、重いクエリのあと、20日×5件の100件をすべて解いて、1日の結果画面と最終結果画面まで通しでプレイ。自動生成の答えは、ページの中で同じDBを作って `CaseGen.build` から引く。`test/shots/` にスクリーンショットを保存 |
 | `python3 test/csp.py` | WASM を禁止するCSPを付けて開き、asm.js へのフォールバックを確認 |
 
 Python のテストには `pip install playwright` と `playwright install chromium` が必要。

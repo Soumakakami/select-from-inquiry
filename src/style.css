@@ -805,3 +805,54 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* =====================================================================
+   研修（DAY 1 の前のチュートリアル）
+   ===================================================================== */
+/* 研修ノート：問い合わせ票の上に置く、緑の表紙のバインダー */
+.lesson { flex: none; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); box-shadow: 4px 4px 0 rgba(60,30,10,.4); }
+.lesson-head { display: flex; align-items: center; gap: 10px; padding: 4px 8px 4px 10px; background: var(--p-green); color: #fff; border-bottom: 2px solid var(--outline); }
+.lesson-head b { font-weight: 400; }
+.lesson-tag { flex: none; white-space: nowrap; padding: 0 8px; background: var(--yellow); color: var(--paper-ink); box-shadow: inset -2px -2px 0 var(--sticky-dk); }
+.lesson-skip { margin-left: auto; padding: 0 4px; white-space: nowrap; flex: none; background: none; border: 0; color: #e3f6db; text-decoration: underline; text-underline-offset: 4px; }
+.lesson-skip:hover { color: #fff; background: rgba(0,0,0,.15); }
+.lesson-steps { list-style: none; margin: 0; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; border-bottom: 2px dashed var(--paper-line); }
+.lesson-steps li { display: grid; grid-template-columns: 16px 1fr; gap: 8px; align-items: start; color: var(--paper-mute); }
+.lesson-steps li b { font-family: var(--font-px); font-size: 8px; font-weight: 400; margin-right: 8px; color: var(--p-blue); }
+.lesson-steps .lb { width: 16px; height: 16px; margin-top: 4px; border: 2px solid var(--paper-mute); background: #fff; position: relative; }
+.lesson-steps .is-current { color: var(--paper-ink); background: var(--sticky); margin: 0 -6px; padding: 0 6px; }
+.lesson-steps .is-current .lb { border-color: var(--p-amber); animation: coachBox 1s steps(2) infinite; }
+.lesson-steps .is-done { text-decoration: line-through; text-decoration-color: var(--paper-line); }
+.lesson-steps .is-done .lb { border-color: var(--p-green); background: var(--p-green); }
+.lesson-steps .is-done .lb::after { content: ""; position: absolute; left: 2px; top: 2px; width: 8px; height: 4px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg); }
+@keyframes coachBox { 50% { background: var(--amber-hi); } }
+.lesson-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.lesson-say { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
+.lesson-say p { margin: 0; }
+.lesson-face { width: 48px; height: 48px; border: 2px solid var(--outline); background: #e7ecf6; line-height: 0; }
+.lesson-face svg { width: 100%; height: 100%; }
+.lesson-note { margin: 0; padding: 4px 8px; border-left: 4px solid var(--p-blue); background: #e7ecf6; color: #2c3a58; }
+.lesson-body code, .cert code { padding: 0 4px; background: #ece6cf; color: var(--p-accent); }
+.lesson-sql { white-space: pre-wrap; word-break: break-all; }
+.lesson-body .btn-row { margin: 0; }
+.lesson-clear { margin: 0; color: var(--p-green); }
+
+/* いま触ってほしい場所（点滅する枠） */
+.is-coach { outline: 4px solid var(--yellow); outline-offset: 2px; animation: coach 1s steps(2) infinite; }
+@keyframes coach { 50% { outline-color: var(--amber-dk); } }
+.editor.is-coach { outline: 0; animation: none; }
+.editor.is-coach::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border: 4px solid var(--yellow); animation: coachBorder 1s steps(2) infinite; }
+@keyframes coachBorder { 50% { border-color: transparent; } }
+
+/* 研修修了証 */
+.cert { position: relative; margin: 8px 0 16px; padding: 20px 24px; background: var(--paper); color: var(--paper-ink); border: 4px double var(--p-amber); box-shadow: 0 0 0 4px var(--paper), 0 0 0 6px var(--outline); }
+.cert p { max-width: none; }
+.cert-title { text-align: center; font-size: 32px; line-height: 40px; letter-spacing: 8px; color: var(--p-amber); margin: 0 0 12px !important; }
+.cert-list { margin: 0 0 12px; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 4px; }
+.cert-sign { text-align: right; margin: 0 !important; position: relative; padding-right: 72px; }
+.cert-stamp { position: absolute; right: 0; top: 50%; width: 56px; height: 56px; margin-top: -28px; display: grid; place-items: center; color: var(--shu); border: 4px solid var(--shu); }
+.modal.is-final .cert-stamp, .overlay .cert-stamp { animation: slam .32s steps(4, end) .3s both; }
+@media (max-width: 720px) {
+  .cert { padding: 16px; }
+  .cert-title { font-size: 16px; line-height: 24px; letter-spacing: 4px; }
+}
