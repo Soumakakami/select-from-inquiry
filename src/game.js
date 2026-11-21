@@ -761,6 +761,46 @@ GROUP BY u.public_id, l.ip_address;`,
     const cs = state.cases[state.current];
     cs.queries++;
     if (cs.status === 'open') advance('query');
+    const { blocks, tabs, results, ok, totalRows, heavy } = execStatements(stmts);
+    // サブモニターが開いていれば、それは残してメイン側だけ差し替える
+    const main = out.querySelector(':scope > .rsplit > .rcur');
+    (main || out).innerHTML = resultSet(blocks, tabs);
+    out.scrollTop = 0;
+    freshResults(main || out);
+    snd(owns('keyboard') ? 'runMech' : 'run');
+    if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
+    renderClock();
+    save();
+    lessonEvent({ type: 'run', sql: src, results });
+  }
+  const freshResults = (el) => { el.classList.remove('is-fresh'); void el.offsetWidth; el.classList.add('is-fresh'); };
+  // サブモニター（道具）：IDたどりルーペで引いた結果を、いまの結果の横に出す。エディタと元の表はそのまま
+  function runSide(sql) {
+    const cs = state.cases[state.current];
+    cs.queries++;
+    if (cs.status === 'open') advance('query');
+    const { blocks, tabs, results, ok } = execStatements([sql]);
+    const out = $('#results');
+    let sub = out.querySelector(':scope > .rsplit > .rsub');
+    if (!sub) {
+      const split = document.createElement('div'), cur = document.createElement('div');
+      split.className = 'rsplit'; cur.className = 'rcur'; sub = document.createElement('div'); sub.className = 'rsub';
+      cur.append(...out.childNodes); split.append(cur, sub); out.replaceChildren(split);
+    }
+    sub.innerHTML = `<div class="rsub-head"><span>サブモニター</span><button type="button" class="rsub-close" title="サブモニターを閉じる" aria-label="サブモニターを閉じる">×</button></div>${resultSet(blocks, tabs)}`;
+    sub.scrollTop = 0;
+    freshResults(sub);
+    snd(owns('keyboard') ? 'runMech' : 'run'); snd(ok ? 'ok' : 'error');
+    renderClock();
+    save();
+    lessonEvent({ type: 'run', sql, results });
+  }
+  function closeSide() {
+    const out = $('#results'), split = out.querySelector(':scope > .rsplit'); if (!split) return;
+    out.replaceChildren(...split.querySelector('.rcur').childNodes);
+    snd('pop');
+  }
+  function execStatements(stmts) {
     const blocks = [], results = [], tabs = [];
     let ok = true, totalRows = 0, heavy = false;
     for (let k = 0; k < stmts.length; k++) {
@@ -788,18 +828,8 @@ GROUP BY u.public_id, l.ip_address;`,
         break;
       } finally { if (st) st.free(); }
     }
-    const cur = resultSet(blocks, tabs);
-    out.innerHTML = owns('submon') && prevResults ? `<div class="rsplit"><div class="rcur">${cur}</div><div class="rprev"><p class="rprev-label">サブモニター：ひとつ前の結果</p>${prevResults}</div></div>` : cur;
-    prevResults = cur;
-    out.scrollTop = 0;
-    out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
-    snd(owns('keyboard') ? 'runMech' : 'run');
-    if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
-    renderClock();
-    save();
-    lessonEvent({ type: 'run', sql: src, results });
+    return { blocks, tabs, results, ok, totalRows, heavy };
   }
-  let prevResults = '';
   // 複数の結果はタブで1つずつ全高表示（並べると枠が潰れて読めないため）。エラーがあればそのタブを開く
   function resultSet(blocks, tabs) {
     if (blocks.length < 2) return blocks.join('');
@@ -2103,8 +2133,9 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.dataset.shopTab) { shopTab = b.dataset.shopTab; snd('page'); showShop(shopMode, true); $('#overlay').scrollTop = 0; }
       else if (b.dataset.drill) {
         const [t, key, ...lit] = b.dataset.drill.split('|');
-        insertAndRun(`SELECT * FROM ${t} WHERE ${key} = ${lit.join('|')};`);
-      } else if (b.dataset.uid) { insertAtCursor(b.dataset.uid); snd('pop'); }
+        const sql = `SELECT * FROM ${t} WHERE ${key} = ${lit.join('|')};`;
+        if (owns('submon')) runSide(sql); else insertAndRun(sql);
+      } else if (b.classList.contains('rsub-close')) closeSide(); else if (b.dataset.uid) { insertAtCursor(b.dataset.uid); snd('pop'); }
       else if (b.dataset.recipe != null) { const r = RECIPES[+b.dataset.recipe]; if (r) { insertStatement(`-- 定石：${r[0]}\n${r[2](CASES[state.current])}`); snd('pop'); } }
       else if (b.id === 'btn-timeline') insertAndRun(timelineSql(CASES[state.current]));
       else if (b.id === 'btn-memo-add') { const v = $('#sql').value.trim(); if (v && state.snippets.length < 5) { state.snippets.push(v); save(); renderMemo(); snd('pop'); } }

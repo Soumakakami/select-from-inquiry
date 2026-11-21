@@ -381,9 +381,7 @@ kbd { font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 2p
 .t-id { color: var(--pink); }
 
 .results { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; background: var(--screen2); color: var(--screen-ink); position: relative; z-index: 4; }
-.results.is-fresh .rblock { animation: rowsIn .24s steps(3) both; }
-.results.is-fresh .rblock:nth-child(2) { animation-delay: .08s; }
-.results.is-fresh .rblock:nth-child(3) { animation-delay: .16s; }
+.is-fresh .rblock { animation: rowsIn .24s steps(3) both; }
 @keyframes rowsIn { from { opacity: 0; transform: translateY(8px); } }
 .results-empty { margin: auto; text-align: center; color: var(--screen-muted); max-width: 30em; }
 .results-empty b { display: block; font-family: var(--font-px); font-size: 16px; line-height: 24px; font-weight: 400; color: var(--ok); margin-bottom: 12px; text-shadow: 0 0 6px rgba(99,199,77,.6); }
@@ -984,8 +982,11 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .rfilter:focus { border-color: var(--amber); outline: 0; }
 .rsplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; min-height: 0; }
 .rsplit > div { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
-.rprev { opacity: .75; border-left: 4px solid var(--screen-line); padding-left: 10px; }
-.rprev-label { margin: 0; color: var(--cyan); }
+.rsub { border-left: 4px solid var(--cyan); padding-left: 10px; }
+.rsub-head { display: flex; align-items: center; gap: 8px; flex-shrink: 0; color: var(--cyan); }
+.rsub-head span { flex: 1; }
+.rsub-close { width: 28px; height: 28px; padding: 0; background: transparent; color: var(--screen-muted); border: 2px solid var(--screen-line); font: inherit; line-height: 1; cursor: pointer; }
+.rsub-close:hover { color: var(--screen-ink); border-color: var(--amber); }
 @media (max-width: 1100px) { .rsplit { grid-template-columns: 1fr; } }
 
 /* 付箋メモ・関係図のタブ */
@@ -3081,7 +3082,7 @@ ORDER BY created_at;`,
       pal: { k: K, w: W, c: '#2ce8f5', d: '#1d223a' },
       px: ['kkkkkkkkkkkk', 'kddddddddddk', 'kdwwdwdddddk', 'kdwdwdwwdddk', 'kdwwdwdwdcdk', 'kdwdwdwwdcdk', 'kddddddddcdk', 'kkkkkkkkkkkk', '..kwwwwwwk..', '..kcccwwwk..', '..kwwwwwwk..', '..kkkkkkkk..'] },
     { id: 'submon', kind: 'tool', name: 'サブモニター', price: 1000, from: 5, where: '結果の表',
-      desc: 'ひとつ前の結果を横に残して、新しい結果と見比べられる。',
+      desc: 'IDたどりルーペの虫めがねで引いた結果が、いまの結果の横のサブモニターに出る。元の表もエディタもそのまま。',
       pal: { k: K, b: '#dcd2b4', d: '#ab9f7e', s: '#161a2e', c: '#2ce8f5' },
       px: ['kkkkkkkkkkkk', 'kbbbbbbbbbbk', 'kbsssssssssk', 'kbscccsssbbk', 'kbsssssssbbk', 'kbscccccsbbk', 'kbsssssssbbk', 'kbbbbbbbbbbk', 'kkkkkkkkkkkk', '....kddk....', '..kkkddkkk..', '..kkkkkkkk..'] },
     { id: 'timeline', kind: 'tool', name: '行動タイムライン', price: 1800, from: 6, where: '問い合わせ票',
@@ -4737,6 +4738,46 @@ GROUP BY u.public_id, l.ip_address;`,
     const cs = state.cases[state.current];
     cs.queries++;
     if (cs.status === 'open') advance('query');
+    const { blocks, tabs, results, ok, totalRows, heavy } = execStatements(stmts);
+    // サブモニターが開いていれば、それは残してメイン側だけ差し替える
+    const main = out.querySelector(':scope > .rsplit > .rcur');
+    (main || out).innerHTML = resultSet(blocks, tabs);
+    out.scrollTop = 0;
+    freshResults(main || out);
+    snd(owns('keyboard') ? 'runMech' : 'run');
+    if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
+    renderClock();
+    save();
+    lessonEvent({ type: 'run', sql: src, results });
+  }
+  const freshResults = (el) => { el.classList.remove('is-fresh'); void el.offsetWidth; el.classList.add('is-fresh'); };
+  // サブモニター（道具）：IDたどりルーペで引いた結果を、いまの結果の横に出す。エディタと元の表はそのまま
+  function runSide(sql) {
+    const cs = state.cases[state.current];
+    cs.queries++;
+    if (cs.status === 'open') advance('query');
+    const { blocks, tabs, results, ok } = execStatements([sql]);
+    const out = $('#results');
+    let sub = out.querySelector(':scope > .rsplit > .rsub');
+    if (!sub) {
+      const split = document.createElement('div'), cur = document.createElement('div');
+      split.className = 'rsplit'; cur.className = 'rcur'; sub = document.createElement('div'); sub.className = 'rsub';
+      cur.append(...out.childNodes); split.append(cur, sub); out.replaceChildren(split);
+    }
+    sub.innerHTML = `<div class="rsub-head"><span>サブモニター</span><button type="button" class="rsub-close" title="サブモニターを閉じる" aria-label="サブモニターを閉じる">×</button></div>${resultSet(blocks, tabs)}`;
+    sub.scrollTop = 0;
+    freshResults(sub);
+    snd(owns('keyboard') ? 'runMech' : 'run'); snd(ok ? 'ok' : 'error');
+    renderClock();
+    save();
+    lessonEvent({ type: 'run', sql, results });
+  }
+  function closeSide() {
+    const out = $('#results'), split = out.querySelector(':scope > .rsplit'); if (!split) return;
+    out.replaceChildren(...split.querySelector('.rcur').childNodes);
+    snd('pop');
+  }
+  function execStatements(stmts) {
     const blocks = [], results = [], tabs = [];
     let ok = true, totalRows = 0, heavy = false;
     for (let k = 0; k < stmts.length; k++) {
@@ -4764,18 +4805,8 @@ GROUP BY u.public_id, l.ip_address;`,
         break;
       } finally { if (st) st.free(); }
     }
-    const cur = resultSet(blocks, tabs);
-    out.innerHTML = owns('submon') && prevResults ? `<div class="rsplit"><div class="rcur">${cur}</div><div class="rprev"><p class="rprev-label">サブモニター：ひとつ前の結果</p>${prevResults}</div></div>` : cur;
-    prevResults = cur;
-    out.scrollTop = 0;
-    out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
-    snd(owns('keyboard') ? 'runMech' : 'run');
-    if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
-    renderClock();
-    save();
-    lessonEvent({ type: 'run', sql: src, results });
+    return { blocks, tabs, results, ok, totalRows, heavy };
   }
-  let prevResults = '';
   // 複数の結果はタブで1つずつ全高表示（並べると枠が潰れて読めないため）。エラーがあればそのタブを開く
   function resultSet(blocks, tabs) {
     if (blocks.length < 2) return blocks.join('');
@@ -6079,8 +6110,9 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.dataset.shopTab) { shopTab = b.dataset.shopTab; snd('page'); showShop(shopMode, true); $('#overlay').scrollTop = 0; }
       else if (b.dataset.drill) {
         const [t, key, ...lit] = b.dataset.drill.split('|');
-        insertAndRun(`SELECT * FROM ${t} WHERE ${key} = ${lit.join('|')};`);
-      } else if (b.dataset.uid) { insertAtCursor(b.dataset.uid); snd('pop'); }
+        const sql = `SELECT * FROM ${t} WHERE ${key} = ${lit.join('|')};`;
+        if (owns('submon')) runSide(sql); else insertAndRun(sql);
+      } else if (b.classList.contains('rsub-close')) closeSide(); else if (b.dataset.uid) { insertAtCursor(b.dataset.uid); snd('pop'); }
       else if (b.dataset.recipe != null) { const r = RECIPES[+b.dataset.recipe]; if (r) { insertStatement(`-- 定石：${r[0]}\n${r[2](CASES[state.current])}`); snd('pop'); } }
       else if (b.id === 'btn-timeline') insertAndRun(timelineSql(CASES[state.current]));
       else if (b.id === 'btn-memo-add') { const v = $('#sql').value.trim(); if (v && state.snippets.length < 5) { state.snippets.push(v); save(); renderMemo(); snd('pop'); } }

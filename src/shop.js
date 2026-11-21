@@ -73,7 +73,7 @@
       pal: { k: K, w: W, c: '#2ce8f5', d: '#1d223a' },
       px: ['kkkkkkkkkkkk', 'kddddddddddk', 'kdwwdwdddddk', 'kdwdwdwwdddk', 'kdwwdwdwdcdk', 'kdwdwdwwdcdk', 'kddddddddcdk', 'kkkkkkkkkkkk', '..kwwwwwwk..', '..kcccwwwk..', '..kwwwwwwk..', '..kkkkkkkk..'] },
     { id: 'submon', kind: 'tool', name: 'サブモニター', price: 1000, from: 5, where: '結果の表',
-      desc: 'ひとつ前の結果を横に残して、新しい結果と見比べられる。',
+      desc: 'IDたどりルーペの虫めがねで引いた結果が、いまの結果の横のサブモニターに出る。元の表もエディタもそのまま。',
       pal: { k: K, b: '#dcd2b4', d: '#ab9f7e', s: '#161a2e', c: '#2ce8f5' },
       px: ['kkkkkkkkkkkk', 'kbbbbbbbbbbk', 'kbsssssssssk', 'kbscccsssbbk', 'kbsssssssbbk', 'kbscccccsbbk', 'kbsssssssbbk', 'kbbbbbbbbbbk', 'kkkkkkkkkkkk', '....kddk....', '..kkkddkkk..', '..kkkkkkkk..'] },
     { id: 'timeline', kind: 'tool', name: '行動タイムライン', price: 1800, from: 6, where: '問い合わせ票',
