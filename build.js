@@ -6,6 +6,7 @@ html = html.replace('/*__CSS__*/', () => src('style.css'))
   .replace('/*__DATAGEN__*/', () => src('datagen.js'))
   .replace('/*__CASEGEN__*/', () => src('casegen.js'))
   .replace('/*__SHOP__*/', () => src('shop.js'))
+  .replace('/*__STORY__*/', () => src('story.js'))
   .replace('/*__AUDIO__*/', () => src('audio.js'))
   .replace('/*__FX__*/', () => src('fx.js'))
   .replace('/*__GAME__*/', () => src('game.js'));

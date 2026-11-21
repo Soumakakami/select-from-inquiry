@@ -27,6 +27,8 @@ try:
     print('answer key:', len(key))
     pg.screenshot(path='test/shots/01_intro.png')
     pg.click('[data-act=start]')
+    pg.wait_for_selector('.story-title'); pg.screenshot(path='test/shots/01b_prologue.png')
+    pg.click('[data-act=story-skip]')  # プロローグ
     pg.click('.boot'); pg.wait_for_timeout(2000)  # 起動ログをスキップ → DAY 1 のカットイン
     pg.click('#run'); pg.wait_for_timeout(200)
     pg.screenshot(path='test/shots/02_case1_first_query.png')
@@ -63,6 +65,8 @@ try:
         pg.wait_for_timeout(5000); pg.screenshot(path='test/shots/07_day_end.png')
       if day < 20:
         pg.click('[data-act=next-day]'); pg.wait_for_timeout(300)
+        pg.click('[data-act=story-skip]'); pg.wait_for_timeout(300)  # 退勤後のシーン
+    pg.click('[data-act=story-skip]')  # エピローグ
     pg.wait_for_timeout(8000)  # 最終結果の演出を待つ
     pg.screenshot(path='test/shots/08_final.png')
     print('FINAL:', pg.inner_text('#modal')[:600])

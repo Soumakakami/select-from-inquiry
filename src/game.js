@@ -488,6 +488,8 @@ GROUP BY u.public_id, l.ip_address;`,
       // 給料と購買部
       wallet: 0, earned: 0, spent: 0, spentBy: {}, pay: {}, inv: {}, owned: {}, buffs: { freeHint: 0, shield: 0, energy: 0 },
       tape: 'lofi', bezelOn: true, snippets: [], shimatsuAtStart: 0, enjoAtStart: 0, trainPaid: false, shopVisits: 0, shopSeenDay: 0,
+      story: {}, // 見終わったストーリーのシーン（prologue / 1〜19 / epilogue）
+
       cases: CASES.map(freshCase),
       drafts: {},
     };
@@ -1757,7 +1759,7 @@ GROUP BY u.public_id, l.ip_address;`,
       if (k == null) showTrainingEnd(); else goto(k);
       return;
     }
-    if (allDone()) showFinal(true);
+    if (allDone()) finishGame();
     else if (dayDone()) showDayEnd(true);
     else goto(firstOpen());
   }
@@ -1836,17 +1838,87 @@ GROUP BY u.public_id, l.ip_address;`,
     const prevTiers = d > 1 ? dayCases(d - 1).map((i) => CASES[i].tier) : [1];
     let line = d === 1 && state.trainDone ? `研修おつかれ。ここからが本番だ。問い合わせは毎日${DAY_SIZE}件ずつ届く。研修でやった手順で、ひとつずつ片付けていこう。`
       : d === 1 ? `おはよう。配属初日だな。問い合わせは毎日${DAY_SIZE}件ずつ、届いた順にさばいていこう。DBは参照専用、更新系のSQLは絶対に流すなよ。`
-      : d === DAYS() ? '今日で最終日だ。最後まで気を抜くなよ。'
+      : d === DAYS() ? (window.Story ? '今日で最終日だ。今夜はいよいよ5周年。最後まで気を抜くなよ。' : '今日で最終日だ。最後まで気を抜くなよ。')
         : Math.max(...tiers) > Math.max(...prevTiers) ? (Math.max(...tiers) === 3 ? 'おはよう。そろそろ一人前だな。今日からは手強いのが混ざるぞ。' : 'おはよう。今日からは、少し調べる量が多いチケットも回ってくる。')
           : DAY_LINES[d % DAY_LINES.length];
-    if (f) f.cutin('day', `DAY ${d}`, `本日の問い合わせ ${DAY_SIZE}件`);
+    if (f) f.cutin('day', `DAY ${d}`, `本日の問い合わせ ${DAY_SIZE}件${window.Story ? `　${window.Story.countdown(d)}` : ''}`);
     snd('boot');
     say('senpai', line);
     setTimeout(() => { arrive(state.current); $('#sql').focus({ preventScroll: true }); }, f && !f.reduced() ? 1600 : 0);
   }
-  // 翌日へ：時計を 10:00 に戻し、次の5件を届ける
+  // ---------------------------------------------------------------- story
+  // 1日の終わり（翌日へ）・最初の出社前・全件終了後に、短い会話シーンを挟む（台本は story.js）
+  let scene = null;
+  const STORY = () => window.Story || null;
+  const hasScene = (key) => !!(STORY() && STORY().SCENES[key] && !(state.story || {})[key]);
+  function storyCtx(d) {
+    const ids = d >= 1 && d <= DAYS() ? dayCases(d) : [];
+    const log = state.dayLog[d];
+    const solved = workSt().filter((c) => c.status === 'solved').length;
+    return {
+      day: d, grade: ids.length ? gradeOf(dayScore(d))[1] : '',
+      overtime: DAY_START + (log ? log.minutes : state.minutes) > DAY_END,
+      perfect: ids.filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length,
+      hints: ids.reduce((a, i) => a + state.cases[i].hints, 0),
+      shimatsu: Math.max(0, state.shimatsu - (state.shimatsuAtStart || 0)), enjo: state.enjo || 0,
+      banned: workSt().some((c) => c.banned), owns, solved, solvedAll: solved === WORK,
+    };
+  }
+  // まだ見ていないシーンがあれば流してから then()。見終わる（スキップ含む）と既読になる
+  function withScene(key, then, doneLabel) {
+    if (!hasScene(key)) { then(); return; }
+    const sc = STORY().SCENES[key], f = FXo();
+    if (f) f.closeSay();
+    const ctx = storyCtx(typeof key === 'number' ? key : state.day);
+    const lines = sc.lines.map((l) => (typeof l === 'function' ? l(ctx) : l)).filter(Boolean);
+    scene = { key, lines, n: 0, then, doneLabel };
+    openModal(`
+      <div class="title-sky" aria-hidden="true">${f ? f.skyline() : ''}</div>
+      <div class="story-inner">
+        <p class="eyebrow">${esc(sc.eyebrow || `AFTER HOURS / DAY ${key}`)}</p>
+        <h2 class="story-title">${esc(sc.title)}</h2>
+        <div class="story-log" id="story-log" aria-live="polite"></div>
+        <div class="btn-row story-actions">
+          <button class="btn btn-primary" type="button" data-act="story-next">次へ ▼</button>
+          <button class="btn btn-ghost" type="button" data-act="story-skip">スキップ</button>
+        </div>
+      </div>`, 'story');
+    storyStep();
+  }
+  function storyStep() {
+    const s = scene; if (!s) return;
+    if (s.n >= s.lines.length) { storyEnd(); return; }
+    const [who, html] = s.lines[s.n++], f = FXo(), log = $('#story-log');
+    const el = document.createElement('div');
+    if (who === 'nar') { el.className = 'story-line is-nar'; el.innerHTML = `<p>${html}</p>`; }
+    else {
+      const p = f && f.PEOPLE[who];
+      el.className = `story-line who-${who}`;
+      el.innerHTML = `<div class="story-face">${f ? f.avatar(who) : ''}</div><div class="story-say"><b>${esc(p ? p.name : who)}</b><p>${html}</p></div>`;
+    }
+    log.querySelectorAll('.is-new').forEach((e) => e.classList.remove('is-new'));
+    el.classList.add('is-new');
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    snd('type');
+    if (s.n >= s.lines.length) {
+      const b = $('#modal [data-act="story-next"]');
+      if (b) { b.textContent = s.doneLabel; b.focus({ preventScroll: true }); }
+      const k = $('#modal [data-act="story-skip"]'); if (k) k.remove();
+    }
+  }
+  function storyEnd() {
+    const s = scene; if (!s) return;
+    scene = null;
+    state.story = state.story || {}; state.story[s.key] = true; save();
+    s.then();
+  }
+  const finishGame = () => withScene('epilogue', () => showFinal(true), '最終結果を見る');
+
+  // 翌日へ：時計を 10:00 に戻し、次の5件を届ける（その前に、今日の夜のシーン）
   function goNextDay() {
-    if (state.day >= DAYS()) { showFinal(true); return; }
+    if (state.day >= DAYS()) { finishGame(); return; }
+    if (hasScene(state.day)) { withScene(state.day, goNextDay, `翌日へ出社する（DAY ${state.day + 1}）`); return; }
     state.drafts[state.current] = $('#sql').value;
     state.day += 1; state.minutes = 0; state.current = dayCases(state.day)[0];
     state.shimatsuAtStart = state.shimatsu; state.enjoAtStart = state.enjo || 0;
@@ -2036,6 +2108,8 @@ GROUP BY u.public_id, l.ip_address;`,
         <p class="debug-label">進行</p>
         <div class="debug-row">${btn('solve-day', '今日の残りを全部解決', inTraining())}${btn('end-day', '今日を締める', inTraining())}</div>
         <div class="debug-row"><label>DAY <input type="number" id="dbg-day" min="1" max="${DAYS()}" value="${Math.min(DAYS(), state.day + 1)}"></label>${btn('jump', 'へジャンプ（前の日は全部解決）')}</div>
+        ${STORY() ? `<p class="debug-label">ストーリー（既読 ${Object.keys(state.story || {}).length}）</p>
+        <div class="debug-row"><label>話 <input type="number" id="dbg-scene" min="0" max="${DAYS()}" value="${Math.min(DAYS() - 1, state.day)}"></label>${btn('scene', 'を見る（0＝プロローグ、20＝エピローグ）')}${btn('story-reset', '既読を消す')}</div>` : ''}
         <p class="debug-label">購買部</p>
         <div class="debug-row">${btn('own-all', '全道具を持つ')}${btn('own-none', '道具・飾りを手放す')}${btn('fill-inv', '消耗品を満タン')}${btn('new-stock', '入荷通知をリセット')}</div>
         <p class="debug-label">時計・ペナルティ</p>
@@ -2067,7 +2141,7 @@ GROUP BY u.public_id, l.ip_address;`,
     if (cmd === 'reopen') { Object.assign(st, { status: 'open', score: 0, bonus: 0, via: null, wrong: 0, hints: 0 }); refresh(); return; }
     if (cmd === 'model') { setEditor(c.model, false); runSql(); return; }
     if (cmd === 'solve-day') { dayCases(state.day).forEach(debugSolve); refresh(); return; }
-    if (cmd === 'end-day') { dayCases(state.day).forEach(debugSolve); refresh(); if (allDone()) showFinal(true); else showDayEnd(true); return; }
+    if (cmd === 'end-day') { dayCases(state.day).forEach(debugSolve); refresh(); if (allDone()) finishGame(); else showDayEnd(true); return; }
     if (cmd === 'jump') {
       const d = Math.max(1, Math.min(DAYS(), parseInt($('#dbg-day').value, 10) || 1));
       if (inTraining()) state.phase = 'work';
@@ -2077,7 +2151,14 @@ GROUP BY u.public_id, l.ip_address;`,
       state.shimatsuAtStart = state.shimatsu; state.enjoAtStart = state.enjo || 0;
       $('#results').dataset.used = ''; refresh(); closeModal(); startDay(); return;
     }
-    if (cmd === 'own-all') { SHOP().ITEMS.filter((it) => it.kind === 'tool').forEach((it) => { state.owned[it.id] = true; }); completeWords = null; }
+    if (cmd === 'scene') {
+      const n = Math.max(0, Math.min(DAYS(), parseInt($('#dbg-scene').value, 10) || 0));
+      const key = n === 0 ? 'prologue' : n >= DAYS() ? 'epilogue' : n;
+      if (state.story) delete state.story[key];
+      withScene(key, closeModal, '閉じる'); return;
+    }
+    if (cmd === 'story-reset') state.story = {};
+    else if (cmd === 'own-all') { SHOP().ITEMS.filter((it) => it.kind === 'tool').forEach((it) => { state.owned[it.id] = true; }); completeWords = null; }
     else if (cmd === 'own-none') { state.owned = {}; state.tape = 'lofi'; completeWords = null; }
     else if (cmd === 'fill-inv') SHOP().ITEMS.filter((it) => it.kind === 'consumable').forEach((it) => { state.inv[it.id] = it.max || 3; });
     else if (cmd === 'new-stock') state.shopSeenDay = 0;
@@ -2106,6 +2187,8 @@ GROUP BY u.public_id, l.ip_address;`,
       if (e.target.name === 'choice') { state.cases[state.current].choice = e.target.value; save(); }
     });
     document.addEventListener('input', (e) => { if (e.target.id === 'evidence') { state.cases[state.current].evidence = e.target.value; save(); } });
+    // ストーリーのシーンは、ボタン以外の場所をクリックしても次へ進む
+    $('#overlay').addEventListener('click', (e) => { if (scene && !e.target.closest('button, a, input')) storyStep(); });
     document.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.id === 'btn-hint') showHint();
@@ -2150,8 +2233,10 @@ GROUP BY u.public_id, l.ip_address;`,
         skipArmed = false; endTraining(false);
       } else if (b.dataset.act) {
         const a = b.dataset.act;
-        if (a === 'start') { state.started = true; state.phase = 'work'; if (isTrain(state.current)) state.current = state.order[0]; save(); renderAll(); beginDay(false); }
-        else if (a === 'start-training') { state.started = true; state.phase = 'training'; state.current = WORK; save(); renderAll(); beginTraining(false); }
+        if (a === 'start') withScene('prologue', () => { state.started = true; state.phase = 'work'; if (isTrain(state.current)) state.current = state.order[0]; save(); renderAll(); beginDay(false); }, '出社する');
+        else if (a === 'start-training') withScene('prologue', () => { state.started = true; state.phase = 'training'; state.current = WORK; save(); renderAll(); beginTraining(false); }, '研修を始める');
+        else if (a === 'story-next') storyStep();
+        else if (a === 'story-skip') storyEnd();
         else if (a === 'resume') { if (inTraining()) beginTraining(true); else beginDay(true); }
         else if (a === 'skip-training') endTraining(false);
         else if (a === 'shop') showShop('dayend');
@@ -2167,7 +2252,7 @@ GROUP BY u.public_id, l.ip_address;`,
           showIntro(); // 研修から始めるか、スキップするかを選び直す
         } else if (a === 'review') closeModal();
         else if (a === 'next-day') goNextDay();
-        else if (a === 'show-final') showFinal(true);
+        else if (a === 'show-final') finishGame();
         else if (a === 'resign') showResign();
         else if (a === 'back-final') showFinal(false);
         else if (a === 'copy') {
@@ -2262,7 +2347,7 @@ GROUP BY u.public_id, l.ip_address;`,
       if (!ok) return;
       loadState(data);
       renderAll();
-      if (allDone() && state.started) { showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
+      if (allDone() && state.started) { if (hasScene('epilogue')) finishGame(); else showFinal(false); if (window.Sound) window.Sound.playBgm(); } else showIntro();
     });
   }
   const hot = window.claude && window.claude.hot;

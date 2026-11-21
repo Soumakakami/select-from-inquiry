@@ -11,7 +11,7 @@ SQLite（[sql.js](https://github.com/sql-js/sql.js)）がブラウザ内で動�
 
 | パス | 内容 |
 |---|---|
-| `src/` | ソース（`index.html` テンプレート、`style.css`、`game.js`、`datagen.js`、`casegen.js`、`shop.js`、`audio.js`、`fx.js`） |
+| `src/` | ソース（`index.html` テンプレート、`style.css`、`game.js`、`datagen.js`、`casegen.js`、`shop.js`、`story.js`、`audio.js`、`fx.js`） |
 | `docs/` | **ビルド済みの公開ファイル**。GitHub Pages はここを配信する（手で編集しない） |
 | `documents/` | 設計・仕様・運用のドキュメント（下記） |
 | `build.js` | `src/` を1枚の `index.html` にまとめ、sql.js を `docs/` にコピーする |
@@ -21,7 +21,7 @@ SQLite（[sql.js](https://github.com/sql-js/sql.js)）がブラウザ内で動�
 
 ## ドキュメント
 
-- [documents/game-design.md](documents/game-design.md) … ゲーム仕様（遊び方、研修、採点、給料と購買部、演出、画面構成）
+- [documents/game-design.md](documents/game-design.md) … ゲーム仕様（遊び方、研修、ストーリー、採点、給料と購買部、演出、画面構成）
 - [documents/cases.md](documents/cases.md) … 問い合わせ100件（手作り7件＋自動生成93件）と研修3件の内容・正解・罠と、ケースの追加手順 **※ネタバレあり**
 - [documents/database.md](documents/database.md) … テーブル定義とダミーデータの作り方
 - [documents/architecture.md](documents/architecture.md) … 技術構成、ビルド、テスト
