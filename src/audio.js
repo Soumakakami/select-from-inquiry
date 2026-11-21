@@ -176,11 +176,30 @@
     explode(t) { noise({ t, dur: 1.4, gain: 0.45, filter: 'lowpass', freq: 2400, freq2: 120, q: 0.4 }); tone({ t, f: 70, f2: 28, glide: 1.2, dur: 1.3, gain: 0.5, type: 'sine' }); thud(t, 0.8); },
     // ハンマー
     hammer(t) { thud(t, 0.9); tone({ t, f: 880, dur: 0.25, gain: 0.08, type: 'square', lp: 2500 }); noise({ t, dur: 0.3, gain: 0.3, filter: 'lowpass', freq: 1200 }); },
-    // 電話線を抜く／挿す
-    unplug(t) { tone({ t, f: 440, f2: 110, glide: 0.25, dur: 0.3, gain: 0.08, type: 'square', lp: 1500 }); },
-    plug(t) { tone({ t, f: 330, f2: 990, glide: 0.12, dur: 0.15, gain: 0.07, type: 'square', lp: 2500 }); SFX.ring(t + 0.25); },
     // 炎上
     enjo(t) { SFX.shimatsu(t); noise({ t: t + 0.1, dur: 1.2, gain: 0.15, filter: 'bandpass', freq: 800, freq2: 3000, q: 0.5 }); },
+    // メカニカルキーボードの実行音「カチャッ」
+    runMech(t) {
+      noise({ t, dur: 0.03, gain: 0.22, filter: 'bandpass', freq: 3800, q: 2.2 });
+      noise({ t: t + 0.035, dur: 0.04, gain: 0.16, filter: 'bandpass', freq: 1900, q: 1.6 });
+      tone({ t: t + 0.03, f: 2400, dur: 0.02, gain: 0.04, type: 'square', lp: 6000 });
+      tone({ t: t + 0.07, f: 880, f2: 1320, glide: 0.05, dur: 0.07, gain: 0.06, type: 'triangle' });
+    },
+    // レジの「チーン」
+    register(t) {
+      for (let i = 0; i < 3; i++) noise({ t: t + i * 0.05, dur: 0.04, gain: 0.07, filter: 'bandpass', freq: 1500 + i * 300, q: 3 });
+      bell(t + 0.18, 93, 0.12, 1.2); bell(t + 0.18, 100, 0.05, 0.8);
+    },
+    // 給料：コインがじゃらじゃら
+    coins(t) { for (let i = 0; i < 8; i++) { const tt = t + i * 0.06 + Math.random() * 0.02; tone({ t: tt, f: 1900 + Math.random() * 900, dur: 0.07, gain: 0.05, type: 'square', lp: 6000 }); tone({ t: tt, f: 3800 + Math.random() * 600, dur: 0.05, gain: 0.025, type: 'triangle' }); } },
+    // 缶を開ける「プシュッ」＋ごくごく
+    can(t) {
+      noise({ t, dur: 0.035, gain: 0.2, filter: 'bandpass', freq: 2200, q: 2 });
+      noise({ t: t + 0.03, dur: 0.35, gain: 0.16, filter: 'highpass', freq: 3500, freq2: 7000, q: 0.5 });
+      [0.5, 0.75, 1.0].forEach((d) => tone({ t: t + d, f: 180, f2: 120, glide: 0.1, dur: 0.12, gain: 0.12, type: 'sine' }));
+    },
+    // 時計が巻き戻る
+    rewind(t) { for (let i = 0; i < 6; i++) tone({ t: t + i * 0.05, f: 1600 - i * 150, dur: 0.04, gain: 0.04, type: 'square', lp: 4000 }); },
     // 結果発表：ファンファーレ
     final(t) {
       const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];
@@ -198,16 +217,11 @@
   }
 
   // ------------------------------------------------------------ BGM
-  // 夜の運用デスクの、落ち着いたローファイ。78BPM、4小節のコード進行を8小節のメロディで回す。
-  const BPM = 78, SPB = 60 / BPM, STEP = SPB / 4, BAR = 16;
-  const CHORDS = [
-    { name: 'Fmaj7', root: 41, notes: [53, 57, 60, 64] },
-    { name: 'G6', root: 43, notes: [55, 59, 62, 64] },
-    { name: 'Em7', root: 40, notes: [52, 55, 59, 62] },
-    { name: 'Am9', root: 45, notes: [60, 64, 67, 71] },
-  ];
-  // [16分の位置, MIDIノート, 長さ(16分)]
-  const MELODY = [
+  // 曲は SONGS に並べる。最初から入っているのは lofi。ほかはゲーム内の購買部で買えるカセット。
+  // 4小節のコード進行を8小節のメロディで回す。メロディは [16分の位置, MIDIノート, 長さ(16分)]
+  const BAR = 16;
+  // 夜の運用デスクの、落ち着いたローファイ（78BPM）
+  const LOFI_MELODY = [
     [[0, 76, 4], [6, 72, 2], [8, 74, 2], [12, 72, 4]],
     [[2, 74, 2], [4, 71, 4], [10, 67, 2], [12, 69, 4]],
     [[0, 67, 2], [3, 71, 3], [8, 74, 4], [14, 76, 2]],
@@ -217,7 +231,57 @@
     [[0, 76, 3], [4, 74, 2], [8, 71, 4], [12, 67, 4]],
     [[0, 69, 8], [12, 64, 2], [14, 67, 2]],
   ];
-  const BASS = [[0, 0, 6], [7, 0, 2], [10, 7, 4], [14, 12, 2]]; // [位置, ルートからの半音, 長さ]
+  const SONGS = {
+    lofi: {
+      bpm: 78, lead: 'pluck', drums: 'lofi', swing: 0.2,
+      chords: [{ root: 41, notes: [53, 57, 60, 64] }, { root: 43, notes: [55, 59, 62, 64] }, { root: 40, notes: [52, 55, 59, 62] }, { root: 45, notes: [60, 64, 67, 71] }],
+      melody: LOFI_MELODY,
+      bass: [[0, 0, 6], [7, 0, 2], [10, 7, 4], [14, 12, 2]], // [位置, ルートからの半音, 長さ]
+    },
+    // カセット「8bit ラン」：速いチップチューン（132BPM）
+    chip: {
+      bpm: 132, lead: 'square', drums: 'chip', swing: 0,
+      chords: [{ root: 48, notes: [60, 64, 67] }, { root: 45, notes: [57, 60, 64] }, { root: 41, notes: [53, 57, 60] }, { root: 43, notes: [55, 59, 62] }],
+      melody: [
+        [[0, 72, 2], [2, 76, 2], [4, 79, 2], [6, 84, 2], [8, 83, 2], [10, 79, 2], [12, 76, 4]],
+        [[0, 72, 2], [2, 76, 2], [4, 81, 4], [8, 79, 2], [10, 76, 2], [12, 72, 4]],
+        [[0, 77, 2], [2, 81, 2], [4, 84, 4], [8, 81, 2], [10, 77, 2], [12, 74, 4]],
+        [[0, 74, 2], [2, 79, 2], [4, 83, 4], [8, 86, 4], [12, 83, 4]],
+        [[0, 84, 4], [4, 83, 2], [6, 81, 2], [8, 79, 4], [12, 76, 4]],
+        [[0, 76, 2], [2, 79, 2], [4, 81, 2], [6, 84, 2], [8, 88, 4], [12, 84, 4]],
+        [[0, 81, 2], [2, 79, 2], [4, 77, 4], [8, 76, 2], [10, 74, 2], [12, 72, 4]],
+        [[0, 74, 4], [4, 79, 4], [8, 83, 2], [10, 86, 2], [12, 91, 4]],
+      ],
+      bass: [[0, 0, 1], [2, 12, 1], [4, 0, 1], [6, 12, 1], [8, 0, 1], [10, 12, 1], [12, 7, 1], [14, 12, 1]],
+    },
+    // カセット「シティポップ・ナイト」：夜の首都高（100BPM）
+    city: {
+      bpm: 100, lead: 'pluck', drums: 'city', swing: 0.1,
+      chords: [{ root: 38, notes: [53, 57, 60, 64] }, { root: 43, notes: [53, 59, 64, 67] }, { root: 36, notes: [55, 59, 62, 64] }, { root: 45, notes: [55, 61, 64, 67] }],
+      melody: [
+        [[0, 77, 2], [2, 76, 2], [4, 74, 2], [6, 72, 4], [12, 69, 2], [14, 72, 2]],
+        [[0, 74, 6], [8, 71, 2], [10, 74, 2], [12, 76, 4]],
+        [[0, 76, 2], [2, 79, 2], [4, 83, 4], [10, 81, 2], [12, 79, 4]],
+        [[0, 76, 4], [6, 73, 2], [8, 76, 2], [10, 79, 2], [12, 81, 4]],
+        [[0, 81, 2], [2, 79, 2], [4, 77, 4], [8, 76, 2], [10, 74, 2], [12, 72, 4]],
+        [[2, 74, 2], [4, 77, 2], [6, 79, 4], [12, 83, 4]],
+        [[0, 84, 4], [4, 83, 2], [6, 79, 2], [8, 76, 4], [12, 79, 4]],
+        [[0, 81, 6], [8, 79, 2], [10, 76, 2], [12, 73, 4]],
+      ],
+      bass: [[0, 0, 3], [3, 12, 1], [6, 0, 2], [8, 7, 2], [11, 10, 2], [14, 12, 2]],
+    },
+    // カセット「雨の残業」：ドラムなし、雨の音だけ（64BPM）
+    rain: {
+      bpm: 64, lead: 'bell', drums: 'rain', swing: 0,
+      chords: [{ root: 45, notes: [57, 60, 64, 67] }, { root: 41, notes: [53, 57, 60, 64] }, { root: 48, notes: [55, 59, 60, 64] }, { root: 43, notes: [55, 60, 62, 67] }],
+      melody: [
+        [[0, 76, 8], [12, 72, 4]], [[4, 77, 4], [8, 76, 4]], [[0, 79, 8], [10, 76, 2], [12, 74, 4]], [[0, 74, 12]],
+        [[0, 81, 4], [4, 79, 4], [8, 76, 8]], [[2, 77, 2], [4, 76, 4], [12, 72, 4]], [[0, 71, 4], [4, 72, 4], [8, 76, 8]], [[0, 74, 8], [8, 72, 8]],
+      ],
+      bass: [[0, 0, 12]],
+    },
+  };
+  let song = SONGS.lofi, STEP = 60 / song.bpm / 4;
 
   let timer = null, nextT = 0, stepAbs = 0;
 
@@ -229,23 +293,49 @@
     }
   }
   function playStep(s, t) {
-    const bar = Math.floor(s / BAR), st = s % BAR;
-    const chord = CHORDS[bar % CHORDS.length];
-    const swing = st % 2 === 1 ? STEP * 0.2 : 0;
+    const S = song, bar = Math.floor(s / BAR), st = s % BAR;
+    const chord = S.chords[bar % S.chords.length];
+    const swing = st % 2 === 1 ? STEP * S.swing : 0;
     const tt = t + swing;
     const drums = bar >= 2; // 最初の2小節はパッドとメロディだけ
     if (st === 0) pad(t, chord, BAR * STEP);
-    for (const [p, semi, len] of BASS) {
-      if (p === st) tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.9, gain: 0.16, type: 'sine', attack: 0.01, bus: bgmBus });
+    for (const [p, semi, len] of S.bass) {
+      if (p !== st) continue;
+      if (S.lead === 'square') tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.8, gain: 0.07, type: 'triangle', attack: 0.004, bus: bgmBus });
+      else tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.9, gain: S.lead === 'bell' ? 0.1 : 0.16, type: 'sine', attack: 0.01, bus: bgmBus });
     }
     if (bar >= 1) {
-      for (const [p, m, len] of MELODY[bar % MELODY.length]) if (p === st) pluck(tt, m, len * STEP, 0.07, bgmBus);
+      for (const [p, m, len] of S.melody[bar % S.melody.length]) {
+        if (p !== st) continue;
+        if (S.lead === 'square') tone({ t: tt, f: mtof(m), dur: len * STEP * 0.85, gain: 0.035, type: 'square', attack: 0.003, lp: 3600, bus: bgmBus });
+        else if (S.lead === 'bell') { pluck(tt, m, len * STEP, 0.05, bgmBus); tone({ t: tt, f: mtof(m + 12), dur: 1.2, gain: 0.012, type: 'sine', attack: 0.01, bus: bgmBus }); }
+        else pluck(tt, m, len * STEP, 0.07, bgmBus);
+      }
     }
-    if (drums) {
-      if (st === 0 || st === 10 || (st === 7 && bar % 2 === 1)) tone({ t: tt, f: 110, f2: 42, glide: 0.11, dur: 0.24, gain: 0.32, bus: bgmBus });
-      if (st === 4 || st === 12) { noise({ t: tt, dur: 0.11, gain: 0.07, filter: 'bandpass', freq: 1700, q: 0.9, bus: bgmBus }); tone({ t: tt, f: 190, dur: 0.06, gain: 0.04, type: 'triangle', bus: bgmBus }); }
-      if (st % 2 === 0) noise({ t: tt, dur: st % 4 === 2 ? 0.05 : 0.03, gain: st % 4 === 2 ? 0.035 : 0.02, filter: 'highpass', freq: 7500, q: 0.7, bus: bgmBus });
+    if (S.drums === 'rain') { // 雨音
+      noise({ t, dur: STEP * 1.2, gain: 0.012 + Math.random() * 0.01, filter: 'highpass', freq: 5200, q: 0.4, bus: bgmBus });
+      if (Math.random() < 0.3) noise({ t: t + Math.random() * STEP, dur: 0.02, gain: 0.02, filter: 'bandpass', freq: 3000 + Math.random() * 3000, q: 4, bus: bgmBus });
+      return;
     }
+    if (!drums) return;
+    const kick = (g) => tone({ t: tt, f: 110, f2: 42, glide: 0.11, dur: 0.24, gain: g, bus: bgmBus });
+    const snare = (g) => { noise({ t: tt, dur: 0.11, gain: g, filter: 'bandpass', freq: 1700, q: 0.9, bus: bgmBus }); tone({ t: tt, f: 190, dur: 0.06, gain: g * 0.6, type: 'triangle', bus: bgmBus }); };
+    const hat = (g, d) => noise({ t: tt, dur: d, gain: g, filter: 'highpass', freq: 7500, q: 0.7, bus: bgmBus });
+    if (S.drums === 'chip') {
+      if (st % 8 === 0) tone({ t: tt, f: 160, f2: 50, glide: 0.06, dur: 0.1, gain: 0.25, type: 'square', lp: 900, bus: bgmBus });
+      if (st === 4 || st === 12) noise({ t: tt, dur: 0.08, gain: 0.08, filter: 'highpass', freq: 2500, q: 0.5, bus: bgmBus });
+      if (st % 2 === 0) hat(0.018, 0.02);
+      return;
+    }
+    if (S.drums === 'city') {
+      if (st === 0 || st === 8 || st === 11) kick(0.3);
+      if (st === 4 || st === 12) snare(0.08);
+      hat(st % 2 ? 0.012 : 0.025, st % 4 === 2 ? 0.06 : 0.025);
+      return;
+    }
+    if (st === 0 || st === 10 || (st === 7 && bar % 2 === 1)) kick(0.32);
+    if (st === 4 || st === 12) snare(0.07);
+    if (st % 2 === 0) hat(st % 4 === 2 ? 0.035 : 0.02, st % 4 === 2 ? 0.05 : 0.03);
   }
   function scheduler() {
     if (!ready()) return;
@@ -253,7 +343,7 @@
     while (nextT < ctx.currentTime + 0.15) {
       playStep(stepAbs, nextT);
       nextT += STEP;
-      stepAbs = (stepAbs + 1) % (BAR * MELODY.length * 4) || BAR * MELODY.length; // ループ時はイントロを飛ばし、8小節の頭へ
+      stepAbs = (stepAbs + 1) % (BAR * song.melody.length * 4) || BAR * song.melody.length; // ループ時はイントロを飛ばし、8小節の頭へ
     }
   }
   function startLoop() {
@@ -274,6 +364,15 @@
   // ------------------------------------------------------------ 公開API
   function playBgm() { bgmWanted = true; startLoop(); }
   function setBgm(on) { prefs.bgm = !!on; savePrefs(); if (on) { bgmWanted = true; ensure(); startLoop(); } else stopLoop(); notify(); }
+  // 曲を替える（カセットの入れ替え）。鳴っていれば頭から流し直す
+  function setSong(name) {
+    const next = SONGS[name] || SONGS.lofi;
+    if (next === song) return;
+    const playing = !!timer;
+    if (playing) stopLoop();
+    song = next; STEP = 60 / song.bpm / 4;
+    if (playing) startLoop();
+  }
   function setSfx(on) { prefs.sfx = !!on; savePrefs(); notify(); }
   function onChange(fn) { listeners.push(fn); }
   function notify() { listeners.forEach((fn) => { try { fn(Object.assign({}, prefs)); } catch (e) { /* ignore */ } }); }
@@ -291,5 +390,5 @@
     else ctx.resume().then(() => startLoop(), () => {});
   });
 
-  root.Sound = { sfx, playBgm, setBgm, setSfx, onChange, get prefs() { return Object.assign({}, prefs); } };
+  root.Sound = { sfx, playBgm, setBgm, setSfx, setSong, onChange, get prefs() { return Object.assign({}, prefs); } };
 })(window);

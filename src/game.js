@@ -389,6 +389,15 @@ GROUP BY u.public_id, l.ip_address;`,
   const PRAISE = ['いいね、ログどおりだ。', 'ナイス。根拠もばっちり。', 'さすが。CSも助かるって。', 'その調子。次も頼んだ。', '完璧。もう一人で回せるな。'];
   const ARRIVE = ['新しいチケットです！', '次、お願いします！', 'こちらも急ぎでお願いします！', '問い合わせ、もう1件です！'];
 
+  // ---------------------------------------------------------------- 給料と購買部
+  // 点数（称号・評価に使う）とは別に、1日の終わりに給料（G）が出る。購買部（HUD の［購買部］からいつでも）で道具や消耗品を買える。
+  const PAY = { ontime: 50, allSolved: 50, grade: { S: 150, A: 80, B: 30, C: 0 }, shimatsu: -30, enjo: -50, firstPay: 300 };
+  const SALE_RATE = 0.7;
+  const SHOP = () => window.Shop || { ITEMS: [], BY_ID: {}, art: () => '' };
+  const owns = (id) => !!(state && state.owned && state.owned[id]);
+  const yen = (n) => `${Math.round(n).toLocaleString()} G`;
+  const OBACHAN = ['いらっしゃい。今日もおつかれさん。', 'あら、また来たの。好きなの見ていって。', '残業続きなら、コーヒー買っていきな。', 'その道具、評判いいのよ。', '給料日？ 無駄づかいしちゃだめよ。'];
+
   // ---------------------------------------------------------------- 研修（DAY 1 の前のチュートリアル）
   // 3件の固定の問い合わせを、Kさんのレクチャーに沿って1ステップずつ進める。点数も時計も動かない。
   // 各ステップの done(ev) は、SQLを実行したとき（ev.type = 'run'）やタブを開いたとき（'tab'）に呼ばれ、true なら次へ進む。
@@ -475,7 +484,10 @@ GROUP BY u.public_id, l.ip_address;`,
     const order = [0, ...[1, 2, 3].flatMap((t) => shuffle(idx.filter((i) => i !== 0 && CASES[i].tier === t)))];
     return {
       started: false, phase: 'work', trainDone: false, workCurrent: null, current: order[0], shimatsu: 0, order, day: 1, dayLog: {}, specDay: 0, combo: 0, maxCombo: 0, minutes: 0,
-      shimatsuIssued: 0, thrown: 0, penalty: 0, enjo: 0, heavyCount: 0, dropUsed: false, unplugged: false,
+      shimatsuIssued: 0, thrown: 0, penalty: 0, enjo: 0, heavyCount: 0, dropUsed: false,
+      // 給料と購買部
+      wallet: 0, earned: 0, spent: 0, spentBy: {}, pay: {}, inv: {}, owned: {}, buffs: { freeHint: 0, shield: 0, energy: 0 },
+      tape: 'lofi', bezelOn: true, snippets: [], shimatsuAtStart: 0, enjoAtStart: 0, trainPaid: false, shopVisits: 0, shopSeenDay: 0,
       cases: CASES.map(freshCase),
       drafts: {},
     };
@@ -497,10 +509,14 @@ GROUP BY u.public_id, l.ip_address;`,
   const firstOpen = () => { const ds = shownCases(); const i = ds.find((k) => state.cases[k].status === 'open'); return i == null ? ds[ds.length - 1] : i; };
   const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, (CASES[i].temper || 3) + state.cases[i].wrong + (state.cases[i].enjo ? 2 : 0)));
   function clockText(extra) {
-    const m = DAY_START + state.minutes + (extra || 0);
+    const m = Math.floor(DAY_START + state.minutes + (extra || 0));
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   }
-  function advance(kind) { if (inTraining()) return; state.minutes += (CLOCK[kind] || 0) * (state.unplugged ? 2 : 1); } // 電話線を抜いていると時間は倍速
+  function advance(kind) {
+    if (inTraining()) return;
+    if (kind === 'query' && state.buffs.energy > 0) { state.buffs.energy--; return; } // エナジードリンク
+    state.minutes += (CLOCK[kind] || 0) * (owns('chair') ? 0.9 : 1); // ゲーミングチェアは1割遅い
+  }
   const slotLabel = (i) => (isTrain(i) ? `研修${i - WORK + 1}` : `#${posOf(i) + 1}`);
   function starterFor(i) {
     const c = CASES[i];
@@ -717,6 +733,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const ta = $('#sql');
     const selected = ta.selectionStart !== ta.selectionEnd ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : '';
     const src = selected || ta.value;
+    if (debugCommand(src)) return; // :debug でデバッグモード（DBには流さない）
     const stmts = splitStatements(src);
     const out = $('#results');
     out.dataset.used = '1';
@@ -769,28 +786,46 @@ GROUP BY u.public_id, l.ip_address;`,
         break;
       } finally { if (st) st.free(); }
     }
-    out.innerHTML = blocks.join('');
+    out.innerHTML = owns('submon') && prevResults ? `<div class="rsplit"><div class="rcur">${blocks.join('')}</div><div class="rprev"><p class="rprev-label">サブモニター：ひとつ前の結果</p>${prevResults}</div></div>` : blocks.join('');
+    prevResults = blocks.join('');
     out.scrollTop = 0;
     out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
-    snd('run');
+    snd(owns('keyboard') ? 'runMech' : 'run');
     if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
     renderClock();
     save();
     lessonEvent({ type: 'run', sql: src, results });
   }
+  let prevResults = '';
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
   function renderTable(k, n, sql, cols, rows, count, ms, cut) {
-    const head = `<tr><th class="rn">#</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>`;
-    const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v) => {
+    const sortable = owns('sort');
+    const head = `<tr><th class="rn">#</th>${cols.map((c, k) => `<th${sortable ? ` data-sort="${k + 1}" title="クリックで並べ替え"` : ''}>${esc(c)}</th>`).join('')}</tr>`;
+    // IDたどりルーペ：参照先の分かる列（FROM のテーブル自身を指す列は除く）
+    const fromT = ((stripComments(sql).match(/\bFROM\s+([A-Za-z_]+)/i) || [])[1] || '').toLowerCase();
+    const drills = owns('drill') ? cols.map((c) => { const t = DRILL[String(c).toLowerCase()]; return t && t !== fromT ? t : null; }) : [];
+    // 蛍光ペン：問い合わせユーザーの user_id と、受付日の日時
+    const cs = state && CASES[state.current], selfUid = cs ? uidOf(cs.user) : null, mk = owns('marker') && cs ? { uid: uidOf(cs.user), pub: cs.user, day: String(cs.received).slice(0, 10) } : null;
+    const mkCls = (c, v) => {
+      if (!mk) return '';
+      if (/user_id$/i.test(c) && mk.uid != null && v === mk.uid) return ' mk-user';
+      if (c === 'public_id' && v === mk.pub) return ' mk-user';
+      if (typeof v === 'string' && v.startsWith(mk.day) && /^\d{4}-\d{2}-\d{2} \d{2}:/.test(v)) return ' mk-date';
+      return '';
+    };
+    const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v, k) => {
       if (v === null || v === undefined) return '<td class="null">NULL</td>';
-      if (typeof v === 'number') return `<td class="num">${esc(v)}</td>`;
       if (v instanceof Uint8Array) return '<td class="null">BLOB</td>';
-      return `<td title="${esc(v)}">${esc(v)}</td>`;
+      const t = drills[k] && !(drills[k] === 'usr_users' && v === selfUid) ? drills[k] : null, m = mkCls(cols[k], v); // 本人の user_id はたどらない
+      const dr = t ? `<button type="button" class="drill" data-drill="${t}|${drillKey(t, cols[k])}|${esc(sqlLit(v))}" title="${t} で引く" aria-label="${t} で引く"></button>` : '';
+      if (typeof v === 'number') return `<td class="num${m}${t ? ' has-drill' : ''}">${esc(v)}${dr}</td>`;
+      return `<td class="${m.trim()}${t ? ' has-drill' : ''}" title="${esc(v)}">${esc(v)}${dr}</td>`;
     }).join('')}</tr>`).join('');
     const more = count > rows.length ? `<span>（先頭 ${rows.length.toLocaleString()} 行を表示）</span>` : '';
     const label = n > 1 ? `<b>#${k + 1}</b>` : '';
-    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}${cut ? '+' : ''}</b> 行${cut ? '（数えきれないので打ち切り）' : ''}</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
-      <div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
+    const legend = mk && rows.length ? '<span class="mk-legend"><i class="mk-user">本人</i><i class="mk-date">受付日</i></span>' : '';
+    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}${cut ? '+' : ''}</b> 行${cut ? '（数えきれないので打ち切り）' : ''}</span>${more}<span>${ms.toFixed(1)} ms</span>${legend}<span class="rsql">${esc(oneLine(sql))}</span></div>
+      ${sortable && rows.length > 1 ? '<input class="rfilter" type="search" placeholder="この結果を絞り込む（文字を含む行だけ）" aria-label="結果を絞り込む">' : ''}<div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
   }
   function renderResultsEmpty() {
     $('#results').innerHTML = `<div class="results-empty"><b>READY<span class="blink-cursor"></span></b>左の問い合わせ票を読み、SQLでログを調べましょう。右のテーブル定義のテーブル名をクリックすると、SELECT文がエディタに入ります。</div>`;
@@ -825,6 +860,28 @@ GROUP BY u.public_id, l.ip_address;`,
     syncScroll();
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => { state.drafts[state.current] = ta.value; save(); }, 300);
+    updateComplete();
+  }
+  // 列名の補完（道具）：カーソル直前の単語に合うテーブル名・列名を出す。Tab かクリックで確定
+  let completeWords = null, completeList = [];
+  function updateComplete() {
+    const box = $('#complete'); if (!box) return;
+    const ta = $('#sql');
+    if (!owns('complete') || document.activeElement !== ta || ta.selectionStart !== ta.selectionEnd) { box.hidden = true; completeList = []; return; }
+    const m = ta.value.slice(0, ta.selectionStart).match(/[A-Za-z_][A-Za-z0-9_]*$/);
+    if (!completeWords) completeWords = [...new Set(TABLE_DOCS.flatMap((t) => [t.name, ...t.cols.map((c) => c[0])]))].sort();
+    const w = m ? m[0] : '';
+    completeList = w.length >= 2 ? completeWords.filter((x) => x.toLowerCase().startsWith(w.toLowerCase()) && x.toLowerCase() !== w.toLowerCase()).slice(0, 6) : [];
+    box.hidden = !completeList.length;
+    box.innerHTML = completeList.map((x, k) => `<button type="button" data-complete="${esc(x)}" class="${k === 0 ? 'is-first' : ''}">${esc(x)}</button>`).join('') + '<small>Tab で確定</small>';
+  }
+  function acceptComplete(word) {
+    const ta = $('#sql'), pos = ta.selectionStart;
+    const before = ta.value.slice(0, pos).replace(/[A-Za-z_][A-Za-z0-9_]*$/, '');
+    ta.value = before + word + ta.value.slice(pos);
+    const at = before.length + word.length;
+    ta.focus(); ta.setSelectionRange(at, at);
+    syncEditor();
   }
   function syncScroll() { const ta = $('#sql'), pre = $('.editor pre'); pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; }
   function setEditor(text, focus) {
@@ -855,12 +912,14 @@ GROUP BY u.public_id, l.ip_address;`,
     else if (shownScore !== total) FXo().countUp(scoreEl, shownScore, total, 800);
     shownScore = total;
     $('#shimatsu').textContent = state.shimatsu;
+    $('#wallet').textContent = yen(state.wallet);
+    const shopBtn = $('#btn-shop'); if (shopBtn) { shopBtn.hidden = !window.Shop; $('#shop-new').hidden = !newStock(); }
+    renderItems(); renderDeco(); renderDebug();
     $('#stat-shimatsu').classList.toggle('warn', state.shimatsu > 0);
     const comboEl = $('#stat-combo');
     comboEl.hidden = state.combo < 2;
     $('#combo').textContent = `x${state.combo}`;
     renderClock();
-    const phone = $('#btn-phone'); if (phone) phone.setAttribute('aria-pressed', String(!state.unplugged));
     const q = $('#queue');
     const ids = shownCases(), unlockedPos = ids.indexOf(firstOpen());
     // 上のバーには、その日の5件（研修中は研修の3件）だけを出す
@@ -897,13 +956,15 @@ GROUP BY u.public_id, l.ip_address;`,
       ${angerHtml(state.current)}
       <dl class="ticket-grid">
         <dt>受付日時</dt><dd>2026/${esc(jstLabel(c.received + ':00').replace(/:00$/, ''))} JST</dd>
-        <dt>公開ID</dt><dd>${esc(c.user)}</dd>
+        <dt>公開ID</dt><dd>${esc(c.user)}${owns('idcard') && uidOf(c.user) != null ? `<button type="button" class="uid-chip" data-uid="${uidOf(c.user)}" title="CS管理画面で引いた内部ID。クリックでエディタに入る">user_id ${uidOf(c.user)}</button>` : ''}</dd>
         <dt>ワールド</dt><dd>${esc(c.world)}</dd>
         <dt>種別</dt><dd>${esc(c.category)}</dd>
       </dl>
       <p class="ticket-body">${esc(c.body)}</p>
       <p class="ticket-note"><b>CS担当メモ：</b>${esc(c.note)}</p>
+      ${owns('timeline') ? '<button type="button" class="btn btn-timeline" id="btn-timeline">行動タイムラインを出す<small>このユーザーの log_ を時系列に</small></button>' : ''}
       ${st.status === 'solved' ? stampHtml(st.via === 'spec' ? '仕様' : st.via === 'update' ? '裏技' : '解決', st.via ? `is-${st.via}` : '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
+    applyRadar();
   }
   function stampHtml(text, cls) {
     return `<div class="stamp ${cls}"><span><span class="s-main">${text}</span><span class="s-sub">2026.11.13</span></span></div>`;
@@ -928,7 +989,7 @@ GROUP BY u.public_id, l.ip_address;`,
           <button class="btn btn-primary" type="submit">ユーザーに回答する</button>
         </div>
         <div class="btn-row">
-          <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（${tr ? '研修中は減点なし' : `−${HINT}`}）</button>
+          <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（${tr ? '研修中は減点なし' : state.buffs.freeHint > 0 ? 'おごり済み：減点なし' : `−${HINT}`}）</button>
           <button class="btn btn-ghost" type="button" id="btn-giveup">先輩に聞く</button>
         </div>
         ${tr ? '' : `<button class="btn btn-spec" type="button" id="btn-spec" ${st.specUsed || state.specDay === state.day ? 'disabled' : ''}>${st.specUsed ? '「仕様です」は使用済み（炎上中）' : state.specDay === state.day ? '「仕様です」は1日1回まで（今日は使用済み）' : '調べずに「仕様です」で即答する（1日1回）'}</button>`}
@@ -1066,16 +1127,323 @@ GROUP BY u.public_id, l.ip_address;`,
         <ul class="cols">${t.cols.map(([n, d]) => `<li><button type="button" data-col="${n}">${n}</button><span class="cmt">${d}</span></li>`).join('')}</ul>
         <button class="tbl-insert" type="button" data-table="${t.name}">SELECT文をエディタに入れる</button>
       </details>`).join('');
+    applyRadar();
   }
   function renderNotes() {
-    $('#tab-notes').innerHTML = `<div class="notes">${NOTES}</div>`;
+    const recipes = owns('recipes') ? `<section class="recipes"><p class="recipes-head"><b>調査の定石</b><small>クリックで、いまのチケットのユーザー入りのSQLがエディタに入ります</small></p>
+      <ul>${RECIPES.map(([label, kw], k) => `<li><button type="button" data-recipe="${k}"><b>${esc(label)}</b><code>${esc(kw)}</code></button></li>`).join('')}</ul></section>` : '';
+    $('#tab-notes').innerHTML = `${recipes}<div class="notes">${NOTES}</div>`;
   }
 
   function renderAll() {
-    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderNotes(); renderLesson();
+    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderNotes(); renderLesson(); renderTools();
+    applyLooks();
     const draft = state.drafts[state.current];
     setEditor(draft != null ? draft : starterFor(state.current));
     if (!$('#results').dataset.used) renderResultsEmpty();
+  }
+
+  // ---------------------------------------------------------------- 給料
+  function paySalary(d) {
+    if (!window.Shop) return null;
+    if (state.pay[d]) return state.pay[d];
+    const ids = dayCases(d), score = dayScore(d), [, grade] = gradeOf(score);
+    const sh = Math.max(0, state.shimatsu - (state.shimatsuAtStart || 0));
+    const en = Math.max(0, (state.enjo || 0) - (state.enjoAtStart || 0));
+    const lines = [
+      ['基本給（本日の得点）', score],
+      ['定時退社手当', DAY_START + state.minutes <= DAY_END ? PAY.ontime : 0],
+      ['皆勤賞（5件すべて解決）', ids.every((i) => state.cases[i].status === 'solved') ? PAY.allSolved : 0],
+      [`評価手当（${grade}）`, PAY.grade[grade]],
+      [`減給（始末書 ${sh}枚）`, sh * PAY.shimatsu],
+      [`減給（炎上 ${en}回）`, en * PAY.enjo],
+    ].filter(([k, v], n) => n === 0 || v !== 0);
+    const total = Math.max(0, lines.reduce((a, [, v]) => a + v, 0));
+    state.pay[d] = { lines, total };
+    state.wallet += total; state.earned += total;
+    save(); renderHud();
+    setTimeout(() => snd('coins'), 900);
+    return state.pay[d];
+  }
+  function payslipHtml(d, pay) {
+    if (!pay) return '';
+    return `<div class="payslip"><p class="payslip-title">給与明細　DAY ${d}</p>
+      <dl>${pay.lines.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="${v < 0 ? 'minus' : ''}">${v < 0 ? '−' : '+'}${Math.abs(v).toLocaleString()} G</dd>`).join('')}</dl>
+      <p class="payslip-total"><span>本日の支給額</span><b>${yen(pay.total)}</b></p>
+      <p class="payslip-wallet">所持金 ${yen(state.wallet)}</p></div>`;
+  }
+  // 最終結果の呼び名（お金の使い方）
+  function spenderName() {
+    const by = state.spentBy || {};
+    if (state.earned > 0 && state.spent === 0) return '倹約家';
+    if ((by.deco || 0) + (by.tape || 0) > (by.tool || 0) + (by.consumable || 0) && state.spent > 0) return 'インテリア担当';
+    if (state.earned > 0 && state.spent >= state.earned * 0.8) return '散財王';
+    return '';
+  }
+
+  // ---------------------------------------------------------------- 購買部
+  // HUD の［購買部］から業務中いつでも、1日の結果画面の「購買部に寄る」からも入れる。どちらも同じ品ぞろえ・同じ値段。
+  const priceOf = (it) => {
+    const sale = saleOf();
+    return sale && sale.id === it.id ? Math.round(it.price * SALE_RATE / 10) * 10 : it.price;
+  };
+  // 本日の特価：日ごとに1品（まだ持っていない品から、日付で決める）
+  function saleOf() {
+    const list = SHOP().ITEMS.filter((it) => it.from <= state.day && (it.kind === 'consumable' || !owns(it.id)));
+    return list.length ? list[(state.day * 7 + 3) % list.length] : null;
+  }
+  // 前に購買部をのぞいたあとに入荷した品があるか（HUD の［購買部］に NEW を出す）
+  const newStock = () => !inTraining() && SHOP().ITEMS.some((it) => it.from > (state.shopSeenDay || 0) && it.from <= state.day);
+  const SHOP_TABS = [['tool', '調査ツール', 'ずっと使える'], ['consumable', '消耗品', '各3個まで'], ['deco', '机の飾り', '見た目だけ'], ['tape', 'カセット', 'BGM']];
+  let shopMode = null, shopLine = '', shopTab = 'tool', fresh = [];
+  function showShop(mode, keepLine) {
+    shopMode = mode; // 'desk'（業務中に HUD から）か 'dayend'（1日の結果画面から）
+    const f = FXo();
+    if (!keepLine) {
+      // 前にのぞいたあとに入荷した品（DAY 1 からある品は除く）。この来店のあいだは「新入荷」の札を出す
+      fresh = SHOP().ITEMS.filter((it) => it.from > Math.max(1, state.shopSeenDay || 0) && it.from <= state.day).map((it) => it.id);
+      state.shopVisits = (state.shopVisits || 0) + 1;
+      const arrived = fresh.length ? SHOP().BY_ID[fresh[0]] : null;
+      shopLine = state.shopVisits === 1 ? 'あら、新人さん？ 購買部へようこそ。お給料で好きなもの買っていきな。調べものが楽になる道具もそろってるわよ。'
+        : arrived ? `今日は『${arrived.name}』が入ったわよ。仕事がはかどるって評判なの。` : OBACHAN[state.day % OBACHAN.length];
+      if (arrived) shopTab = arrived.kind === 'consumable' ? 'consumable' : 'tool';
+      state.shopSeenDay = state.day; save(); renderHud();
+    }
+    const sale = saleOf();
+    const card = (it) => {
+      const price = priceOf(it), have = it.kind === 'consumable' ? (state.inv[it.id] || 0) : owns(it.id) ? 1 : 0;
+      const locked = it.from > state.day && !have, full = it.kind === 'consumable' ? have >= (it.max || 3) : have > 0;
+      const poor = state.wallet < price;
+      let action;
+      if (locked) action = `<span class="shop-lock">DAY ${it.from} から入荷</span>`;
+      else if (it.kind === 'tape' && have) action = `<button class="btn" type="button" data-tape="${it.song}" ${state.tape === it.song ? 'disabled' : ''}>${state.tape === it.song ? '再生中' : '再生する'}</button>`;
+      else if (it.id === 'bezel' && have) action = `<button class="btn" type="button" data-toggle-bezel="1">${state.bezelOn ? '元の色に戻す' : '黒に塗る'}</button>`;
+      else if (full) action = `<span class="shop-owned">${it.kind === 'consumable' ? 'これ以上持てない' : '購入済み'}</span>`;
+      else action = `<button class="btn btn-primary" type="button" data-buy="${it.id}" ${poor ? 'disabled' : ''}>${poor ? 'お金が足りない' : '買う'}</button>`;
+      const isSale = sale && sale.id === it.id, isNew = fresh.includes(it.id);
+      return `<li class="shop-item${locked ? ' is-locked' : ''}${isSale ? ' is-sale' : ''}${have && it.kind !== 'consumable' ? ' is-owned' : ''}">
+        <span class="shop-art">${SHOP().art(it.id, 4)}</span>
+        <div class="shop-info"><b>${esc(it.name)}${isNew ? '<em class="new-tag">新入荷</em>' : ''}${isSale ? '<em class="sale-tag">本日の特価</em>' : ''}</b><small>${esc(it.desc)}</small>
+          ${it.where ? `<span class="shop-where">使う場所：${esc(it.where)}</span>` : ''}
+          <span class="shop-price">${isSale ? `<s>${yen(it.price)}</s>` : ''}${yen(price)}${it.kind === 'consumable' ? `<i>持っている数 ${have}</i>` : ''}</span></div>
+        <div class="shop-act">${action}</div></li>`;
+    };
+    const tapeDefault = `<li class="shop-item"><span class="shop-art">${SHOP().art('tape_rain', 4).replace(/#5b8fd6/g, '#8a7f60')}</span><div class="shop-info"><b>標準のBGM（ローファイ）</b><small>最初から入っているカセット。</small></div><div class="shop-act"><button class="btn" type="button" data-tape="lofi" ${state.tape === 'lofi' ? 'disabled' : ''}>${state.tape === 'lofi' ? '再生中' : '再生する'}</button></div></li>`;
+    const items = (kind) => SHOP().ITEMS.filter((it) => it.kind === kind);
+    const canBuy = (kind) => items(kind).filter((it) => it.from <= state.day && !(it.kind === 'consumable' ? (state.inv[it.id] || 0) >= (it.max || 3) : owns(it.id))).length;
+    const tabs = SHOP_TABS.map(([kind, label, sub]) => `<button type="button" role="tab" class="shop-tab${shopTab === kind ? ' is-on' : ''}" data-shop-tab="${kind}" aria-selected="${shopTab === kind}">${label}<small>${sub}</small>${canBuy(kind) ? `<i>${canBuy(kind)}</i>` : ''}</button>`).join('');
+    const scrollTop = !$('#overlay').hidden && $('#modal .shop') ? $('#overlay').scrollTop : 0;
+    const dayend = mode === 'dayend';
+    openModal(`
+      <div class="shop">
+        <div class="shop-head">
+          ${f ? `<span class="shop-face">${f.avatar('shop')}</span>` : ''}
+          <div><p class="eyebrow">DAY ${state.day}　購買部${dayend ? '' : '（業務中）'}</p><p class="shop-line">おばちゃん「${esc(shopLine)}」</p></div>
+          <p class="shop-wallet">${f ? f.icon('wallet', 3) : ''}<b>${yen(state.wallet)}</b></p>
+        </div>
+        <div class="shop-tabs" role="tablist" aria-label="売り場">${tabs}</div>
+        ${shopTab === 'tool' ? '<p class="shop-note">調査ツールは答えを教えてはくれないけど、ログを調べる手間をぐっと減らしてくれる。買ったその場から使える。</p>' : ''}
+        <ul class="shop-list">${shopTab === 'tape' ? tapeDefault : ''}${items(shopTab).map(card).join('')}</ul>
+        <div class="btn-row">
+          ${dayend ? `<button class="btn btn-primary" type="button" data-act="${state.day >= DAYS() && dayDone() ? 'show-final' : 'next-day'}">${state.day >= DAYS() && dayDone() ? '最終結果を見る' : `翌日へ（DAY ${state.day + 1}）`}</button><button class="btn" type="button" data-act="back-dayend">本日の結果に戻る</button>`
+            : '<button class="btn btn-primary" type="button" data-act="close-shop">仕事に戻る</button>'}
+        </div>
+      </div>`, 'shop');
+    if (scrollTop) $('#overlay').scrollTop = scrollTop;
+  }
+  function buy(id) {
+    const it = SHOP().BY_ID[id]; if (!it) return;
+    const price = priceOf(it);
+    if (state.wallet < price || it.from > state.day) return;
+    if (it.kind === 'consumable') { if ((state.inv[id] || 0) >= (it.max || 3)) return; state.inv[id] = (state.inv[id] || 0) + 1; }
+    else { if (owns(id)) return; state.owned[id] = true; }
+    state.wallet -= price; state.spent += price;
+    state.spentBy[it.kind] = (state.spentBy[it.kind] || 0) + price;
+    if (it.kind === 'tape') { state.tape = it.song; }
+    if (id === 'bezel') state.bezelOn = true;
+    save();
+    snd('register');
+    shopLine = it.kind === 'tool' ? `まいど。『${it.name}』は${it.where ? `「${it.where}」に置いといたから、` : ''}さっそく使ってみな。` : it.kind === 'tape' ? 'いい曲よ。さっそくかけてあげる。' : it.kind === 'deco' ? 'あら、机がにぎやかになるわね。' : `まいど。『${it.name}』、ここぞってときに使いな。モニターの上のアイテム欄に入れといたわよ。`;
+    applyLooks(); renderHud(); renderTools();
+    if (it.kind === 'tool') {
+      completeWords = null;
+      if (id === 'memo') switchTab('memo', true); if (id === 'erd') switchTab('erd', true); if (id === 'recipes') switchTab('notes', true);
+      if (id === 'idcard' || id === 'timeline') renderTicket();
+    }
+    showShop(shopMode, true);
+    const f = FXo(); if (f) { const b = $('#modal .shop-wallet'); if (b) f.floatText(b, `−${price.toLocaleString()} G`, 'minus'); }
+  }
+
+  // ---------------------------------------------------------------- 消耗品を使う
+  function renderItems() {
+    const el = $('#items'); if (!el) return;
+    if (!window.Shop || inTraining()) { el.innerHTML = ''; return; }
+    const b = state.buffs;
+    const buffs = [b.freeHint ? `<span class="buff" title="次のヒントは減点なし">おごり×${b.freeHint}</span>` : '', b.shield ? `<span class="buff" title="次の差し戻しは減点なし">胃薬×${b.shield}</span>` : '', b.energy ? `<span class="buff" title="クエリを実行しても時計が進まない">元気 残り${b.energy}回</span>` : ''].join('');
+    el.innerHTML = SHOP().ITEMS.filter((it) => it.kind === 'consumable' && state.inv[it.id] > 0)
+      .map((it) => `<button class="item-btn" type="button" data-use="${it.id}" title="${esc(it.name)}：${esc(it.desc)}（クリックで使う）">${SHOP().art(it.id, 2)}<b>${state.inv[it.id]}</b></button>`).join('') + buffs;
+  }
+  function useItem(id) {
+    if (!state.inv[id] || inTraining()) return;
+    const f = FXo(), it = SHOP().BY_ID[id];
+    if (id === 'gift' && state.shimatsu <= 0) { snd('error'); say('bucho', '始末書もないのに菓子折りを持ってこられてもな……。気持ちだけもらっておく。', { interrupt: true }); return; }
+    if (id === 'coffee' && state.minutes <= 0) { snd('error'); say('senpai', 'まだ朝の10時だぞ。コーヒーは後にとっておけ。', { interrupt: true }); return; }
+    const c = CASES[state.current], st = state.cases[state.current];
+    if ((id === 'review' || id === 'radar') && st.status !== 'open') { snd('error'); say('senpai', 'そのチケットはもう片付いてるぞ。次のチケットで使おう。', { interrupt: true }); return; }
+    if (id === 'radar' && st.radar) { snd('error'); say('senpai', 'メモならもう渡したぞ。テーブル定義の★のところだ。', { interrupt: true }); switchTab('schema', true); return; }
+    if (id === 'review') {
+      const form = $('#answer-form'), choice = form && (form.querySelector('input[name="choice"]:checked') || {}).value, ev = $('#evidence') ? $('#evidence').value.trim() : '';
+      if (!choice || !ev) { snd('error'); say('cs', 'ダブルチェックするので、先に調査結論を選んで、根拠も書いておいてください！', { interrupt: true }); return; }
+    }
+    state.inv[id]--;
+    if (id === 'coffee') {
+      state.minutes = Math.max(0, state.minutes - 30);
+      snd('can'); setTimeout(() => snd('rewind'), 1100);
+      if (f) f.floatText($('#clock'), '−30分', 'plus');
+      say('senpai', 'コーヒーで一息ついたら、なんだか時間が戻った気がするな。', { interrupt: true });
+    } else if (id === 'treat') {
+      state.buffs.freeHint++; snd('pop');
+      say('senpai', 'お、おにぎり？ ありがとう。次のヒントはタダでいいぞ。', { interrupt: true });
+    } else if (id === 'medicine') {
+      state.buffs.shield++; snd('pop');
+      say('senpai', '胃薬か……。次に差し戻されても、減点なしで済むようにしておく。', { interrupt: true });
+    } else if (id === 'gift') {
+      state.shimatsu--; snd('pop');
+      if (f) f.floatText($('#shimatsu'), '−1枚', 'plus');
+      say('bucho', '……ほう、老舗の羊羹か。今回の始末書は、なかったことにしておこう。', { interrupt: true });
+    } else if (id === 'energy') {
+      state.buffs.energy += 10; snd('can');
+      say('senpai', 'エナジードリンク一気飲みか。しばらくは何本SQLを書いても時間が進まないぞ。', { interrupt: true });
+    } else if (id === 'radar') {
+      st.radar = true; snd('hint');
+      const ts = radarTables(c);
+      switchTab('schema', true); applyRadar();
+      say('senpai', `このチケットなら、見るのは ${ts.map((t) => `<code>${t}</code>`).join('、')} だな。テーブル定義に★を付けておいた。`, { interrupt: true });
+    } else if (id === 'review') {
+      const form = $('#answer-form'), choice = (form.querySelector('input[name="choice"]:checked') || {}).value, ev = $('#evidence').value;
+      st.choice = choice; st.evidence = ev;
+      const okC = choice === c.answer, okE = !!DB && checkEvidence(c, ev);
+      snd(okC && okE ? 'ok' : 'pop');
+      save(); renderHud();
+      const fb = $('#feedback');
+      fb.hidden = false; fb.className = `feedback is-review${okC && okE ? ' is-ok' : ''}`;
+      fb.innerHTML = `<b>ダブルチェックの結果</b>（減点なし）　結論 <span class="${okC ? 'ok' : 'ng'}">${okC ? '○' : '×'}</span>　根拠 <span class="${okE ? 'ok' : 'ng'}">${okE ? '○' : '×'}</span>`;
+      fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      say('cs', okC && okE ? 'ダブルチェックしました。結論も根拠もばっちりです、送っちゃいましょう！' : !okC && !okE ? 'うーん……結論も根拠も、ログと合ってない気がします。' : !okC ? '根拠の値は合ってます。でも結論はそれじゃない気がします。' : '結論は同じ意見です。でも根拠に書いた値が違うかも。', { interrupt: true });
+      toast(`${it.name}を使いました`, '結果は回答用紙の下に出ています。');
+      return;
+    }
+    save(); renderHud(); renderAnswer();
+    toast(`${it.name}を使いました`, it.desc);
+  }
+
+  // ---------------------------------------------------------------- 道具（付箋メモ・関係図）と机の飾り
+  const TABS = ['schema', 'notes', 'memo', 'erd'];
+  function switchTab(name, quiet) {
+    TABS.forEach((t) => { const b = $(`#tab-btn-${t}`), p = $(`#tab-${t}`); if (!b || !p) return; b.setAttribute('aria-selected', String(t === name)); p.hidden = t !== name; });
+    if (!quiet) lessonEvent({ type: 'tab', tab: name });
+  }
+  function renderTools() {
+    const memoBtn = $('#tab-btn-memo'), erdBtn = $('#tab-btn-erd');
+    if (memoBtn) memoBtn.hidden = !owns('memo');
+    if (erdBtn) erdBtn.hidden = !owns('erd');
+    $('#tab-btn-schema').textContent = owns('memo') && owns('erd') ? 'テーブル' : 'テーブル定義'; // タブが4つになると狭いので短くする
+    if (owns('memo')) renderMemo();
+    if (owns('erd')) renderErd();
+    renderNotes();
+    if ((!owns('memo') && memoBtn && memoBtn.getAttribute('aria-selected') === 'true') || (!owns('erd') && erdBtn && erdBtn.getAttribute('aria-selected') === 'true')) switchTab('schema', true);
+  }
+  function renderMemo() {
+    const list = state.snippets || [];
+    $('#tab-memo').innerHTML = `<div class="memo">
+      <p class="memo-desc">よく使うSQLを5本まで貼っておけます。クリックでエディタに入ります。</p>
+      <button class="btn" type="button" id="btn-memo-add" ${list.length >= 5 ? 'disabled' : ''}>${list.length >= 5 ? '付箋はいっぱい（5本まで）' : '今のエディタのSQLを付箋に貼る'}</button>
+      <ul class="memo-list">${list.map((sq, k) => `<li class="memo-note n${k % 3}"><button type="button" class="memo-use" data-memo="${k}" title="エディタに入れる"><pre>${esc(sq)}</pre></button><button type="button" class="memo-del" data-memo-del="${k}" title="はがす" aria-label="はがす">×</button></li>`).join('') || '<li class="memo-empty">まだ何も貼っていません。</li>'}</ul>
+    </div>`;
+  }
+  // 関係図：列名と「→ テーブル」の説明から、どのテーブルがどこを参照しているかをまとめる
+  const KEYMAP = { user_id: 'usr_users', target_user_id: 'usr_users', character_id: 'usr_characters', world_id: 'mst_worlds', to_world: 'mst_worlds', item_id: 'mst_items', equip_id: 'mst_equips', stage_id: 'mst_stages', event_id: 'mst_events', gacha_id: 'mst_gachas', mission_id: 'mst_missions', product_id: 'mst_products' };
+  function renderErd() {
+    const names = new Set(TABLE_DOCS.map((t) => t.name));
+    const hubs = {};
+    TABLE_DOCS.forEach((t) => t.cols.forEach(([col, desc]) => {
+      const m = String(desc).match(/→\s*([a-z_]+)/);
+      const target = m && names.has(m[1]) ? m[1] : KEYMAP[col];
+      if (!target || target === t.name || !names.has(target)) return;
+      (hubs[target] = hubs[target] || []).push(`${t.name}.${col}`);
+    }));
+    const keyOf = (tbl) => (TABLE_DOCS.find((t) => t.name === tbl) || { cols: [['?']] }).cols[0][0];
+    const order = Object.keys(hubs).sort((a, b) => hubs[b].length - hubs[a].length);
+    $('#tab-erd').innerHTML = `<div class="erd"><p class="memo-desc">矢印の先が参照先のテーブル。JOIN の ON / USING に使う列です。</p>${order.map((h) => `<div class="erd-hub"><p class="erd-head"><b>${h}</b><code>${esc(keyOf(h))}</code></p><ul>${hubs[h].map((r) => `<li><span>←</span>${esc(r)}</li>`).join('')}</ul></div>`).join('')}</div>`;
+  }
+  // Kさんの調査メモ（消耗品）：模範SQLに出てくるテーブルに★
+  const radarTables = (c) => TABLE_DOCS.map((t) => t.name).filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(c.model || ''));
+  function applyRadar() {
+    const i = state && state.current, on = i != null && state.cases[i] && state.cases[i].radar && state.cases[i].status === 'open';
+    const ts = on ? radarTables(CASES[i]) : [];
+    document.querySelectorAll('#tab-schema details.tbl').forEach((d) => {
+      const hit = ts.includes(d.querySelector('.tbl-name').textContent);
+      d.classList.toggle('is-radar', hit);
+      if (hit) d.open = true;
+    });
+  }
+  // CS管理画面の権限（道具）：公開ID → user_id
+  const uidCache = {};
+  function uidOf(pub) {
+    if (!DB || !pub) return null;
+    if (uidCache[pub] !== undefined) return uidCache[pub];
+    let v = null;
+    try { const st = DB.prepare('SELECT user_id FROM usr_users WHERE public_id = ?'); st.bind([pub]); if (st.step()) v = st.get()[0]; st.free(); } catch (e) { /* ignore */ }
+    return (uidCache[pub] = v);
+  }
+  // SQLに埋める user_id（分からなければ公開IDからのサブクエリ）
+  const uidExpr = (c) => { const u = uidOf(c.user); return u != null ? String(u) : sub(c.user); };
+  const recvDate = (c, days) => { const d = shiftDt(`${c.received}:00`, (days || 0) * 1440); return d ? d.slice(0, 10) : '2026-11-13'; };
+  // 行動タイムライン（道具）：そのユーザーの log_ テーブルをまとめて時系列に
+  function timelineSql(c) {
+    const u = uidExpr(c);
+    const parts = [
+      ['log_login', 'log_id', 'result', "country || ' ' || ip_address"],
+      ['log_character', 'log_id', 'action', 'detail'],
+      ['log_item', 'log_id', 'action', "(SELECT name FROM mst_items m WHERE m.item_id = l.item_id) || ' x' || quantity"],
+      ['log_equip', 'log_id', 'action', "(SELECT name FROM mst_equips m WHERE m.equip_id = l.equip_id) || ' ' || IFNULL(detail, '')"],
+      ['log_currency', 'log_id', 'reason', "currency || ' ' || amount || '（残高 ' || balance_after || '）'"],
+      ['log_gacha', 'log_id', "'GACHA'", "gacha_id || ' ' || rarity"],
+      ['log_stage', 'log_id', 'result', "(SELECT name FROM mst_stages m WHERE m.stage_id = l.stage_id)"],
+      ['log_payment', 'payment_id', 'status', "(SELECT name FROM mst_products m WHERE m.product_id = l.product_id) || ' ' || price_jpy || '円'"],
+      ['log_error', 'log_id', 'level', 'message'],
+    ].map(([t, id, what, detail], k) => `  ${k ? 'UNION ALL ' : ''}SELECT '${t}' AS tbl, ${id} AS id, created_at, ${what} AS what, ${detail} AS detail FROM ${t} l WHERE user_id = ${u}`);
+    return `-- 行動タイムライン：${c.user} の受付日まで4日ぶん（id は各テーブルの log_id。log_payment だけ payment_id）\nSELECT * FROM (\n${parts.join('\n')}\n)\nWHERE created_at BETWEEN '${recvDate(c, -3)} 00:00:00' AND '${c.received}:59'\nORDER BY created_at DESC;`;
+  }
+  // 調査の定石ノート（道具）：いまのチケットのユーザー入りのひな形
+  const RECIPES = [
+    ['ユーザーを探す', '公開ID → user_id', (c) => `SELECT * FROM usr_users WHERE public_id = '${c.user}';`],
+    ['ログを新しい順に読む', 'ORDER BY ... DESC', (c) => `SELECT * FROM log_item\nWHERE user_id = ${uidExpr(c)}\nORDER BY created_at DESC\nLIMIT 50;`],
+    ['受付日の前後で絞る', 'BETWEEN', (c) => `SELECT * FROM log_login\nWHERE user_id = ${uidExpr(c)}\n  AND created_at BETWEEN '${recvDate(c, -1)} 00:00:00' AND '${c.received}:59'\nORDER BY created_at;`],
+    ['マスターと JOIN して名前を付ける', 'JOIN ... ON', (c) => `SELECT l.log_id, l.created_at, l.action, m.name, l.quantity\nFROM log_item l\nJOIN mst_items m ON m.item_id = l.item_id\nWHERE l.user_id = ${uidExpr(c)}\nORDER BY l.created_at DESC;`],
+    ['種類ごとに数える', 'GROUP BY', (c) => `SELECT action, COUNT(*) AS n, MIN(created_at) AS first, MAX(created_at) AS last\nFROM log_item\nWHERE user_id = ${uidExpr(c)}\nGROUP BY action\nORDER BY n DESC;`],
+    ['トレード相手を調べる', 'LEFT JOIN usr_users', (c) => `SELECT l.log_id, l.action, l.item_id, l.quantity, u.public_id AS partner, l.created_at\nFROM log_item l\nLEFT JOIN usr_users u ON u.user_id = l.target_user_id\nWHERE l.user_id = ${uidExpr(c)} AND l.action LIKE 'TRADE%'\nORDER BY l.created_at DESC;`],
+    ['見慣れないIP・端末を探す', 'GROUP BY 複数列', (c) => `SELECT ip_address, device_id, country, result, COUNT(*) AS n,\n       MIN(created_at) AS first, MAX(created_at) AS last\nFROM log_login\nWHERE user_id = ${uidExpr(c)}\nGROUP BY ip_address, device_id, country, result\nORDER BY last DESC;`],
+    ['JSON の中身を取り出す', 'json_extract', (c) => `SELECT log_id, action,\n       json_extract(detail, '$.from') AS from_v,\n       json_extract(detail, '$.to') AS to_v,\n       created_at\nFROM log_equip\nWHERE user_id = ${uidExpr(c)}\nORDER BY created_at DESC;`],
+  ];
+  // IDたどりルーペ（道具）：列名 → 参照先のテーブルと列
+  const DRILL = Object.assign({}, KEYMAP, { drop_item_id: 'mst_items', currency_log_id: 'log_currency' });
+  const drillKey = (t, col) => (col === 'target_user_id' ? 'user_id' : col === 'to_world' ? 'world_id' : col === 'drop_item_id' ? 'item_id' : col === 'currency_log_id' ? 'log_id' : (TABLE_DOCS.find((x) => x.name === t) || { cols: [[col]] }).cols[0][0]);
+  const sqlLit = (v) => (typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
+  function insertAndRun(text) {
+    insertStatement(text);
+    const ta = $('#sql'), end = ta.value.length;
+    ta.setSelectionRange(end - text.length, end); // 入れたSQLだけを実行する
+    runSql();
+    ta.setSelectionRange(end, end);
+  }
+  function renderDeco() {
+    const el = $('#deco'); if (!el || !window.Shop) return;
+    el.innerHTML = ['poster', 'plant', 'cat', 'lamp', 'keyboard'].filter(owns).map((id) => `<span class="deco-${id}" title="${esc(SHOP().BY_ID[id].name)}">${SHOP().art(id, 3)}</span>`).join('');
+  }
+  function applyLooks() {
+    document.querySelector('.app').classList.toggle('bezel-black', owns('bezel') && state.bezelOn);
+    if (window.Sound && window.Sound.setSong) window.Sound.setSong(state.tape || 'lofi');
   }
 
   // ---------------------------------------------------------------- 研修の進行
@@ -1178,6 +1546,10 @@ GROUP BY u.public_id, l.ip_address;`,
   // 研修を終えて（またはスキップして）本番へ
   function endTraining(completed) {
     if (FXo()) FXo().closeSay();
+    if (completed && !state.trainPaid && window.Shop) {
+      state.trainPaid = true; state.wallet += PAY.firstPay; state.earned += PAY.firstPay;
+      setTimeout(() => { snd('coins'); toast('初任給が出ました', `研修修了の手当として ${yen(PAY.firstPay)}。右上の［購買部］で調査ツールや消耗品が買えます。`); }, 1800);
+    }
     if (completed) state.trainDone = true;
     state.drafts[state.current] = $('#sql').value;
     state.phase = 'work';
@@ -1221,12 +1593,13 @@ GROUP BY u.public_id, l.ip_address;`,
       return;
     }
     if (!DB) { fb.hidden = false; fb.className = 'feedback is-info'; fb.textContent = 'DBの準備中です。少し待ってから送信してください。'; return; }
-    const okC = choice === c.answer, okE = checkEvidence(c, ev), tr = isTrain(i);
+    const forced = debugForce; debugForce = false;
+    const okC = forced || choice === c.answer, okE = forced || checkEvidence(c, ev), tr = isTrain(i);
     if (okC && okE) {
       st.status = 'solved';
       const perfect = st.wrong === 0 && st.hints === 0;
       if (tr) { st.score = 0; st.bonus = 0; } else {
-        st.score = Math.max(FLOOR, BASE - st.wrong * WRONG - st.hints * HINT);
+        st.score = Math.max(FLOOR, BASE - (st.wrong - (st.shielded || 0)) * WRONG - (st.hints - (st.freeHints || 0)) * HINT);
         state.combo = perfect ? state.combo + 1 : 0;
         state.maxCombo = Math.max(state.maxCombo || 0, state.combo);
         st.bonus = perfect && state.combo >= 2 ? comboBonus(state.combo) : 0;
@@ -1255,6 +1628,8 @@ GROUP BY u.public_id, l.ip_address;`,
       return;
     }
     st.wrong++;
+    const shielded = !tr && state.buffs.shield > 0;
+    if (shielded) { state.buffs.shield--; st.shielded = (st.shielded || 0) + 1; }
     if (state.combo && !tr) state.combo = 0;
     advance('wrong');
     save(); renderHud(); renderTicket();
@@ -1263,22 +1638,25 @@ GROUP BY u.public_id, l.ip_address;`,
       : !okC ? '根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？'
         : '結論はいい線。でも根拠の値が違う。どのログが決め手？';
     fb.hidden = false; fb.className = 'feedback';
-    fb.textContent = `差し戻されました（${tr ? '研修中なので減点なし' : `−${WRONG}点`}）。先輩「${line}」`;
+    fb.textContent = `差し戻されました（${tr ? '研修中なので減点なし' : shielded ? '胃薬が効いて減点なし' : `−${WRONG}点`}）。先輩「${line}」`;
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const t = $('#ticket');
     t.querySelectorAll('.stamp.is-reject').forEach((x) => x.remove());
     t.insertAdjacentHTML('beforeend', stampHtml('差戻', 'is-reject fade'));
     const f = FXo();
-    if (f) { f.flash('red'); f.shake(t, true); f.cutin('reject', '差し戻し', tr ? '研修中なので減点なし' : `−${WRONG}点　ユーザーの怒りが上がった`); say('senpai', line, { interrupt: true }); }
+    if (f) { f.flash('red'); f.shake(t, true); f.cutin('reject', '差し戻し', tr ? '研修中なので減点なし' : shielded ? '胃薬が効いた　減点なし' : `−${WRONG}点　ユーザーの怒りが上がった`); say('senpai', line, { interrupt: true }); }
     else { t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
   }
   function showHint() {
     const i = state.current, c = CASES[i], st = state.cases[i];
     if (st.hints >= c.hints.length) return;
-    st.hints++; advance('hint'); save(); renderHud();
+    st.hints++;
+    if (!isTrain(i) && state.buffs.freeHint > 0) { state.buffs.freeHint--; st.freeHints = (st.freeHints || 0) + 1; }
+    advance('hint'); save(); renderHud();
     snd('hint');
     $('#hints').insertAdjacentHTML('beforeend', `<li><b>${st.hints}</b>${c.hints[st.hints - 1]}</li>`);
     if (st.hints >= c.hints.length) $('#btn-hint').disabled = true;
+    else $('#btn-hint').textContent = `ヒントを見る（${isTrain(i) ? '研修中は減点なし' : state.buffs.freeHint > 0 ? 'おごり済み：減点なし' : `−${HINT}`}）`;
     say('senpai', c.hints[st.hints - 1], { interrupt: true });
   }
   let giveupArmed = false;
@@ -1310,21 +1688,8 @@ GROUP BY u.public_id, l.ip_address;`,
       if (c.backdoor) say('senpai', '補填の管理ツール、今日もめちゃくちゃ重いんだよな……。本番に直接 <code>UPDATE</code> したくなるけど、絶対にやるなよ。絶対だぞ。');
     }
   }
-  // 電話線を抜く：新しいチケットは届かないが、時間は倍速で過ぎる
-  function togglePhone() {
-    state.unplugged = !state.unplugged; save(); renderHud();
-    if (state.unplugged) {
-      snd('unplug');
-      say('senpai', 'おい、電話線抜いたな……。チケットは来なくなるけど、時計は倍速で進むぞ。（※現実ではやめましょう）', { interrupt: true });
-    } else {
-      snd('plug');
-      say('cs', 'やっとつながった！！ 電話、ずっと鳴りっぱなしでしたよ！？', { interrupt: true });
-    }
-  }
-  const blockedByPhone = (i) => !isTrain(i) && state.unplugged && state.cases[i].status === 'open' && !state.cases[i].seen;
   function goto(i, opts) {
     if (i === state.current && !(opts && opts.force)) return;
-    if (blockedByPhone(i)) { snd('error'); say('senpai', '電話線が抜けてるから、次のチケットが届かない。右上の TEL で戻せるぞ。', { interrupt: true }); return; }
     state.drafts[state.current] = $('#sql').value;
     state.current = i; giveupArmed = false; specArmed = false; save();
     snd('page');
@@ -1342,7 +1707,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     if (allDone()) showFinal(true);
     else if (dayDone()) showDayEnd(true);
-    else goto(firstOpen()); // 電話線が抜けていれば goto 側で止まる
+    else goto(firstOpen());
   }
 
   // ---------------------------------------------------------------- modals
@@ -1375,6 +1740,7 @@ GROUP BY u.public_id, l.ip_address;`,
             <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
             <dt>時計</dt><dd>毎朝 10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
             ${hasTrain ? `<dt>研修</dt><dd>はじめての人は、DAY 1 の前に研修（${CASES.length - WORK}件）。Kさんと一緒に調べ方を覚える。点数はつかない。経験者はスキップできる</dd>` : ''}
+            ${window.Shop ? '<dt>給料</dt><dd>1日の終わりに給料が出る。右上の［購買部］で、調べものを楽にする調査ツールや消耗品をいつでも買える</dd>' : ''}
             <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
           </dl>
           <div class="btn-row title-actions">
@@ -1431,6 +1797,7 @@ GROUP BY u.public_id, l.ip_address;`,
     if (state.day >= DAYS()) { showFinal(true); return; }
     state.drafts[state.current] = $('#sql').value;
     state.day += 1; state.minutes = 0; state.current = dayCases(state.day)[0];
+    state.shimatsuAtStart = state.shimatsu; state.enjoAtStart = state.enjo || 0;
     save(); closeModal();
     $('#results').dataset.used = ''; renderAll();
     snd('start');
@@ -1444,6 +1811,7 @@ GROUP BY u.public_id, l.ip_address;`,
     if (f) f.closeSay();
     const d = state.day, score = dayScore(d), [, grade, gline] = gradeOf(score);
     if (!state.dayLog[d]) { state.dayLog[d] = { score, minutes: state.minutes }; save(); }
+    const pay = paySalary(d);
     if (animate) snd('final');
     const perfect = dayCases(d).filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length;
     const rows = dayCases(d).map((i, p) => {
@@ -1460,8 +1828,10 @@ GROUP BY u.public_id, l.ip_address;`,
         <div class="rank-stamp"><span>${grade}</span></div>
         <div><p class="final-title">本日の評価 ${grade}</p><p class="final-line">Kさん「${esc(gline)}」</p></div>
       </div>
+      ${payslipHtml(d, pay)}
       <div class="btn-row">
         <button class="btn btn-primary" type="button" data-act="${last ? 'show-final' : 'next-day'}">${last ? '最終結果を見る' : `翌日へ（DAY ${d + 1}）`}</button>
+        ${window.Shop ? `<button class="btn btn-shop" type="button" data-act="shop">${FXo() ? FXo().icon('shop', 2) : ''}購買部に寄る${newStock() ? '<em class="shop-btn-new">NEW</em>' : ''}</button>` : ''}
         <button class="btn" type="button" data-act="review">今日のチケットを見直す</button>
       </div>
       ${(state.shimatsuIssued || 0) >= 3 ? '<div class="btn-row"><button class="btn btn-resign" type="button" data-act="resign">辞表を叩きつけて定時退社する</button></div>' : ''}`, 'final');
@@ -1492,7 +1862,7 @@ GROUP BY u.public_id, l.ip_address;`,
 
   function rankOf(score) { return RANKS.find((r) => score >= r[0] * MAX_SCORE); }
   function overtimeText(minutes) {
-    const end = DAY_START + (minutes == null ? state.minutes : minutes);
+    const end = Math.floor(DAY_START + (minutes == null ? state.minutes : minutes));
     if (end <= DAY_END) return '定時退社';
     const over = end - DAY_END;
     return `残業 ${Math.floor(over / 60)}時間${over % 60}分`;
@@ -1505,6 +1875,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const score = totalScore(); const [, title, line] = rankOf(score);
     const solved = workSt().filter((c) => c.status === 'solved').length;
     if (!state.dayLog[state.day] && dayDone()) { state.dayLog[state.day] = { score: dayScore(state.day), minutes: state.minutes }; save(); }
+    if (dayDone()) paySalary(state.day); // 最終日は1日の結果画面を通らないので、ここで給料を出す
     const ontime = Object.values(state.dayLog).filter((x) => DAY_START + x.minutes <= DAY_END).length;
     // 20日分を1行ずつ
     const rows = Array.from({ length: DAYS() }, (_, k) => {
@@ -1517,7 +1888,7 @@ GROUP BY u.public_id, l.ip_address;`,
     openModal(`
       <p class="eyebrow">全${DAYS()}日の業務終了　${WORK}件</p>
       <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${MAX_SCORE} 点　${solved}件解決</span></div>
-      <div class="badges"><span class="badge ${ontime === DAYS() ? 'is-good' : ''}">定時退社 ${ontime} / ${DAYS()}日</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span>${state.thrown ? `<span class="badge">ゴミ箱に捨てた始末書 ${state.thrown}枚</span>` : ''}${state.enjo ? `<span class="badge is-bad">炎上 ${state.enjo}回</span>` : ''}${state.dropUsed ? '<span class="badge">DROPした（夢）</span>' : ''}${workSt().some((c) => c.banned) ? '<span class="badge is-good">BAN執行</span>' : ''}</div>
+      <div class="badges"><span class="badge ${ontime === DAYS() ? 'is-good' : ''}">定時退社 ${ontime} / ${DAYS()}日</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span>${state.thrown ? `<span class="badge">ゴミ箱に捨てた始末書 ${state.thrown}枚</span>` : ''}${state.enjo ? `<span class="badge is-bad">炎上 ${state.enjo}回</span>` : ''}${state.dropUsed ? '<span class="badge">DROPした（夢）</span>' : ''}${window.Shop ? `<span class="badge is-good">生涯年収 ${yen(state.earned)}</span><span class="badge">使った額 ${yen(state.spent)}</span>${spenderName() ? `<span class="badge">呼び名「${spenderName()}」</span>` : ''}` : ''}${workSt().some((c) => c.banned) ? '<span class="badge is-good">BAN執行</span>' : ''}</div>
       <div class="summary-wrap"><table class="summary"><thead><tr><th>日</th><th>結果</th><th class="r">PERFECT</th><th class="r">退勤</th><th class="r">評価</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）${state.penalty ? `　炎上（−${state.penalty}）` : ''}</td><td class="r"></td></tr></tfoot></table></div>
       <div class="final-rank" id="final-rank">
@@ -1560,7 +1931,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const score = totalScore(); const [, title] = rankOf(score);
     const perfect = workSt().filter((c) => resultLabel(c) === 'PERFECT').length;
     const grades = Array.from({ length: DAYS() }, (_, k) => gradeOf(dayScore(k + 1))[1]).join('');
-    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${WORK}件中PERFECT ${perfect}件 毎日の評価 ${grades} 称号「${title}」 最大${state.maxCombo || 0}コンボ 始末書${state.shimatsu}枚`;
+    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${WORK}件中PERFECT ${perfect}件 毎日の評価 ${grades} 称号「${title}」 最大${state.maxCombo || 0}コンボ 始末書${state.shimatsu}枚${window.Shop ? ` 生涯年収${Math.round(state.earned)}G${spenderName() ? `（${spenderName()}）` : ''}` : ''}`;
   }
 
   // ---------------------------------------------------------------- toast
@@ -1573,13 +1944,107 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   // ---------------------------------------------------------------- events
+  // ---------------------------------------------------------------- デバッグモード（動作確認用）
+  // SQLエディタで「:debug」と書いて実行（Ctrl+Enter）すると、画面左下にデバッグパネルが出る。もう一度実行すると消える。
+  // URL に ?debug を付けて開いても入る。オン／オフはセーブデータとは別に localStorage に残る。
+  const DEBUG_KEY = 'logs-dont-lie:debug';
+  let debugOn = false, debugForce = false, debugOpen = true;
+  try { debugOn = localStorage.getItem(DEBUG_KEY) === '1' || /[?&]debug\b/.test(location.search); } catch (e) { /* storage unavailable */ }
+  function debugCommand(src) {
+    const m = stripComments(src).trim().match(/^[:\\]debug(?:\s+(on|off))?\s*;?$/i);
+    if (!m) return false;
+    setDebug(m[1] ? m[1].toLowerCase() === 'on' : !debugOn);
+    return true;
+  }
+  function setDebug(on) {
+    debugOn = on;
+    try { if (on) localStorage.setItem(DEBUG_KEY, '1'); else localStorage.removeItem(DEBUG_KEY); } catch (e) { /* storage unavailable */ }
+    snd('pop');
+    toast(on ? 'DEBUG MODE ON' : 'DEBUG MODE OFF', on ? '左下のパネルから所持金や進行を操作できます。:debug をもう一度実行すると終了。' : 'デバッグパネルを閉じました。');
+    renderDebug();
+  }
+  // いまのチケットの正解の根拠（分かるものだけ）
+  const evidenceOf = (c) => { const e = c.evidence || {}; const v = e.value != null ? e.value : e.id != null ? e.id : e.key ? KEYS[e.key] : null; return v == null ? '' : String(v); };
+  function renderDebug() {
+    const el = $('#debug'); if (!el) return;
+    if (!debugOn || !state) { el.hidden = true; el.innerHTML = ''; return; }
+    const i = state.current, c = CASES[i], st = state.cases[i], open = st.status === 'open';
+    const ans = (c.options.find((o) => o[0] === c.answer) || [])[1] || '';
+    const btn = (act, label, dis) => `<button type="button" data-dbg="${act}" ${dis ? 'disabled' : ''}>${label}</button>`;
+    el.hidden = false;
+    el.innerHTML = `<div class="debug-head"><b>DEBUG</b><span>DAY ${state.day}${inTraining() ? '（研修）' : ''}・${esc(slotLabel(i))}・${clockText()}</span>
+        <button type="button" data-dbg="fold" aria-label="${debugOpen ? 'たたむ' : 'ひらく'}">${debugOpen ? '−' : '+'}</button><button type="button" data-dbg="off" aria-label="デバッグモードを終了">×</button></div>
+      ${debugOpen ? `<div class="debug-body">
+        <p class="debug-label">所持金 ${yen(state.wallet)}</p>
+        <div class="debug-row">${btn('money:1000', '+1,000')}${btn('money:10000', '+10,000')}${btn('money:0', '0 にする')}</div>
+        <p class="debug-label">チケット ${esc(c.label)}（${open ? '未解決' : st.status === 'solved' ? '解決済み' : '先輩に聞いた'}）</p>
+        <div class="debug-row">${btn('solve', '強制成功', !open)}${btn('reject', '強制差し戻し', !open)}${btn('reopen', '未解決に戻す', open)}</div>
+        <p class="debug-answer">正解：${esc(ans)}<br>根拠：<code>${esc(evidenceOf(c) || '（受け付け条件のみ）')}</code></p>
+        <div class="debug-row">${btn('fill', '正解を入力欄に入れる', !open)}${btn('model', '模範SQLを実行')}</div>
+        <p class="debug-label">進行</p>
+        <div class="debug-row">${btn('solve-day', '今日の残りを全部解決', inTraining())}${btn('end-day', '今日を締める', inTraining())}</div>
+        <div class="debug-row"><label>DAY <input type="number" id="dbg-day" min="1" max="${DAYS()}" value="${Math.min(DAYS(), state.day + 1)}"></label>${btn('jump', 'へジャンプ（前の日は全部解決）')}</div>
+        <p class="debug-label">購買部</p>
+        <div class="debug-row">${btn('own-all', '全道具を持つ')}${btn('own-none', '道具・飾りを手放す')}${btn('fill-inv', '消耗品を満タン')}${btn('new-stock', '入荷通知をリセット')}</div>
+        <p class="debug-label">時計・ペナルティ</p>
+        <div class="debug-row">${btn('clock:0', '10:00 に戻す')}${btn('clock:+120', '+2時間')}${btn('clock:end', '18:30 にする')}</div>
+        <div class="debug-row">${btn('shimatsu:+1', '始末書 +1')}${btn('shimatsu:0', '始末書 0')}${btn('combo:+1', 'コンボ +1')}</div>
+      </div>` : ''}`;
+  }
+  // 前の日を飛ばすとき・今日をまとめて片付けるときの「解決扱い」
+  const debugSolve = (k) => { const s = state.cases[k]; if (s.status === 'open') Object.assign(s, { status: 'solved', score: BASE, bonus: 0, seen: true }); };
+  function debugAction(act) {
+    const [cmd, arg] = act.split(':');
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    const refresh = () => { save(); renderAll(); renderDebug(); };
+    if (cmd === 'off') { setDebug(false); return; }
+    if (cmd === 'fold') { debugOpen = !debugOpen; renderDebug(); return; }
+    if (cmd === 'money') { if (arg === '0') state.wallet = 0; else { state.wallet += +arg; state.earned += +arg; } snd('coins'); refresh(); return; }
+    if (cmd === 'fill' || cmd === 'solve') {
+      if (st.status !== 'open') return;
+      const r = document.querySelector(`#answer-form input[name="choice"][value="${c.answer}"]`); if (r) r.checked = true;
+      const ev = evidenceOf(c); if ($('#evidence')) $('#evidence').value = ev || 'DEBUG';
+      if (cmd === 'solve') { debugForce = true; $('#answer-form').requestSubmit(); }
+      renderDebug(); return;
+    }
+    if (cmd === 'reject') {
+      if (st.status !== 'open') return;
+      const r = document.querySelector(`#answer-form input[name="choice"]:not([value="${c.answer}"])`); if (r) r.checked = true;
+      $('#evidence').value = '0'; $('#answer-form').requestSubmit(); renderDebug(); return;
+    }
+    if (cmd === 'reopen') { Object.assign(st, { status: 'open', score: 0, bonus: 0, via: null, wrong: 0, hints: 0 }); refresh(); return; }
+    if (cmd === 'model') { setEditor(c.model, false); runSql(); return; }
+    if (cmd === 'solve-day') { dayCases(state.day).forEach(debugSolve); refresh(); return; }
+    if (cmd === 'end-day') { dayCases(state.day).forEach(debugSolve); refresh(); if (allDone()) showFinal(true); else showDayEnd(true); return; }
+    if (cmd === 'jump') {
+      const d = Math.max(1, Math.min(DAYS(), parseInt($('#dbg-day').value, 10) || 1));
+      if (inTraining()) state.phase = 'work';
+      for (let k = 1; k < d; k++) dayCases(k).forEach(debugSolve);
+      state.drafts[state.current] = $('#sql').value;
+      state.day = d; state.minutes = 0; state.current = firstOpen();
+      state.shimatsuAtStart = state.shimatsu; state.enjoAtStart = state.enjo || 0;
+      $('#results').dataset.used = ''; refresh(); closeModal(); startDay(); return;
+    }
+    if (cmd === 'own-all') { SHOP().ITEMS.filter((it) => it.kind === 'tool').forEach((it) => { state.owned[it.id] = true; }); completeWords = null; }
+    else if (cmd === 'own-none') { state.owned = {}; state.tape = 'lofi'; completeWords = null; }
+    else if (cmd === 'fill-inv') SHOP().ITEMS.filter((it) => it.kind === 'consumable').forEach((it) => { state.inv[it.id] = it.max || 3; });
+    else if (cmd === 'new-stock') state.shopSeenDay = 0;
+    else if (cmd === 'clock') state.minutes = arg === 'end' ? DAY_END + 30 - DAY_START : arg.startsWith('+') ? state.minutes + +arg.slice(1) : +arg;
+    else if (cmd === 'shimatsu') state.shimatsu = arg === '0' ? 0 : state.shimatsu + 1;
+    else if (cmd === 'combo') { state.combo = (state.combo || 0) + 1; state.maxCombo = Math.max(state.maxCombo || 0, state.combo); }
+    snd('pop'); refresh();
+  }
+
   function bind() {
     const ta = $('#sql');
     ta.addEventListener('input', syncEditor);
     ta.addEventListener('scroll', syncScroll);
+    ta.addEventListener('click', updateComplete);
+    ta.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ta) { const c = $('#complete'); if (c) c.hidden = true; } }, 150));
     ta.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runSql(); return; }
-      if (e.key === 'Tab' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); insertAtCursor('  '); }
+      if (e.key === 'Tab' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); if (completeList.length && !$('#complete').hidden) acceptComplete(completeList[0]); else insertAtCursor('  '); return; }
+      if (e.key === 'Escape' && !$('#complete').hidden) { $('#complete').hidden = true; completeList = []; }
     });
     $('#run').addEventListener('click', runSql);
     $('#btn-clear').addEventListener('click', () => setEditor('', true));
@@ -1600,19 +2065,31 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.dataset.dayend) showDayEnd(true);
       else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
-      else if (b.id === 'btn-phone') togglePhone();
       else if (b.id === 'btn-spec') specAnswer(b);
       else if (b.id === 'btn-honest') honestReply();
       else if (b.id === 'btn-ban') banHammer();
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
       else if (b.dataset.col) insertAtCursor(b.dataset.col);
-      else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-notes') {
-        const notes = b.id === 'tab-btn-notes';
-        $('#tab-btn-schema').setAttribute('aria-selected', String(!notes));
-        $('#tab-btn-notes').setAttribute('aria-selected', String(notes));
-        $('#tab-schema').hidden = notes; $('#tab-notes').hidden = !notes;
-        lessonEvent({ type: 'tab', tab: notes ? 'notes' : 'schema' });
-      } else if (b.id === 'btn-lesson-sql') {
+      else if (b.id && b.id.startsWith('tab-btn-')) switchTab(b.id.slice(8));
+      else if (b.dataset.complete) acceptComplete(b.dataset.complete);
+      else if (b.dataset.buy) buy(b.dataset.buy);
+      else if (b.dataset.use) useItem(b.dataset.use);
+      else if (b.dataset.tape) { state.tape = b.dataset.tape; save(); applyLooks(); if (window.Sound) window.Sound.playBgm(); snd('pop'); showShop(shopMode, true); }
+      else if (b.dataset.toggleBezel) { state.bezelOn = !state.bezelOn; save(); applyLooks(); snd('pop'); showShop(shopMode, true); }
+      else if (b.dataset.dbg) { if (state && debugOn) debugAction(b.dataset.dbg); }
+      else if (b.id === 'btn-shop') { if (state && DB) { snd('pop'); showShop('desk'); } }
+      else if (b.dataset.shopTab) { shopTab = b.dataset.shopTab; snd('page'); showShop(shopMode, true); $('#overlay').scrollTop = 0; }
+      else if (b.dataset.drill) {
+        const [t, key, ...lit] = b.dataset.drill.split('|');
+        insertAndRun(`SELECT * FROM ${t} WHERE ${key} = ${lit.join('|')};`);
+      } else if (b.dataset.uid) { insertAtCursor(b.dataset.uid); snd('pop'); }
+      else if (b.dataset.recipe != null) { const r = RECIPES[+b.dataset.recipe]; if (r) { insertStatement(`-- 定石：${r[0]}\n${r[2](CASES[state.current])}`); snd('pop'); } }
+      else if (b.id === 'btn-timeline') insertAndRun(timelineSql(CASES[state.current]));
+      else if (b.id === 'btn-memo-add') { const v = $('#sql').value.trim(); if (v && state.snippets.length < 5) { state.snippets.push(v); save(); renderMemo(); snd('pop'); } }
+      else if (b.dataset.memo != null) { insertStatement(state.snippets[+b.dataset.memo]); snd('pop'); }
+      else if (b.dataset.memoDel != null) { state.snippets.splice(+b.dataset.memoDel, 1); save(); renderMemo(); snd('crumple'); }
+      else if (b.dataset.sort) sortResult(b, +b.dataset.sort);
+      else if (b.id === 'btn-lesson-sql') {
         const step = lessonOf(state.current).steps[state.cases[state.current].step || 0];
         if (step && step.sql) { insertStatement(step.sql); snd('pop'); }
       } else if (b.id === 'btn-skip-training') {
@@ -1624,6 +2101,9 @@ GROUP BY u.public_id, l.ip_address;`,
         else if (a === 'start-training') { state.started = true; state.phase = 'training'; state.current = WORK; save(); renderAll(); beginTraining(false); }
         else if (a === 'resume') { if (inTraining()) beginTraining(true); else beginDay(true); }
         else if (a === 'skip-training') endTraining(false);
+        else if (a === 'shop') showShop('dayend');
+        else if (a === 'back-dayend') showDayEnd(false);
+        else if (a === 'close-shop') closeModal();
         else if (a === 'end-training') endTraining(true);
         else if (a === 'replay-training') replayTraining();
         else if (a === 'reset') {
@@ -1647,8 +2127,15 @@ GROUP BY u.public_id, l.ip_address;`,
       if (b.id !== 'btn-giveup' && giveupArmed) { giveupArmed = false; const g = $('#btn-giveup'); if (g) { g.textContent = '先輩に聞く'; g.classList.remove('btn-danger'); } }
       if (b.id !== 'btn-spec' && specArmed) { specArmed = false; const g = $('#btn-spec'); if (g) { g.textContent = '調べずに「仕様です」で即答する（1日1回）'; g.classList.remove('is-armed'); } }
     });
+    // 結果の並べ替え（道具）：見出しのクリックと、絞り込み欄
+    document.addEventListener('click', (e) => { const th = e.target.closest('.grid th[data-sort]'); if (th) sortResult(th, +th.dataset.sort); });
+    document.addEventListener('input', (e) => {
+      if (!e.target.classList || !e.target.classList.contains('rfilter')) return;
+      const q = e.target.value.trim().toLowerCase(), tb = e.target.closest('.rblock').querySelector('tbody');
+      tb.querySelectorAll('tr').forEach((tr) => { tr.hidden = !!q && !tr.textContent.toLowerCase().includes(q); });
+    });
     document.addEventListener('dblclick', (e) => {
-      const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn')) return;
+      const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn') || e.target.closest('.drill')) return;
       const inp = $('#evidence'); if (!inp) return;
       inp.value = td.textContent; state.cases[state.current].evidence = inp.value; save();
       document.querySelectorAll('.grid td.picked').forEach((x) => x.classList.remove('picked'));
@@ -1657,6 +2144,17 @@ GROUP BY u.public_id, l.ip_address;`,
       toast('根拠欄に入力しました', td.textContent);
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state && state.started) closeModal(); });
+  }
+
+  function sortResult(th, col) {
+    const table = th.closest('table'), tb = table.querySelector('tbody');
+    const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+    table.querySelectorAll('th[data-sort]').forEach((x) => { delete x.dataset.dir; });
+    th.dataset.dir = dir;
+    const val = (tr) => { const td = tr.children[col]; const t = td ? td.textContent : ''; const n = Number(t); return td && td.classList.contains('num') && Number.isFinite(n) ? n : t; };
+    const rows = [...tb.querySelectorAll('tr')].sort((a, b) => { const x = val(a), y = val(b); const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'ja'); return dir === 'asc' ? c : -c; });
+    rows.forEach((r) => tb.appendChild(r));
+    snd('pop');
   }
 
   // ---------------------------------------------------------------- sound toggles
@@ -1683,6 +2181,7 @@ GROUP BY u.public_id, l.ip_address;`,
       if (!state.day) state.day = 1;
       if (!state.dayLog) state.dayLog = {};
       delete state.history; // 実行履歴の機能は削除済み
+      delete state.unplugged; // 電話線（TEL）の機能は削除済み
       // 命名規則の変更前に保存された下書きのテーブル名を、新しい名前に置き換える
       const RENAMED = [['character_logs', 'log_character'], ['item_logs', 'log_item'], ['login_logs', 'log_login'], ['currency_logs', 'log_currency'],
         ['payment_logs', 'log_payment'], ['error_logs', 'log_error'], ['m_items', 'mst_items'], ['m_products', 'mst_products'],

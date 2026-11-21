@@ -22,10 +22,14 @@
       <div class="stat stat-score"><i class="ico" data-icon="coin"></i><div><span>SCORE</span><b id="score">0</b></div></div>
       <div class="stat stat-combo" id="stat-combo" hidden><i class="ico" data-icon="flame"></i><div><span>COMBO</span><b id="combo">0</b></div></div>
       <div class="stat" id="stat-shimatsu"><i class="ico" data-icon="paper"></i><div><span>始末書</span><b id="shimatsu">0</b></div></div>
+      <button class="shop-btn" id="btn-shop" type="button" title="購買部：給料で調査ツールや消耗品を買える（いつでも寄れる）">
+        <i class="shop-btn-awning" aria-hidden="true"></i>
+        <span class="shop-btn-body"><i class="ico" data-icon="shop" data-scale="3"></i><span class="shop-btn-text"><span class="shop-btn-label">購買部</span><b id="wallet">0</b></span></span>
+        <em class="shop-btn-new" id="shop-new" hidden>NEW</em>
+      </button>
       <div class="sound" role="group" aria-label="サウンド">
         <button class="snd" id="btn-bgm" type="button" aria-pressed="true" title="BGMのオン／オフ"><i></i>BGM</button>
         <button class="snd" id="btn-sfx" type="button" aria-pressed="true" title="効果音のオン／オフ"><i></i>SE</button>
-        <button class="snd snd-phone" id="btn-phone" type="button" aria-pressed="true" title="電話線（抜くとチケットが届かなくなる。時間は倍速）"><i></i>TEL</button>
       </div>
     </div>
   </header>
@@ -43,6 +47,7 @@
       <div class="screen">
       <div class="console-bar">
         <span class="conn" id="conn"><i class="dot"></i><span id="conn-label">prod-replica-01 に接続中…</span><span class="ro">READ ONLY</span></span>
+        <div class="items" id="items" aria-label="持っているアイテム"></div>
         <div class="bar-actions">
           <button class="btn btn-ghost" id="btn-clear" type="button">クリア</button>
           <button class="btn btn-primary btn-run" id="run" type="button" disabled>実行 <kbd>Ctrl</kbd><kbd>Enter</kbd></button>
@@ -50,20 +55,25 @@
       </div>
       <div class="editor">
         <pre aria-hidden="true"><code id="hl"></code></pre>
+        <div class="complete" id="complete" hidden></div>
         <textarea id="sql" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQLエディタ"></textarea>
       </div>
       <div class="results" id="results" aria-live="polite"></div>
       </div>
-      <div class="bezel-label" aria-hidden="true"><span>NOCT TERM-26</span><i class="led"></i></div>
+      <div class="bezel-label"><span aria-hidden="true">NOCT TERM-26</span><div class="deco" id="deco"></div><i class="led" aria-hidden="true"></i></div>
     </section>
 
     <aside class="pane pane-ref" aria-label="資料">
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-btn-schema" aria-selected="true" aria-controls="tab-schema" type="button">テーブル定義</button>
         <button role="tab" id="tab-btn-notes" aria-selected="false" aria-controls="tab-notes" type="button">運用メモ</button>
+        <button role="tab" id="tab-btn-memo" aria-selected="false" aria-controls="tab-memo" type="button" hidden>付箋</button>
+        <button role="tab" id="tab-btn-erd" aria-selected="false" aria-controls="tab-erd" type="button" hidden>関係図</button>
       </div>
       <div class="tab-panel" id="tab-schema" role="tabpanel" aria-labelledby="tab-btn-schema"></div>
       <div class="tab-panel" id="tab-notes" role="tabpanel" aria-labelledby="tab-btn-notes" hidden></div>
+      <div class="tab-panel" id="tab-memo" role="tabpanel" aria-labelledby="tab-btn-memo" hidden></div>
+      <div class="tab-panel" id="tab-erd" role="tabpanel" aria-labelledby="tab-btn-erd" hidden></div>
     </aside>
   </main>
 </div>
@@ -72,12 +82,16 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="comm-dock" id="comm" aria-live="polite"></div>
 <div class="fx-layer" id="fx-layer" aria-hidden="true"></div>
+<aside class="debug" id="debug" aria-label="デバッグパネル" hidden></aside>
 <script src="sql-wasm.js"></script>
 <script>
 /*__DATAGEN__*/
 </script>
 <script>
 /*__CASEGEN__*/
+</script>
+<script>
+/*__SHOP__*/
 </script>
 <script>
 /*__AUDIO__*/

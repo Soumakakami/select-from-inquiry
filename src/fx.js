@@ -34,6 +34,11 @@
       pal: { h: '#3a3f5c', k: '#141625', r: '#e43b44', m: '#2a2d40' },
       px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh', 'hhkkkkkkkkhh', 'hhkrkkkkrkhh', 'hhkkkkkkkkhh', 'hhkkkmmkkkhh', '.hhkkkkkkhh.', '.hhhkkkkhhh.', '..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh'],
     },
+    shop: {
+      name: 'おばちゃん', role: '購買部',
+      pal: { h: '#b9b4c4', g: '#7a7488', a: '#f6757a', c: '#5b8fd6' },
+      px: ['....hhhh....', '...hhhhhh...', '..hhhhhhhh..', '.hhsssssshh.', '.hsesssseshg', '.hssssssssh.', '.hssmmmmssh.', '..ssssssss..', '...ssssss...', '..caaaaaac..', '.ccawwwwacc.', 'cccawwwwaccc'],
+    },
     bucho: {
       name: '部長', role: '運用部',
       pal: { h: '#7a7a7a', d: '#3b3b3b', n: '#2b3240', t: '#d4361f' },
@@ -223,7 +228,8 @@
     flame: ['...r....', '..rr..r.', '..rrr.r.', '.rroorr.', '.rooyor.', 'rroyyorr', '.royyor.', '..rrrr..'],
     search: ['.kkkk...', 'kcwcck..', 'kwccck..', 'kcccck..', '.kkkko..', '.....oo.', '......oo', '.......o'],
     ticket: ['........', 'kkkkkkkk', 'kwwwwwwk', 'kwkkkkwk', 'kwwwwwwk', 'kwkkwwwk', 'kkkkkkkk', '........'],
-    phone: ['........', '.kkkkkk.', 'kwwwwwwk', 'kwkkkkwk', '.kwwwwk.', 'kwwwwwwk', 'kwkwkwwk', 'kkkkkkkk'],
+    wallet: ['........', '.kkkkkk.', 'kooooook', 'koyyyyok', 'koyykkkk', 'koyykyyk', 'koyykkkk', 'kkkkkkk.'],
+    shop: ['..kkkk..', '.k....k.', 'kkkkkkkk', 'kooooook', 'kowwwwok', 'kowkkwok', 'kooooook', 'kkkkkkkk'],
   };
   // 大きめのスプライト（ハンマー 16×16、丸めた紙 8×8、ゴミ箱 12×12）
   const SPRITES = {

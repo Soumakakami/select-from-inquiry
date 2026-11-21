@@ -674,9 +674,6 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .backdoor-ok { padding: 10px 12px; border: 2px solid var(--purple); background: #241838; color: var(--purple); font-family: var(--font-px); font-size: 16px; line-height: 24px; }
 .backdoor-ok small { display: block; font-family: var(--font-jp); font-size: 16px; color: var(--screen-ink); margin-top: 6px; }
 
-/* HUD の電話線 */
-.snd-phone[aria-pressed="false"] { background: var(--shu-dk); color: #ffd3d0; }
-.snd-phone[aria-pressed="false"] i { background: var(--shu); animation: blink .5s steps(1) infinite; }
 
 /* カットインの種類を追加 */
 .cutin.is-spec .cutin-band { --edge: #8fb8ff; }
@@ -856,3 +853,223 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
   .cert { padding: 16px; }
   .cert-title { font-size: 16px; line-height: 24px; letter-spacing: 4px; }
 }
+
+/* =====================================================================
+   給料と購買部
+   ===================================================================== */
+/* HUD の［購買部］ボタン：所持金といっしょに、お店の看板らしく目立たせる */
+.shop-btn {
+  position: relative; flex: none; display: flex; flex-direction: column; padding: 0;
+  border: 2px solid var(--outline); background: var(--ok-dk); color: #eaffdf;
+  box-shadow: inset -3px -3px 0 rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.18);
+  clip-path: var(--notch-sm);
+}
+.shop-btn:hover { background: #2f7050; }
+.shop-btn:active { transform: translateY(2px); box-shadow: inset 3px 3px 0 rgba(0,0,0,.3); }
+.shop-btn-awning { display: block; height: 8px; background: repeating-linear-gradient(90deg, var(--shu) 0 8px, var(--paper) 8px 16px); border-bottom: 2px solid var(--outline); }
+.shop-btn-body { display: flex; align-items: center; gap: 8px; padding: 4px 10px 6px 8px; }
+.shop-btn-text { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.shop-btn-label { font-size: 16px; line-height: 16px; color: #fff; text-shadow: 2px 2px 0 var(--outline); }
+.shop-btn-label::after { content: " ▸"; color: var(--yellow); }
+.shop-btn b { font-family: var(--font-px); font-weight: 400; font-size: 12px; line-height: 12px; color: var(--yellow); text-shadow: 2px 2px 0 var(--outline); font-variant-numeric: tabular-nums; }
+.shop-btn-new { position: absolute; top: 0; right: 4px; font-style: normal; font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 2px 4px; background: var(--yellow); color: var(--outline); animation: blink 1s steps(1) infinite; }
+.shop-btn[hidden] { display: none; }
+.btn-shop .shop-btn-new { position: static; margin-left: 4px; }
+
+/* 給与明細 */
+.payslip { margin: 16px 0 4px; padding: 12px 16px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); background-image: repeating-linear-gradient(to bottom, transparent 0 22px, #e8e1c8 22px 24px); }
+.payslip p { margin: 0; max-width: none; }
+.payslip-title { color: var(--p-blue); border-bottom: 4px double var(--paper-line); padding-bottom: 4px; margin-bottom: 6px !important; }
+.payslip dl { display: grid; grid-template-columns: 1fr auto; margin: 0; }
+.payslip dt, .payslip dd { margin: 0; }
+.payslip dd { text-align: right; color: var(--p-green); font-variant-numeric: tabular-nums; }
+.payslip dd.minus { color: var(--p-accent); }
+.payslip-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--paper-ink); margin-top: 6px !important; padding-top: 4px; }
+.payslip-total b { font-size: 32px; line-height: 40px; font-weight: 400; color: var(--p-amber); }
+.payslip-wallet { text-align: right; color: var(--paper-mute); }
+.btn-shop { display: inline-flex; align-items: center; gap: 8px; background: var(--ok-dk); color: #eaffdf; box-shadow: inset -4px -4px 0 rgba(0,0,0,.3), inset 4px 4px 0 rgba(255,255,255,.2); }
+.btn-shop:hover:not(:disabled) { background: #2f7050; }
+
+/* 購買部 */
+.overlay.is-shop .modal { width: min(920px, 100%); }
+.shop-head { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; margin-bottom: 12px; }
+.shop-head .eyebrow { margin: 0 0 4px !important; }
+.shop-face { width: 80px; height: 80px; border: 4px solid var(--outline); background: #f6e7c8; line-height: 0; display: grid; place-items: center; }
+.shop-face svg { width: 100%; height: 100%; }
+.shop-face.is-machine { background: #c0392b; }
+.shop-face.is-machine svg { width: 48px; height: 48px; }
+.shop-line { margin: 0 !important; padding: 8px 12px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); position: relative; }
+.shop-wallet { margin: 0 !important; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--outline); }
+.shop-wallet b { font-family: var(--font-px); font-size: 16px; line-height: 16px; font-weight: 400; color: var(--yellow); }
+.shop-note { color: var(--muted); }
+.shop-group { margin: 16px 0 8px; font-size: 16px; font-weight: 400; color: var(--amber-hi); border-bottom: 2px solid var(--line-hi); padding-bottom: 2px; }
+.shop-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.shop-item { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; gap: 4px 10px; padding: 8px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); box-shadow: 4px 4px 0 rgba(0,0,0,.25); }
+.shop-item.is-locked { opacity: .55; }
+.shop-item.is-sale { background: #fff6cf; box-shadow: 0 0 0 2px var(--amber), 4px 4px 0 rgba(0,0,0,.25); }
+.shop-art { grid-row: span 2; width: 56px; height: 56px; display: grid; place-items: center; background: #ece6cf; border: 2px solid var(--paper-line); }
+.shop-art svg { width: 48px; height: 48px; }
+.shop-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.shop-info b { font-weight: 400; }
+.shop-info small { color: var(--paper-mute); font-size: 16px; line-height: 20px; }
+.shop-price { color: var(--p-amber); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.shop-price s { color: var(--paper-mute); }
+.shop-price i { color: var(--paper-mute); margin-left: auto; }
+.sale-tag { margin-left: 8px; padding: 0 6px; background: var(--shu); color: #fff; font-style: normal; }
+.shop-act { grid-column: 2; display: flex; justify-content: flex-end; }
+.shop-act .btn { padding: 4px 14px; }
+.shop-lock, .shop-owned { color: var(--paper-mute); padding: 4px 0; }
+.shop .btn-row { margin-top: 16px; }
+.shop-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 12px; border-bottom: 4px solid var(--outline); }
+.shop-tab { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 14px 8px; border: 2px solid var(--outline); border-bottom: 0; background: var(--raise); color: var(--muted); clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% 100%, 0 100%); }
+.shop-tab small { font-size: 16px; line-height: 16px; color: var(--dim); }
+.shop-tab:hover { background: var(--raise2); color: var(--ink); }
+.shop-tab.is-on { background: var(--amber); color: var(--amber-ink); }
+.shop-tab.is-on small { color: var(--amber-dk); }
+.shop-tab i { position: absolute; top: 4px; right: 4px; font-style: normal; font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 2px 3px; background: var(--ok); color: var(--outline); }
+.shop-tab:first-child { padding-right: 24px; }
+.shop-where { color: var(--p-blue); }
+.shop-item.is-owned { background: #eef6e6; }
+.new-tag { margin-left: 8px; padding: 0 6px; background: var(--ok-dk); color: #fff; font-style: normal; animation: blink 1s steps(1) infinite; }
+
+/* HUD のアイテム欄（モニター上部のバー） */
+.items { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-right: auto; }
+.item-btn { position: relative; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; background: var(--screen); border: 2px solid var(--screen-line); line-height: 0; }
+.item-btn:hover { border-color: var(--amber); background: #252b48; }
+.item-btn svg { width: 24px; height: 24px; }
+.item-btn b { position: absolute; right: -4px; bottom: -4px; font-family: var(--font-px); font-size: 8px; line-height: 8px; font-weight: 400; padding: 2px; background: var(--amber); color: var(--amber-ink); }
+.buff { padding: 0 6px; color: var(--ok); border: 2px dashed var(--ok-dk); white-space: nowrap; }
+
+/* 列名の補完 */
+.complete { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px; background: #232947; border: 2px solid var(--line-hi); }
+.complete button { padding: 0 8px; background: var(--screen); color: var(--screen-ink); border: 2px solid var(--screen-line); }
+.complete button.is-first, .complete button:hover { border-color: var(--amber); color: var(--amber-hi); }
+.complete small { margin-left: auto; color: var(--screen-muted); font-size: 16px; }
+
+/* 結果の並べ替え・絞り込み、サブモニター */
+.grid th[data-sort] { cursor: pointer; }
+.grid th[data-sort]:hover { color: var(--yellow); }
+.grid th[data-dir="asc"]::after { content: " ▲"; }
+.grid th[data-dir="desc"]::after { content: " ▼"; }
+.rfilter { margin: 0 0 6px; padding: 2px 8px; background: var(--screen); color: var(--screen-ink); border: 2px solid var(--screen-line); width: min(360px, 100%); }
+.rfilter:focus { border-color: var(--amber); outline: 0; }
+.rsplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; min-height: 0; }
+.rsplit > div { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
+.rprev { opacity: .75; border-left: 4px solid var(--screen-line); padding-left: 10px; }
+.rprev-label { margin: 0; color: var(--cyan); }
+@media (max-width: 1100px) { .rsplit { grid-template-columns: 1fr; } }
+
+/* 付箋メモ・関係図のタブ */
+.tabs button#tab-btn-memo { background: #ffd6d8; }
+.tabs button#tab-btn-erd { background: #d9f0d2; }
+.tabs button[aria-selected="true"] { background: var(--paper) !important; }
+.memo-desc { margin: 0 0 8px; color: var(--paper-mute); }
+.memo-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.memo-note { position: relative; background: var(--sticky); border: 2px solid var(--sticky-dk); box-shadow: 2px 2px 0 rgba(0,0,0,.2); }
+.memo-note.n1 { background: #ffd6d8; border-color: #e8a3a8; }
+.memo-note.n2 { background: #d6ecff; border-color: #9cc3e6; }
+.memo-use { display: block; width: 100%; text-align: left; padding: 6px 28px 6px 8px; background: none; border: 0; color: var(--paper-ink); }
+.memo-use pre { margin: 0; font: inherit; white-space: pre-wrap; word-break: break-all; max-height: 96px; overflow: hidden; }
+.memo-use:hover { background: rgba(255,255,255,.4); }
+.memo-del { position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; padding: 0; background: none; border: 0; color: var(--paper-mute); }
+.memo-del:hover { color: var(--p-accent); }
+.memo-empty { color: var(--paper-mute); }
+.erd { display: flex; flex-direction: column; gap: 10px; }
+.erd-hub { border: 2px solid var(--paper-ink); background: var(--paper-2); }
+.erd-head { margin: 0; display: flex; justify-content: space-between; gap: 8px; padding: 2px 8px; background: var(--p-blue); color: #fff; }
+.erd-head b { font-weight: 400; }
+.erd-head code { color: var(--yellow); }
+.erd-hub ul { list-style: none; margin: 0; padding: 4px 8px; columns: 2 140px; }
+.erd-hub li { break-inside: avoid; color: var(--paper-ink); }
+.erd-hub li span { color: var(--p-blue); margin-right: 4px; }
+
+/* 机の飾り（モニターの下） */
+.bezel-label { gap: 12px; }
+.deco { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 12px; min-height: 8px; margin-top: -4px; }
+.deco span { line-height: 0; }
+.deco svg { display: block; }
+.deco-cat svg { animation: catBob 2s steps(2) infinite; }
+@keyframes catBob { 50% { transform: translateY(-2px); } }
+.app.bezel-black { --bezel: #34384a; --bezel-hi: #4b5068; --bezel-dk: #22252f; --bezel-dk2: #8a90a8; }
+
+/* HUD：所持金と SHOP が増えたぶん、狭い画面では詰める */
+.tabs button { white-space: nowrap; padding: 4px 8px; }
+.tabs { gap: 2px; }
+@media (max-width: 1600px) and (min-width: 761px) {
+  .brand small { display: none; }
+  .stats { gap: 10px; }
+  .sound { gap: 2px; }
+}
+@media (max-width: 1500px) and (min-width: 761px) {
+  .hud { flex-wrap: wrap; row-gap: 6px; }
+  .queue { order: 3; flex-basis: 100%; }
+  .stats { margin-left: auto; }
+}
+
+/* =====================================================================
+   調査ツール（購買部の道具）
+   ===================================================================== */
+/* CS管理画面の権限：問い合わせ票の user_id */
+.uid-chip { margin-left: 8px; padding: 0 6px; border: 2px solid var(--p-blue); background: #e3ecfa; color: var(--p-blue); }
+.uid-chip:hover { background: var(--p-blue); color: #fff; }
+/* 行動タイムライン：問い合わせ票のボタン */
+.btn-timeline { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin-top: 10px; background: var(--p-blue); color: #fff; box-shadow: inset -4px -4px 0 rgba(0,0,0,.3), inset 4px 4px 0 rgba(255,255,255,.2); }
+.btn-timeline small { color: #cfe0ff; }
+.btn-timeline:hover:not(:disabled) { background: #3468bd; }
+/* IDたどりルーペ：結果のセルの虫めがね */
+.grid td.has-drill { padding-right: 4px; }
+.drill { display: inline-block; vertical-align: -2px; width: 16px; height: 16px; margin-left: 6px; padding: 0; border: 0; background: transparent; opacity: .55; }
+.drill::before { content: ""; display: block; width: 16px; height: 16px; background: no-repeat center / 16px 16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%239be7f0' d='M1 1h3v1H1zM0 2h1v2H0zM4 2h1v2H4zM1 4h3v1H1z'/%3E%3Cpath fill='%23f7a823' d='M4 5h1v1H4zM5 6h1v1H5zM6 7h2v1H6z'/%3E%3C/svg%3E"); }
+.drill:hover, .drill:focus-visible { opacity: 1; background: #3a4370; }
+/* 蛍光ペン */
+.grid td.mk-user { background: rgba(254,231,97,.28) !important; color: var(--yellow); }
+.grid td.mk-date { background: rgba(99,199,77,.25) !important; color: #b9f0a8; }
+.mk-legend { display: inline-flex; gap: 4px; }
+.mk-legend i { font-style: normal; padding: 0 4px; }
+.mk-legend .mk-user { background: rgba(254,231,97,.28); color: var(--yellow); }
+.mk-legend .mk-date { background: rgba(99,199,77,.25); color: #b9f0a8; }
+/* 調査の定石ノート：運用メモのタブ */
+.recipes { margin: 4px 4px 16px; padding: 10px 12px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--paper-ink); box-shadow: 4px 4px 0 rgba(0,0,0,.2); border-left: 8px solid var(--p-green); }
+.recipes-head { margin: 0 0 8px; display: flex; flex-direction: column; gap: 2px; }
+.recipes-head b { font-weight: 400; color: var(--p-green); }
+.recipes-head small { color: var(--paper-mute); font-size: 16px; }
+.recipes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.recipes button { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 8px; width: 100%; padding: 2px 8px; text-align: left; border: 2px solid var(--paper-line); background: #fff; color: var(--paper-ink); }
+.recipes button:hover { border-color: var(--p-green); background: #eef6e6; }
+.recipes button b { font-weight: 400; }
+.recipes button code { margin-left: auto; color: var(--p-blue); white-space: nowrap; font-size: 14px; }
+/* Kさんの調査メモ：テーブル定義の★ */
+.tbl.is-radar { background: #fff6cf; box-shadow: inset 4px 0 0 var(--amber); padding-left: 4px; }
+.tbl.is-radar .tbl-name { color: var(--p-accent); }
+.tbl.is-radar .tbl-name::after { content: " ★"; color: var(--amber-dk); }
+/* ダブルチェック依頼の結果 */
+.feedback.is-review { background: #e3ecfa; border-color: var(--p-blue); color: var(--paper-ink); }
+.feedback.is-review.is-ok { background: #e4f5dc; border-color: var(--p-green); }
+.feedback.is-review b { font-weight: 400; color: var(--p-blue); }
+.feedback .ok { color: var(--p-green); font-size: 20px; }
+.feedback .ng { color: var(--p-accent); font-size: 20px; }
+@media (max-width: 720px) {
+  .shop-head { grid-template-columns: auto 1fr; gap: 10px; }
+  .shop-face { width: 56px; height: 56px; }
+  .shop-wallet { grid-column: 1 / -1; justify-content: flex-end; }
+  .shop-tab { flex: 1 1 40%; padding: 4px 10px 6px; }
+}
+
+/* =====================================================================
+   デバッグパネル（:debug で出る。動作確認用）
+   ===================================================================== */
+.debug { position: fixed; left: 8px; bottom: 8px; z-index: 70; width: min(360px, calc(100% - 16px)); max-height: calc(100% - 16px); overflow: auto; background: #10121f; color: #b9f0a8; border: 2px solid #63c74d; box-shadow: 4px 4px 0 rgba(0,0,0,.4); font-size: 14px; line-height: 20px; }
+.debug[hidden] { display: none; }
+.debug-head { position: sticky; top: 0; display: flex; align-items: center; gap: 8px; padding: 2px 4px 2px 8px; background: #265c42; color: #eaffdf; }
+.debug-head b { font-family: var(--font-px); font-size: 8px; font-weight: 400; color: var(--yellow); }
+.debug-head span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.debug-head button { width: 22px; height: 22px; padding: 0; border: 2px solid #10121f; background: #63c74d; color: #10121f; line-height: 16px; }
+.debug-body { padding: 4px 8px 8px; }
+.debug-label { margin: 6px 0 2px; color: var(--yellow); }
+.debug-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.debug-row button { padding: 0 6px; border: 2px solid #3e8948; background: #1b2a22; color: #eaffdf; }
+.debug-row button:hover:not(:disabled) { background: #2f7050; }
+.debug-row button:disabled { opacity: .4; cursor: default; }
+.debug-row input { width: 56px; padding: 0 4px; background: #000; color: #eaffdf; border: 2px solid #3e8948; font: inherit; }
+.debug-answer { margin: 4px 0; padding: 4px 6px; background: #000; color: #eaffdf; word-break: break-all; }
+.debug-answer code { color: var(--cyan); }

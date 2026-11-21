@@ -685,9 +685,6 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .backdoor-ok { padding: 10px 12px; border: 2px solid var(--purple); background: #241838; color: var(--purple); font-family: var(--font-px); font-size: 16px; line-height: 24px; }
 .backdoor-ok small { display: block; font-family: var(--font-jp); font-size: 16px; color: var(--screen-ink); margin-top: 6px; }
 
-/* HUD の電話線 */
-.snd-phone[aria-pressed="false"] { background: var(--shu-dk); color: #ffd3d0; }
-.snd-phone[aria-pressed="false"] i { background: var(--shu); animation: blink .5s steps(1) infinite; }
 
 /* カットインの種類を追加 */
 .cutin.is-spec .cutin-band { --edge: #8fb8ff; }
@@ -868,6 +865,226 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
   .cert-title { font-size: 16px; line-height: 24px; letter-spacing: 4px; }
 }
 
+/* =====================================================================
+   給料と購買部
+   ===================================================================== */
+/* HUD の［購買部］ボタン：所持金といっしょに、お店の看板らしく目立たせる */
+.shop-btn {
+  position: relative; flex: none; display: flex; flex-direction: column; padding: 0;
+  border: 2px solid var(--outline); background: var(--ok-dk); color: #eaffdf;
+  box-shadow: inset -3px -3px 0 rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.18);
+  clip-path: var(--notch-sm);
+}
+.shop-btn:hover { background: #2f7050; }
+.shop-btn:active { transform: translateY(2px); box-shadow: inset 3px 3px 0 rgba(0,0,0,.3); }
+.shop-btn-awning { display: block; height: 8px; background: repeating-linear-gradient(90deg, var(--shu) 0 8px, var(--paper) 8px 16px); border-bottom: 2px solid var(--outline); }
+.shop-btn-body { display: flex; align-items: center; gap: 8px; padding: 4px 10px 6px 8px; }
+.shop-btn-text { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.shop-btn-label { font-size: 16px; line-height: 16px; color: #fff; text-shadow: 2px 2px 0 var(--outline); }
+.shop-btn-label::after { content: " ▸"; color: var(--yellow); }
+.shop-btn b { font-family: var(--font-px); font-weight: 400; font-size: 12px; line-height: 12px; color: var(--yellow); text-shadow: 2px 2px 0 var(--outline); font-variant-numeric: tabular-nums; }
+.shop-btn-new { position: absolute; top: 0; right: 4px; font-style: normal; font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 2px 4px; background: var(--yellow); color: var(--outline); animation: blink 1s steps(1) infinite; }
+.shop-btn[hidden] { display: none; }
+.btn-shop .shop-btn-new { position: static; margin-left: 4px; }
+
+/* 給与明細 */
+.payslip { margin: 16px 0 4px; padding: 12px 16px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); background-image: repeating-linear-gradient(to bottom, transparent 0 22px, #e8e1c8 22px 24px); }
+.payslip p { margin: 0; max-width: none; }
+.payslip-title { color: var(--p-blue); border-bottom: 4px double var(--paper-line); padding-bottom: 4px; margin-bottom: 6px !important; }
+.payslip dl { display: grid; grid-template-columns: 1fr auto; margin: 0; }
+.payslip dt, .payslip dd { margin: 0; }
+.payslip dd { text-align: right; color: var(--p-green); font-variant-numeric: tabular-nums; }
+.payslip dd.minus { color: var(--p-accent); }
+.payslip-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--paper-ink); margin-top: 6px !important; padding-top: 4px; }
+.payslip-total b { font-size: 32px; line-height: 40px; font-weight: 400; color: var(--p-amber); }
+.payslip-wallet { text-align: right; color: var(--paper-mute); }
+.btn-shop { display: inline-flex; align-items: center; gap: 8px; background: var(--ok-dk); color: #eaffdf; box-shadow: inset -4px -4px 0 rgba(0,0,0,.3), inset 4px 4px 0 rgba(255,255,255,.2); }
+.btn-shop:hover:not(:disabled) { background: #2f7050; }
+
+/* 購買部 */
+.overlay.is-shop .modal { width: min(920px, 100%); }
+.shop-head { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; margin-bottom: 12px; }
+.shop-head .eyebrow { margin: 0 0 4px !important; }
+.shop-face { width: 80px; height: 80px; border: 4px solid var(--outline); background: #f6e7c8; line-height: 0; display: grid; place-items: center; }
+.shop-face svg { width: 100%; height: 100%; }
+.shop-face.is-machine { background: #c0392b; }
+.shop-face.is-machine svg { width: 48px; height: 48px; }
+.shop-line { margin: 0 !important; padding: 8px 12px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); position: relative; }
+.shop-wallet { margin: 0 !important; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--outline); }
+.shop-wallet b { font-family: var(--font-px); font-size: 16px; line-height: 16px; font-weight: 400; color: var(--yellow); }
+.shop-note { color: var(--muted); }
+.shop-group { margin: 16px 0 8px; font-size: 16px; font-weight: 400; color: var(--amber-hi); border-bottom: 2px solid var(--line-hi); padding-bottom: 2px; }
+.shop-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.shop-item { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; gap: 4px 10px; padding: 8px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--outline); box-shadow: 4px 4px 0 rgba(0,0,0,.25); }
+.shop-item.is-locked { opacity: .55; }
+.shop-item.is-sale { background: #fff6cf; box-shadow: 0 0 0 2px var(--amber), 4px 4px 0 rgba(0,0,0,.25); }
+.shop-art { grid-row: span 2; width: 56px; height: 56px; display: grid; place-items: center; background: #ece6cf; border: 2px solid var(--paper-line); }
+.shop-art svg { width: 48px; height: 48px; }
+.shop-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.shop-info b { font-weight: 400; }
+.shop-info small { color: var(--paper-mute); font-size: 16px; line-height: 20px; }
+.shop-price { color: var(--p-amber); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.shop-price s { color: var(--paper-mute); }
+.shop-price i { color: var(--paper-mute); margin-left: auto; }
+.sale-tag { margin-left: 8px; padding: 0 6px; background: var(--shu); color: #fff; font-style: normal; }
+.shop-act { grid-column: 2; display: flex; justify-content: flex-end; }
+.shop-act .btn { padding: 4px 14px; }
+.shop-lock, .shop-owned { color: var(--paper-mute); padding: 4px 0; }
+.shop .btn-row { margin-top: 16px; }
+.shop-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 12px; border-bottom: 4px solid var(--outline); }
+.shop-tab { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 14px 8px; border: 2px solid var(--outline); border-bottom: 0; background: var(--raise); color: var(--muted); clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% 100%, 0 100%); }
+.shop-tab small { font-size: 16px; line-height: 16px; color: var(--dim); }
+.shop-tab:hover { background: var(--raise2); color: var(--ink); }
+.shop-tab.is-on { background: var(--amber); color: var(--amber-ink); }
+.shop-tab.is-on small { color: var(--amber-dk); }
+.shop-tab i { position: absolute; top: 4px; right: 4px; font-style: normal; font-family: var(--font-px); font-size: 8px; line-height: 8px; padding: 2px 3px; background: var(--ok); color: var(--outline); }
+.shop-tab:first-child { padding-right: 24px; }
+.shop-where { color: var(--p-blue); }
+.shop-item.is-owned { background: #eef6e6; }
+.new-tag { margin-left: 8px; padding: 0 6px; background: var(--ok-dk); color: #fff; font-style: normal; animation: blink 1s steps(1) infinite; }
+
+/* HUD のアイテム欄（モニター上部のバー） */
+.items { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-right: auto; }
+.item-btn { position: relative; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; background: var(--screen); border: 2px solid var(--screen-line); line-height: 0; }
+.item-btn:hover { border-color: var(--amber); background: #252b48; }
+.item-btn svg { width: 24px; height: 24px; }
+.item-btn b { position: absolute; right: -4px; bottom: -4px; font-family: var(--font-px); font-size: 8px; line-height: 8px; font-weight: 400; padding: 2px; background: var(--amber); color: var(--amber-ink); }
+.buff { padding: 0 6px; color: var(--ok); border: 2px dashed var(--ok-dk); white-space: nowrap; }
+
+/* 列名の補完 */
+.complete { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px; background: #232947; border: 2px solid var(--line-hi); }
+.complete button { padding: 0 8px; background: var(--screen); color: var(--screen-ink); border: 2px solid var(--screen-line); }
+.complete button.is-first, .complete button:hover { border-color: var(--amber); color: var(--amber-hi); }
+.complete small { margin-left: auto; color: var(--screen-muted); font-size: 16px; }
+
+/* 結果の並べ替え・絞り込み、サブモニター */
+.grid th[data-sort] { cursor: pointer; }
+.grid th[data-sort]:hover { color: var(--yellow); }
+.grid th[data-dir="asc"]::after { content: " ▲"; }
+.grid th[data-dir="desc"]::after { content: " ▼"; }
+.rfilter { margin: 0 0 6px; padding: 2px 8px; background: var(--screen); color: var(--screen-ink); border: 2px solid var(--screen-line); width: min(360px, 100%); }
+.rfilter:focus { border-color: var(--amber); outline: 0; }
+.rsplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; min-height: 0; }
+.rsplit > div { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
+.rprev { opacity: .75; border-left: 4px solid var(--screen-line); padding-left: 10px; }
+.rprev-label { margin: 0; color: var(--cyan); }
+@media (max-width: 1100px) { .rsplit { grid-template-columns: 1fr; } }
+
+/* 付箋メモ・関係図のタブ */
+.tabs button#tab-btn-memo { background: #ffd6d8; }
+.tabs button#tab-btn-erd { background: #d9f0d2; }
+.tabs button[aria-selected="true"] { background: var(--paper) !important; }
+.memo-desc { margin: 0 0 8px; color: var(--paper-mute); }
+.memo-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.memo-note { position: relative; background: var(--sticky); border: 2px solid var(--sticky-dk); box-shadow: 2px 2px 0 rgba(0,0,0,.2); }
+.memo-note.n1 { background: #ffd6d8; border-color: #e8a3a8; }
+.memo-note.n2 { background: #d6ecff; border-color: #9cc3e6; }
+.memo-use { display: block; width: 100%; text-align: left; padding: 6px 28px 6px 8px; background: none; border: 0; color: var(--paper-ink); }
+.memo-use pre { margin: 0; font: inherit; white-space: pre-wrap; word-break: break-all; max-height: 96px; overflow: hidden; }
+.memo-use:hover { background: rgba(255,255,255,.4); }
+.memo-del { position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; padding: 0; background: none; border: 0; color: var(--paper-mute); }
+.memo-del:hover { color: var(--p-accent); }
+.memo-empty { color: var(--paper-mute); }
+.erd { display: flex; flex-direction: column; gap: 10px; }
+.erd-hub { border: 2px solid var(--paper-ink); background: var(--paper-2); }
+.erd-head { margin: 0; display: flex; justify-content: space-between; gap: 8px; padding: 2px 8px; background: var(--p-blue); color: #fff; }
+.erd-head b { font-weight: 400; }
+.erd-head code { color: var(--yellow); }
+.erd-hub ul { list-style: none; margin: 0; padding: 4px 8px; columns: 2 140px; }
+.erd-hub li { break-inside: avoid; color: var(--paper-ink); }
+.erd-hub li span { color: var(--p-blue); margin-right: 4px; }
+
+/* 机の飾り（モニターの下） */
+.bezel-label { gap: 12px; }
+.deco { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 12px; min-height: 8px; margin-top: -4px; }
+.deco span { line-height: 0; }
+.deco svg { display: block; }
+.deco-cat svg { animation: catBob 2s steps(2) infinite; }
+@keyframes catBob { 50% { transform: translateY(-2px); } }
+.app.bezel-black { --bezel: #34384a; --bezel-hi: #4b5068; --bezel-dk: #22252f; --bezel-dk2: #8a90a8; }
+
+/* HUD：所持金と SHOP が増えたぶん、狭い画面では詰める */
+.tabs button { white-space: nowrap; padding: 4px 8px; }
+.tabs { gap: 2px; }
+@media (max-width: 1600px) and (min-width: 761px) {
+  .brand small { display: none; }
+  .stats { gap: 10px; }
+  .sound { gap: 2px; }
+}
+@media (max-width: 1500px) and (min-width: 761px) {
+  .hud { flex-wrap: wrap; row-gap: 6px; }
+  .queue { order: 3; flex-basis: 100%; }
+  .stats { margin-left: auto; }
+}
+
+/* =====================================================================
+   調査ツール（購買部の道具）
+   ===================================================================== */
+/* CS管理画面の権限：問い合わせ票の user_id */
+.uid-chip { margin-left: 8px; padding: 0 6px; border: 2px solid var(--p-blue); background: #e3ecfa; color: var(--p-blue); }
+.uid-chip:hover { background: var(--p-blue); color: #fff; }
+/* 行動タイムライン：問い合わせ票のボタン */
+.btn-timeline { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin-top: 10px; background: var(--p-blue); color: #fff; box-shadow: inset -4px -4px 0 rgba(0,0,0,.3), inset 4px 4px 0 rgba(255,255,255,.2); }
+.btn-timeline small { color: #cfe0ff; }
+.btn-timeline:hover:not(:disabled) { background: #3468bd; }
+/* IDたどりルーペ：結果のセルの虫めがね */
+.grid td.has-drill { padding-right: 4px; }
+.drill { display: inline-block; vertical-align: -2px; width: 16px; height: 16px; margin-left: 6px; padding: 0; border: 0; background: transparent; opacity: .55; }
+.drill::before { content: ""; display: block; width: 16px; height: 16px; background: no-repeat center / 16px 16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%239be7f0' d='M1 1h3v1H1zM0 2h1v2H0zM4 2h1v2H4zM1 4h3v1H1z'/%3E%3Cpath fill='%23f7a823' d='M4 5h1v1H4zM5 6h1v1H5zM6 7h2v1H6z'/%3E%3C/svg%3E"); }
+.drill:hover, .drill:focus-visible { opacity: 1; background: #3a4370; }
+/* 蛍光ペン */
+.grid td.mk-user { background: rgba(254,231,97,.28) !important; color: var(--yellow); }
+.grid td.mk-date { background: rgba(99,199,77,.25) !important; color: #b9f0a8; }
+.mk-legend { display: inline-flex; gap: 4px; }
+.mk-legend i { font-style: normal; padding: 0 4px; }
+.mk-legend .mk-user { background: rgba(254,231,97,.28); color: var(--yellow); }
+.mk-legend .mk-date { background: rgba(99,199,77,.25); color: #b9f0a8; }
+/* 調査の定石ノート：運用メモのタブ */
+.recipes { margin: 4px 4px 16px; padding: 10px 12px; background: var(--paper-2); color: var(--paper-ink); border: 2px solid var(--paper-ink); box-shadow: 4px 4px 0 rgba(0,0,0,.2); border-left: 8px solid var(--p-green); }
+.recipes-head { margin: 0 0 8px; display: flex; flex-direction: column; gap: 2px; }
+.recipes-head b { font-weight: 400; color: var(--p-green); }
+.recipes-head small { color: var(--paper-mute); font-size: 16px; }
+.recipes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.recipes button { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 8px; width: 100%; padding: 2px 8px; text-align: left; border: 2px solid var(--paper-line); background: #fff; color: var(--paper-ink); }
+.recipes button:hover { border-color: var(--p-green); background: #eef6e6; }
+.recipes button b { font-weight: 400; }
+.recipes button code { margin-left: auto; color: var(--p-blue); white-space: nowrap; font-size: 14px; }
+/* Kさんの調査メモ：テーブル定義の★ */
+.tbl.is-radar { background: #fff6cf; box-shadow: inset 4px 0 0 var(--amber); padding-left: 4px; }
+.tbl.is-radar .tbl-name { color: var(--p-accent); }
+.tbl.is-radar .tbl-name::after { content: " ★"; color: var(--amber-dk); }
+/* ダブルチェック依頼の結果 */
+.feedback.is-review { background: #e3ecfa; border-color: var(--p-blue); color: var(--paper-ink); }
+.feedback.is-review.is-ok { background: #e4f5dc; border-color: var(--p-green); }
+.feedback.is-review b { font-weight: 400; color: var(--p-blue); }
+.feedback .ok { color: var(--p-green); font-size: 20px; }
+.feedback .ng { color: var(--p-accent); font-size: 20px; }
+@media (max-width: 720px) {
+  .shop-head { grid-template-columns: auto 1fr; gap: 10px; }
+  .shop-face { width: 56px; height: 56px; }
+  .shop-wallet { grid-column: 1 / -1; justify-content: flex-end; }
+  .shop-tab { flex: 1 1 40%; padding: 4px 10px 6px; }
+}
+
+/* =====================================================================
+   デバッグパネル（:debug で出る。動作確認用）
+   ===================================================================== */
+.debug { position: fixed; left: 8px; bottom: 8px; z-index: 70; width: min(360px, calc(100% - 16px)); max-height: calc(100% - 16px); overflow: auto; background: #10121f; color: #b9f0a8; border: 2px solid #63c74d; box-shadow: 4px 4px 0 rgba(0,0,0,.4); font-size: 14px; line-height: 20px; }
+.debug[hidden] { display: none; }
+.debug-head { position: sticky; top: 0; display: flex; align-items: center; gap: 8px; padding: 2px 4px 2px 8px; background: #265c42; color: #eaffdf; }
+.debug-head b { font-family: var(--font-px); font-size: 8px; font-weight: 400; color: var(--yellow); }
+.debug-head span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.debug-head button { width: 22px; height: 22px; padding: 0; border: 2px solid #10121f; background: #63c74d; color: #10121f; line-height: 16px; }
+.debug-body { padding: 4px 8px 8px; }
+.debug-label { margin: 6px 0 2px; color: var(--yellow); }
+.debug-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.debug-row button { padding: 0 6px; border: 2px solid #3e8948; background: #1b2a22; color: #eaffdf; }
+.debug-row button:hover:not(:disabled) { background: #2f7050; }
+.debug-row button:disabled { opacity: .4; cursor: default; }
+.debug-row input { width: 56px; padding: 0 4px; background: #000; color: #eaffdf; border: 2px solid #3e8948; font: inherit; }
+.debug-answer { margin: 4px 0; padding: 4px 6px; background: #000; color: #eaffdf; word-break: break-all; }
+.debug-answer code { color: var(--cyan); }
+
 </style>
 </head>
 <body>
@@ -880,10 +1097,14 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
       <div class="stat stat-score"><i class="ico" data-icon="coin"></i><div><span>SCORE</span><b id="score">0</b></div></div>
       <div class="stat stat-combo" id="stat-combo" hidden><i class="ico" data-icon="flame"></i><div><span>COMBO</span><b id="combo">0</b></div></div>
       <div class="stat" id="stat-shimatsu"><i class="ico" data-icon="paper"></i><div><span>始末書</span><b id="shimatsu">0</b></div></div>
+      <button class="shop-btn" id="btn-shop" type="button" title="購買部：給料で調査ツールや消耗品を買える（いつでも寄れる）">
+        <i class="shop-btn-awning" aria-hidden="true"></i>
+        <span class="shop-btn-body"><i class="ico" data-icon="shop" data-scale="3"></i><span class="shop-btn-text"><span class="shop-btn-label">購買部</span><b id="wallet">0</b></span></span>
+        <em class="shop-btn-new" id="shop-new" hidden>NEW</em>
+      </button>
       <div class="sound" role="group" aria-label="サウンド">
         <button class="snd" id="btn-bgm" type="button" aria-pressed="true" title="BGMのオン／オフ"><i></i>BGM</button>
         <button class="snd" id="btn-sfx" type="button" aria-pressed="true" title="効果音のオン／オフ"><i></i>SE</button>
-        <button class="snd snd-phone" id="btn-phone" type="button" aria-pressed="true" title="電話線（抜くとチケットが届かなくなる。時間は倍速）"><i></i>TEL</button>
       </div>
     </div>
   </header>
@@ -901,6 +1122,7 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
       <div class="screen">
       <div class="console-bar">
         <span class="conn" id="conn"><i class="dot"></i><span id="conn-label">prod-replica-01 に接続中…</span><span class="ro">READ ONLY</span></span>
+        <div class="items" id="items" aria-label="持っているアイテム"></div>
         <div class="bar-actions">
           <button class="btn btn-ghost" id="btn-clear" type="button">クリア</button>
           <button class="btn btn-primary btn-run" id="run" type="button" disabled>実行 <kbd>Ctrl</kbd><kbd>Enter</kbd></button>
@@ -908,20 +1130,25 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
       </div>
       <div class="editor">
         <pre aria-hidden="true"><code id="hl"></code></pre>
+        <div class="complete" id="complete" hidden></div>
         <textarea id="sql" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQLエディタ"></textarea>
       </div>
       <div class="results" id="results" aria-live="polite"></div>
       </div>
-      <div class="bezel-label" aria-hidden="true"><span>NOCT TERM-26</span><i class="led"></i></div>
+      <div class="bezel-label"><span aria-hidden="true">NOCT TERM-26</span><div class="deco" id="deco"></div><i class="led" aria-hidden="true"></i></div>
     </section>
 
     <aside class="pane pane-ref" aria-label="資料">
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-btn-schema" aria-selected="true" aria-controls="tab-schema" type="button">テーブル定義</button>
         <button role="tab" id="tab-btn-notes" aria-selected="false" aria-controls="tab-notes" type="button">運用メモ</button>
+        <button role="tab" id="tab-btn-memo" aria-selected="false" aria-controls="tab-memo" type="button" hidden>付箋</button>
+        <button role="tab" id="tab-btn-erd" aria-selected="false" aria-controls="tab-erd" type="button" hidden>関係図</button>
       </div>
       <div class="tab-panel" id="tab-schema" role="tabpanel" aria-labelledby="tab-btn-schema"></div>
       <div class="tab-panel" id="tab-notes" role="tabpanel" aria-labelledby="tab-btn-notes" hidden></div>
+      <div class="tab-panel" id="tab-memo" role="tabpanel" aria-labelledby="tab-btn-memo" hidden></div>
+      <div class="tab-panel" id="tab-erd" role="tabpanel" aria-labelledby="tab-btn-erd" hidden></div>
     </aside>
   </main>
 </div>
@@ -930,6 +1157,7 @@ table.summary { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="comm-dock" id="comm" aria-live="polite"></div>
 <div class="fx-layer" id="fx-layer" aria-hidden="true"></div>
+<aside class="debug" id="debug" aria-label="デバッグパネル" hidden></aside>
 <script src="sql-wasm.js"></script>
 <script>
 /*
@@ -2761,6 +2989,144 @@ ORDER BY created_at;`,
 </script>
 <script>
 /*
+ * ログは嘘をつかない — 購買部の品ぞろえ
+ * 品物の名前・値段・効果の説明と、ドット絵（12×12）。効果そのものは game.js が実装する。
+ *   kind: consumable（消耗品。モニター上部のアイテム欄から使う。各 max 個まで）
+ *         tool（調査ツール。一度買えばずっと使える。答えは教えず、調べる手間を減らすものだけ）
+ *         deco（机の飾り。見た目だけ）
+ *         tape（BGMのカセット）
+ *   from: 購買部に並び始める日
+ *   where: 道具を買ったあと、画面のどこに出てくるか（購買部のカードに出す）
+ */
+(function (root) {
+  'use strict';
+
+  const K = '#1c1f33', W = '#fbf7ea';
+  const ITEMS = [
+    // ---------------------------------------------------------------- 消耗品
+    { id: 'coffee', kind: 'consumable', name: '缶コーヒー', price: 120, max: 3, from: 1,
+      desc: 'ゲーム内の時計を30分戻す。',
+      pal: { k: K, w: W, g: '#9aa3b8', b: '#7a4a2a', o: '#c8874a' },
+      px: ['....kkkk....', '...kggggk...', '...kwwwwk...', '...kbbbbk...', '...kbookk...', '...kbobbk...', '...kbookk...', '...kbbbbk...', '...kbbbbk...', '...kwwwwk...', '...kggggk...', '....kkkk....'] },
+    { id: 'treat', kind: 'consumable', name: '先輩へのおごり', price: 150, max: 3, from: 1,
+      desc: 'Kさんにおにぎりをおごる。次のヒント1回が減点なし。',
+      pal: { k: K, w: W, n: '#26402f', p: '#e7dfc7' },
+      px: ['.....kk.....', '....kwwk....', '...kwwwwk...', '...kwwwwk...', '..kwwwwwwk..', '..kwwpwwwk..', '.kwwwwwwwwk.', '.kwwnnnnwwk.', 'kwwwnnnnwwwk', 'kwwwnnnnwwwk', 'kwwwnnnnwwwk', 'kkkkkkkkkkkk'] },
+    { id: 'medicine', kind: 'consumable', name: '胃薬', price: 200, max: 3, from: 1,
+      desc: '次の差し戻し1回の減点をなくす。',
+      pal: { k: K, w: W, r: '#e43b44', b: '#5b8fd6' },
+      px: ['...kkkkkk...', '...krrrrk...', '...krrrrk...', '..kkkkkkkk..', '..kwwwwwwk..', '..kwbbbbwk..', '..kwbwwbwk..', '..kwbbbbwk..', '..kwwwwwwk..', '..kwwwwwwk..', '..kwwwwwwk..', '..kkkkkkkk..'] },
+    { id: 'gift', kind: 'consumable', name: '菓子折り', price: 400, max: 3, from: 1,
+      desc: '部長に持っていくと、始末書を1枚取り消してもらえる。',
+      pal: { k: K, w: W, r: '#e43b44', y: '#fee761', p: '#f2b5c0' },
+      px: ['....y..y....', '...yky.yky..', '....yyyy....', 'kkkkkrrkkkkk', 'kppppprpppk.', 'kppppprppppk', 'krrrrrrrrrrk', 'kppppprppppk', 'kppppprppppk', 'kppppprppppk', 'kppppprppppk', 'kkkkkkkkkkkk'] },
+    { id: 'energy', kind: 'consumable', name: 'エナジードリンク', price: 300, max: 3, from: 1,
+      desc: '次の10回のクエリは、実行しても時計が進まない。',
+      pal: { k: K, w: W, g: '#9aa3b8', y: '#fee761', d: '#2b2f45' },
+      px: ['....kkkk....', '...kggggk...', '...kddddk...', '...kddydk...', '...kdyydk...', '...kyyddk...', '...kdyddk...', '...kdydk....', '...kddddk...', '...kddddk...', '...kggggk...', '....kkkk....'] },
+    { id: 'review', kind: 'consumable', name: 'ダブルチェック依頼', price: 250, max: 3, from: 1,
+      desc: '回答する前に、同僚が「結論」と「根拠」がそれぞれ合っているかを○×で教えてくれる。減点なし。',
+      pal: { k: K, w: W, b: '#b5651d', g: '#3e8948', r: '#e43b44' },
+      px: ['....kkkk....', '.kkkkwwkkkk.', '.kbbkkkkbbk.', '.kbwwwwwwbk.', '.kbwwwwwgbk.', '.kbgwwwgwbk.', '.kbwgwgwwbk.', '.kbwwgwwwbk.', '.kbrwrwwwbk.', '.kbwrwwwwbk.', '.kbrwrwwwbk.', '.kkkkkkkkkk.'] },
+    { id: 'radar', kind: 'consumable', name: 'Kさんの調査メモ', price: 180, max: 3, from: 1,
+      desc: 'いまのチケットで見るべきテーブルに、テーブル定義で★印がつく。',
+      pal: { k: K, y: '#fee761', o: '#f7a823', r: '#e43b44' },
+      px: ['kkkkkkkkkkk.', 'kyyyyyyyyyk.', 'kyyyyryyyyk.', 'kyyyrrryyyk.', 'kyrrrrrrryk.', 'kyyrrrrryyk.', 'kyyrryrryyk.', 'kyyyyyyyyyk.', 'kykkkkkkyyk.', 'kyyyyyyyyok.', 'kykkkkyyook.', 'kkkkkkkkkkk.'] },
+
+    // ---------------------------------------------------------------- 道具（調査ツール）
+    { id: 'idcard', kind: 'tool', name: 'CS管理画面の権限', price: 400, from: 1, where: '問い合わせ票',
+      desc: '問い合わせ票の公開IDの横に、内部の user_id が出る。クリックでエディタに入る。',
+      pal: { k: K, w: W, b: '#5b8fd6', s: '#f2c79b', d: '#5d6578' },
+      px: ['...kkkkkk...', '...kbbbbk...', '....kbbk....', 'kkkkkkkkkkkk', 'kbbbbbbbbbbk', 'kwwwwwwwwwwk', 'kwsskwkkkkwk', 'kwsskwwwwwwk', 'kwddkwkkkwwk', 'kwddkwwwwwwk', 'kwwwwwwwwwwk', 'kkkkkkkkkkkk'] },
+    { id: 'recipes', kind: 'tool', name: '調査の定石ノート', price: 500, from: 1, where: '資料の［運用メモ］',
+      desc: '先輩のノートの写し。「受付日の前後で絞る」「トレード相手を調べる」などのSQLのひな形を、いまのチケットのユーザー入りで呼び出せる。',
+      pal: { k: K, w: W, g: '#3e8948', r: '#e43b44' },
+      px: ['.kkkkkkkkkk.', '.kggggggggk.', '.kgwwwwwwgk.', '.kgwkkkkwgk.', '.kgwwwwwwgk.', '.kgwkkkwwgk.', '.kgwwwwwwgk.', '.kgwkkkkwgk.', '.kgwwwwwwgk.', '.kggggggggk.', '.kkkkkrkkkk.', '......r.....'] },
+    { id: 'memo', kind: 'tool', name: '付箋メモ', price: 600, from: 1, where: '資料の［付箋］',
+      desc: 'よく使うSQLを5本まで保存して、ワンクリックで呼び出せる（右の資料に「付箋」タブ）。',
+      pal: { k: K, y: '#fee761', o: '#f7a823', p: '#f6757a', b: '#8890cf' },
+      px: ['............', '.kkkkkkk....', '.kpppppk....', '.kpkkkpkkkk.', '.kpppppyyyk.', '.kkkkkkkyyk.', '...kyyyyyyk.', '...kykkkkyk.', '...kyyyyyyk.', '...kykkkyyk.', '...kyyyyyok.', '...kkkkkkkk.'] },
+    { id: 'sort', kind: 'tool', name: '結果の並べ替え', price: 700, from: 1, where: '結果の表',
+      desc: '結果の表の見出しをクリックで並べ替え。表の上の欄で行を絞り込める。',
+      pal: { k: K, w: W, c: '#2ce8f5', g: '#63c74d' },
+      px: ['kkkkkkkk....', 'kcccccck..g.', 'kwwwwwwk.ggg', 'kkkkkkkkgggg', 'kwwwwwwk..g.', 'kkkkkkkk..g.', 'kwwwwwwk..g.', 'kkkkkkkk..g.', 'kwwwwwwkgggg', 'kkkkkkkk.ggg', 'kwwwwwwk..g.', 'kkkkkkkk....'] },
+    { id: 'drill', kind: 'tool', name: 'IDたどりルーペ', price: 800, from: 2, where: '結果の表',
+      desc: '結果の item_id・user_id・stage_id などのセルに虫めがねが付く。押すと参照先のテーブルを引いて、名前や中身がすぐ分かる。',
+      pal: { k: K, w: W, c: '#9be7f0', b: '#b5651d' },
+      px: ['...kkkkk....', '..kccccck...', '.kcwccccck..', '.kcwccccck..', '.kccccccck..', '.kccccccck..', '..kccccck...', '...kkkkkbk..', '........bbk.', '.........bbk', '..........bk', '............'] },
+    { id: 'marker', kind: 'tool', name: '蛍光ペン', price: 600, from: 3, where: '結果の表',
+      desc: '結果の表で、問い合わせてきたユーザーの user_id は黄色、受付日の日時は緑に塗られる。他人の行や日付のズレに気づきやすい。',
+      pal: { k: K, y: '#fee761', g: '#63c74d', d: '#5d6578' },
+      px: ['.........kk.', '........kddk', '.......kddk.', '......kddk..', '.....kddk...', '....kddk....', '...kyyk.....', '..kyyk......', '.kyyk.......', '.kkk........', 'yyyyyyyyyy..', 'gggggggggg..'] },
+    { id: 'complete', kind: 'tool', name: '列名の補完', price: 900, from: 3, where: 'SQLエディタ',
+      desc: 'エディタでテーブル名・列名の候補が出る。Tab で確定。',
+      pal: { k: K, w: W, c: '#2ce8f5', d: '#1d223a' },
+      px: ['kkkkkkkkkkkk', 'kddddddddddk', 'kdwwdwdddddk', 'kdwdwdwwdddk', 'kdwwdwdwdcdk', 'kdwdwdwwdcdk', 'kddddddddcdk', 'kkkkkkkkkkkk', '..kwwwwwwk..', '..kcccwwwk..', '..kwwwwwwk..', '..kkkkkkkk..'] },
+    { id: 'submon', kind: 'tool', name: 'サブモニター', price: 1000, from: 5, where: '結果の表',
+      desc: 'ひとつ前の結果を横に残して、新しい結果と見比べられる。',
+      pal: { k: K, b: '#dcd2b4', d: '#ab9f7e', s: '#161a2e', c: '#2ce8f5' },
+      px: ['kkkkkkkkkkkk', 'kbbbbbbbbbbk', 'kbsssssssssk', 'kbscccsssbbk', 'kbsssssssbbk', 'kbscccccsbbk', 'kbsssssssbbk', 'kbbbbbbbbbbk', 'kkkkkkkkkkkk', '....kddk....', '..kkkddkkk..', '..kkkkkkkk..'] },
+    { id: 'timeline', kind: 'tool', name: '行動タイムライン', price: 1800, from: 6, where: '問い合わせ票',
+      desc: '問い合わせ票に［行動タイムライン］ボタン。そのユーザーの log_ テーブル9つを、受付日までの数日ぶん1つの表に時系列で並べる。',
+      pal: { k: K, w: W, o: '#f7a823', c: '#2ce8f5', p: '#f6757a' },
+      px: ['kkkkkkkkkkkk', 'kwwwwwwwwwwk', 'kwowwwwwwwwk', 'kwokkkkkwwwk', 'kwowwwwwwwwk', 'kwcwwwwwwwwk', 'kwckkkkkkkwk', 'kwcwwwwwwwwk', 'kwpwwwwwwwwk', 'kwpkkkkwwwwk', 'kwwwwwwwwwwk', 'kkkkkkkkkkkk'] },
+    { id: 'erd', kind: 'tool', name: 'テーブル関係図', price: 1200, from: 8, where: '資料の［関係図］',
+      desc: 'どのテーブルが、どの列でつながっているかの図（右の資料に「関係図」タブ）。',
+      pal: { k: K, w: W, b: '#8890cf', g: '#63c74d', o: '#f7a823' },
+      px: ['kkkkk.......', 'kbbbk.......', 'kwwwk.......', 'kkkkk.......', '..k.........', '..kkkkk.kkkk', '..k...k.kook', '..k...kkkwwk', 'kkkkk...kkkk', 'kgggk.......', 'kwwwk.......', 'kkkkk.......'] },
+    { id: 'chair', kind: 'tool', name: 'ゲーミングチェア', price: 1500, from: 10, where: 'ゲーム内時計',
+      desc: '座り心地がよすぎて、時計の進みが1割遅くなる。',
+      pal: { k: K, r: '#e43b44', d: '#2b2f45', g: '#9aa3b8' },
+      px: ['...kkkkkk...', '...krrrrk...', '...kdrrdk...', '...kdrrdk...', '...kdrrdk...', '...kdrrdk...', '.kkkkkkkkkk.', '.kddddddddk.', '.kkkkkkkkkk.', '.....kk.....', '..kkkkkkkk..', '..k.k..k.k..'] },
+
+    // ---------------------------------------------------------------- 机の飾り
+    { id: 'plant', kind: 'deco', name: '観葉植物', price: 200, from: 1, desc: 'モニターの横に置く。',
+      pal: { k: K, g: '#63c74d', d: '#2f7d3b', b: '#b5651d', o: '#d9894a' },
+      px: ['....g..g....', '...ggdggd...', '..gddggddg..', '.ggdgggdgg..', '..gdggggdgg.', '...ggddgg...', '....dgdd....', '..kkkkkkkk..', '..kooooook..', '...kbbbbk...', '...kbbbbk...', '...kkkkkk...'] },
+    { id: 'cat', kind: 'deco', name: '猫のフィギュア', price: 300, from: 1, desc: 'ずっとこっちを見ている。',
+      pal: { k: K, w: W, o: '#f7a823', p: '#f6757a' },
+      px: ['.k......k...', '.kk....kk...', '.kokkkkok...', '.koooooook..', '.kokoookok..', '.kooopooook.', '..kooooook..', '..kowwwok...', '.koowwwook..', '.koooooookk.', '.kooooooook.', '..kkkkkkkk..'] },
+    { id: 'lamp', kind: 'deco', name: '卓上ライト', price: 400, from: 1, desc: '夜の残業がちょっと明るくなる。',
+      pal: { k: K, y: '#fee761', g: '#5d6578', l: '#ffe9a8' },
+      px: ['..kkkkkk....', '.kggggggk...', 'kggggggggk..', 'kkkkkkkkkk..', '.lyyyyyyl...', '..l.kk.l....', '.....kk.....', '.....kk.....', '.....kk.....', '.....kk.....', '...kkkkkk...', '..kggggggk..'] },
+    { id: 'poster', kind: 'deco', name: 'ポスター', price: 300, from: 1, desc: '「ログは嘘をつかない」の標語入り。',
+      pal: { k: K, w: W, r: '#e43b44', b: '#2858a8', y: '#fee761' },
+      px: ['kkkkkkkkkkkk', 'kbbbbbbbbbbk', 'kbyyyyyyyybk', 'kbyrrrrrrybk', 'kbyrwwwwrybk', 'kbyrwkkwrybk', 'kbyrwwwwrybk', 'kbyrrrrrrybk', 'kbyyyyyyyybk', 'kbwkwkwkwkbk', 'kbbbbbbbbbbk', 'kkkkkkkkkkkk'] },
+    { id: 'bezel', kind: 'deco', name: 'モニター枠の色替え', price: 500, from: 1, desc: 'モニターの枠を黒に塗り替える（購買部で戻せる）。',
+      pal: { k: K, w: W, d: '#2b2f45', g: '#9aa3b8' },
+      px: ['............', '..kkkkkkkk..', '.kggggggggk.', '.kkkkkkkkkk.', '.kddddddddk.', '.kddddddddk.', '.kddwdddddk.', '.kddddddddk.', '.kddddddddk.', '.kddddddddk.', '..kkkkkkkk..', '............'] },
+    { id: 'keyboard', kind: 'deco', name: '高級メカニカルキーボード', price: 300, from: 1, desc: 'SQLの実行音が「カチャッ」になる。',
+      pal: { k: K, w: W, g: '#9aa3b8', d: '#5d6578', y: '#fee761' },
+      px: ['............', '............', '............', 'kkkkkkkkkkkk', 'kwkwkwkwkwkk', 'kkkkkkkkkkkk', 'kwkwkwkwkwyk', 'kkkkkkkkkkkk', 'kwkwwwwwkwkk', 'kkkkkkkkkkkk', 'kddddddddddk', 'kkkkkkkkkkkk'] },
+
+    // ---------------------------------------------------------------- BGMのカセット
+    { id: 'tape_chip', kind: 'tape', song: 'chip', name: 'カセット「8bit ラン」', price: 400, from: 1, desc: '速いチップチューン。手が勝手に動く。',
+      pal: { k: K, w: W, r: '#e43b44', d: '#2b2f45' },
+      px: ['............', 'kkkkkkkkkkkk', 'krrrrrrrrrrk', 'krwwwwwwwwrk', 'krwkkwwkkwrk', 'krwkkwwkkwrk', 'krwwwwwwwwrk', 'krrrrrrrrrrk', 'krrkddddkrrk', 'kkkkkkkkkkkk', '............', '............'] },
+    { id: 'tape_city', kind: 'tape', song: 'city', name: 'カセット「シティポップ・ナイト」', price: 400, from: 1, desc: '夜の首都高を流しているような曲。',
+      pal: { k: K, w: W, p: '#c38fff', d: '#2b2f45' },
+      px: ['............', 'kkkkkkkkkkkk', 'kppppppppppk', 'kpwwwwwwwwpk', 'kpwkkwwkkwpk', 'kpwkkwwkkwpk', 'kpwwwwwwwwpk', 'kppppppppppk', 'kppkddddkppk', 'kkkkkkkkkkkk', '............', '............'] },
+    { id: 'tape_rain', kind: 'tape', song: 'rain', name: 'カセット「雨の残業」', price: 400, from: 1, desc: 'ドラムなし。窓の外は雨。',
+      pal: { k: K, w: W, c: '#5b8fd6', d: '#2b2f45' },
+      px: ['............', 'kkkkkkkkkkkk', 'kcccccccccck', 'kcwwwwwwwwck', 'kcwkkwwkkwck', 'kcwkkwwkkwck', 'kcwwwwwwwwck', 'kcccccccccck', 'kcckddddkcck', 'kkkkkkkkkkkk', '............', '............'] },
+  ];
+  const BY_ID = Object.fromEntries(ITEMS.map((it) => [it.id, it]));
+
+  // 品物のドット絵（SVG）
+  function art(id, scale) {
+    const it = BY_ID[id]; if (!it) return '';
+    const s = scale || 3, w = it.px[0].length, h = it.px.length;
+    let rects = '';
+    it.px.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = it.pal[row[x]]; if (c) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; } });
+    return `<svg width="${w * s}" height="${h * s}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+  }
+
+  root.Shop = { ITEMS, BY_ID, art };
+})(window);
+
+</script>
+<script>
+/*
  * ログは嘘をつかない — サウンド（BGM・効果音）
  * 音声ファイルは使わず、Web Audio API でその場で合成する（ダウンロード不要・ライセンス不要）。
  * ブラウザの自動再生制限があるため、最初のクリック／キー入力で AudioContext を作る。
@@ -2938,11 +3304,30 @@ ORDER BY created_at;`,
     explode(t) { noise({ t, dur: 1.4, gain: 0.45, filter: 'lowpass', freq: 2400, freq2: 120, q: 0.4 }); tone({ t, f: 70, f2: 28, glide: 1.2, dur: 1.3, gain: 0.5, type: 'sine' }); thud(t, 0.8); },
     // ハンマー
     hammer(t) { thud(t, 0.9); tone({ t, f: 880, dur: 0.25, gain: 0.08, type: 'square', lp: 2500 }); noise({ t, dur: 0.3, gain: 0.3, filter: 'lowpass', freq: 1200 }); },
-    // 電話線を抜く／挿す
-    unplug(t) { tone({ t, f: 440, f2: 110, glide: 0.25, dur: 0.3, gain: 0.08, type: 'square', lp: 1500 }); },
-    plug(t) { tone({ t, f: 330, f2: 990, glide: 0.12, dur: 0.15, gain: 0.07, type: 'square', lp: 2500 }); SFX.ring(t + 0.25); },
     // 炎上
     enjo(t) { SFX.shimatsu(t); noise({ t: t + 0.1, dur: 1.2, gain: 0.15, filter: 'bandpass', freq: 800, freq2: 3000, q: 0.5 }); },
+    // メカニカルキーボードの実行音「カチャッ」
+    runMech(t) {
+      noise({ t, dur: 0.03, gain: 0.22, filter: 'bandpass', freq: 3800, q: 2.2 });
+      noise({ t: t + 0.035, dur: 0.04, gain: 0.16, filter: 'bandpass', freq: 1900, q: 1.6 });
+      tone({ t: t + 0.03, f: 2400, dur: 0.02, gain: 0.04, type: 'square', lp: 6000 });
+      tone({ t: t + 0.07, f: 880, f2: 1320, glide: 0.05, dur: 0.07, gain: 0.06, type: 'triangle' });
+    },
+    // レジの「チーン」
+    register(t) {
+      for (let i = 0; i < 3; i++) noise({ t: t + i * 0.05, dur: 0.04, gain: 0.07, filter: 'bandpass', freq: 1500 + i * 300, q: 3 });
+      bell(t + 0.18, 93, 0.12, 1.2); bell(t + 0.18, 100, 0.05, 0.8);
+    },
+    // 給料：コインがじゃらじゃら
+    coins(t) { for (let i = 0; i < 8; i++) { const tt = t + i * 0.06 + Math.random() * 0.02; tone({ t: tt, f: 1900 + Math.random() * 900, dur: 0.07, gain: 0.05, type: 'square', lp: 6000 }); tone({ t: tt, f: 3800 + Math.random() * 600, dur: 0.05, gain: 0.025, type: 'triangle' }); } },
+    // 缶を開ける「プシュッ」＋ごくごく
+    can(t) {
+      noise({ t, dur: 0.035, gain: 0.2, filter: 'bandpass', freq: 2200, q: 2 });
+      noise({ t: t + 0.03, dur: 0.35, gain: 0.16, filter: 'highpass', freq: 3500, freq2: 7000, q: 0.5 });
+      [0.5, 0.75, 1.0].forEach((d) => tone({ t: t + d, f: 180, f2: 120, glide: 0.1, dur: 0.12, gain: 0.12, type: 'sine' }));
+    },
+    // 時計が巻き戻る
+    rewind(t) { for (let i = 0; i < 6; i++) tone({ t: t + i * 0.05, f: 1600 - i * 150, dur: 0.04, gain: 0.04, type: 'square', lp: 4000 }); },
     // 結果発表：ファンファーレ
     final(t) {
       const seq = [[0, 67], [0.12, 72], [0.24, 76], [0.36, 79], [0.6, 84]];
@@ -2960,16 +3345,11 @@ ORDER BY created_at;`,
   }
 
   // ------------------------------------------------------------ BGM
-  // 夜の運用デスクの、落ち着いたローファイ。78BPM、4小節のコード進行を8小節のメロディで回す。
-  const BPM = 78, SPB = 60 / BPM, STEP = SPB / 4, BAR = 16;
-  const CHORDS = [
-    { name: 'Fmaj7', root: 41, notes: [53, 57, 60, 64] },
-    { name: 'G6', root: 43, notes: [55, 59, 62, 64] },
-    { name: 'Em7', root: 40, notes: [52, 55, 59, 62] },
-    { name: 'Am9', root: 45, notes: [60, 64, 67, 71] },
-  ];
-  // [16分の位置, MIDIノート, 長さ(16分)]
-  const MELODY = [
+  // 曲は SONGS に並べる。最初から入っているのは lofi。ほかはゲーム内の購買部で買えるカセット。
+  // 4小節のコード進行を8小節のメロディで回す。メロディは [16分の位置, MIDIノート, 長さ(16分)]
+  const BAR = 16;
+  // 夜の運用デスクの、落ち着いたローファイ（78BPM）
+  const LOFI_MELODY = [
     [[0, 76, 4], [6, 72, 2], [8, 74, 2], [12, 72, 4]],
     [[2, 74, 2], [4, 71, 4], [10, 67, 2], [12, 69, 4]],
     [[0, 67, 2], [3, 71, 3], [8, 74, 4], [14, 76, 2]],
@@ -2979,7 +3359,57 @@ ORDER BY created_at;`,
     [[0, 76, 3], [4, 74, 2], [8, 71, 4], [12, 67, 4]],
     [[0, 69, 8], [12, 64, 2], [14, 67, 2]],
   ];
-  const BASS = [[0, 0, 6], [7, 0, 2], [10, 7, 4], [14, 12, 2]]; // [位置, ルートからの半音, 長さ]
+  const SONGS = {
+    lofi: {
+      bpm: 78, lead: 'pluck', drums: 'lofi', swing: 0.2,
+      chords: [{ root: 41, notes: [53, 57, 60, 64] }, { root: 43, notes: [55, 59, 62, 64] }, { root: 40, notes: [52, 55, 59, 62] }, { root: 45, notes: [60, 64, 67, 71] }],
+      melody: LOFI_MELODY,
+      bass: [[0, 0, 6], [7, 0, 2], [10, 7, 4], [14, 12, 2]], // [位置, ルートからの半音, 長さ]
+    },
+    // カセット「8bit ラン」：速いチップチューン（132BPM）
+    chip: {
+      bpm: 132, lead: 'square', drums: 'chip', swing: 0,
+      chords: [{ root: 48, notes: [60, 64, 67] }, { root: 45, notes: [57, 60, 64] }, { root: 41, notes: [53, 57, 60] }, { root: 43, notes: [55, 59, 62] }],
+      melody: [
+        [[0, 72, 2], [2, 76, 2], [4, 79, 2], [6, 84, 2], [8, 83, 2], [10, 79, 2], [12, 76, 4]],
+        [[0, 72, 2], [2, 76, 2], [4, 81, 4], [8, 79, 2], [10, 76, 2], [12, 72, 4]],
+        [[0, 77, 2], [2, 81, 2], [4, 84, 4], [8, 81, 2], [10, 77, 2], [12, 74, 4]],
+        [[0, 74, 2], [2, 79, 2], [4, 83, 4], [8, 86, 4], [12, 83, 4]],
+        [[0, 84, 4], [4, 83, 2], [6, 81, 2], [8, 79, 4], [12, 76, 4]],
+        [[0, 76, 2], [2, 79, 2], [4, 81, 2], [6, 84, 2], [8, 88, 4], [12, 84, 4]],
+        [[0, 81, 2], [2, 79, 2], [4, 77, 4], [8, 76, 2], [10, 74, 2], [12, 72, 4]],
+        [[0, 74, 4], [4, 79, 4], [8, 83, 2], [10, 86, 2], [12, 91, 4]],
+      ],
+      bass: [[0, 0, 1], [2, 12, 1], [4, 0, 1], [6, 12, 1], [8, 0, 1], [10, 12, 1], [12, 7, 1], [14, 12, 1]],
+    },
+    // カセット「シティポップ・ナイト」：夜の首都高（100BPM）
+    city: {
+      bpm: 100, lead: 'pluck', drums: 'city', swing: 0.1,
+      chords: [{ root: 38, notes: [53, 57, 60, 64] }, { root: 43, notes: [53, 59, 64, 67] }, { root: 36, notes: [55, 59, 62, 64] }, { root: 45, notes: [55, 61, 64, 67] }],
+      melody: [
+        [[0, 77, 2], [2, 76, 2], [4, 74, 2], [6, 72, 4], [12, 69, 2], [14, 72, 2]],
+        [[0, 74, 6], [8, 71, 2], [10, 74, 2], [12, 76, 4]],
+        [[0, 76, 2], [2, 79, 2], [4, 83, 4], [10, 81, 2], [12, 79, 4]],
+        [[0, 76, 4], [6, 73, 2], [8, 76, 2], [10, 79, 2], [12, 81, 4]],
+        [[0, 81, 2], [2, 79, 2], [4, 77, 4], [8, 76, 2], [10, 74, 2], [12, 72, 4]],
+        [[2, 74, 2], [4, 77, 2], [6, 79, 4], [12, 83, 4]],
+        [[0, 84, 4], [4, 83, 2], [6, 79, 2], [8, 76, 4], [12, 79, 4]],
+        [[0, 81, 6], [8, 79, 2], [10, 76, 2], [12, 73, 4]],
+      ],
+      bass: [[0, 0, 3], [3, 12, 1], [6, 0, 2], [8, 7, 2], [11, 10, 2], [14, 12, 2]],
+    },
+    // カセット「雨の残業」：ドラムなし、雨の音だけ（64BPM）
+    rain: {
+      bpm: 64, lead: 'bell', drums: 'rain', swing: 0,
+      chords: [{ root: 45, notes: [57, 60, 64, 67] }, { root: 41, notes: [53, 57, 60, 64] }, { root: 48, notes: [55, 59, 60, 64] }, { root: 43, notes: [55, 60, 62, 67] }],
+      melody: [
+        [[0, 76, 8], [12, 72, 4]], [[4, 77, 4], [8, 76, 4]], [[0, 79, 8], [10, 76, 2], [12, 74, 4]], [[0, 74, 12]],
+        [[0, 81, 4], [4, 79, 4], [8, 76, 8]], [[2, 77, 2], [4, 76, 4], [12, 72, 4]], [[0, 71, 4], [4, 72, 4], [8, 76, 8]], [[0, 74, 8], [8, 72, 8]],
+      ],
+      bass: [[0, 0, 12]],
+    },
+  };
+  let song = SONGS.lofi, STEP = 60 / song.bpm / 4;
 
   let timer = null, nextT = 0, stepAbs = 0;
 
@@ -2991,23 +3421,49 @@ ORDER BY created_at;`,
     }
   }
   function playStep(s, t) {
-    const bar = Math.floor(s / BAR), st = s % BAR;
-    const chord = CHORDS[bar % CHORDS.length];
-    const swing = st % 2 === 1 ? STEP * 0.2 : 0;
+    const S = song, bar = Math.floor(s / BAR), st = s % BAR;
+    const chord = S.chords[bar % S.chords.length];
+    const swing = st % 2 === 1 ? STEP * S.swing : 0;
     const tt = t + swing;
     const drums = bar >= 2; // 最初の2小節はパッドとメロディだけ
     if (st === 0) pad(t, chord, BAR * STEP);
-    for (const [p, semi, len] of BASS) {
-      if (p === st) tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.9, gain: 0.16, type: 'sine', attack: 0.01, bus: bgmBus });
+    for (const [p, semi, len] of S.bass) {
+      if (p !== st) continue;
+      if (S.lead === 'square') tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.8, gain: 0.07, type: 'triangle', attack: 0.004, bus: bgmBus });
+      else tone({ t: tt, f: mtof(chord.root + semi), dur: len * STEP * 0.9, gain: S.lead === 'bell' ? 0.1 : 0.16, type: 'sine', attack: 0.01, bus: bgmBus });
     }
     if (bar >= 1) {
-      for (const [p, m, len] of MELODY[bar % MELODY.length]) if (p === st) pluck(tt, m, len * STEP, 0.07, bgmBus);
+      for (const [p, m, len] of S.melody[bar % S.melody.length]) {
+        if (p !== st) continue;
+        if (S.lead === 'square') tone({ t: tt, f: mtof(m), dur: len * STEP * 0.85, gain: 0.035, type: 'square', attack: 0.003, lp: 3600, bus: bgmBus });
+        else if (S.lead === 'bell') { pluck(tt, m, len * STEP, 0.05, bgmBus); tone({ t: tt, f: mtof(m + 12), dur: 1.2, gain: 0.012, type: 'sine', attack: 0.01, bus: bgmBus }); }
+        else pluck(tt, m, len * STEP, 0.07, bgmBus);
+      }
     }
-    if (drums) {
-      if (st === 0 || st === 10 || (st === 7 && bar % 2 === 1)) tone({ t: tt, f: 110, f2: 42, glide: 0.11, dur: 0.24, gain: 0.32, bus: bgmBus });
-      if (st === 4 || st === 12) { noise({ t: tt, dur: 0.11, gain: 0.07, filter: 'bandpass', freq: 1700, q: 0.9, bus: bgmBus }); tone({ t: tt, f: 190, dur: 0.06, gain: 0.04, type: 'triangle', bus: bgmBus }); }
-      if (st % 2 === 0) noise({ t: tt, dur: st % 4 === 2 ? 0.05 : 0.03, gain: st % 4 === 2 ? 0.035 : 0.02, filter: 'highpass', freq: 7500, q: 0.7, bus: bgmBus });
+    if (S.drums === 'rain') { // 雨音
+      noise({ t, dur: STEP * 1.2, gain: 0.012 + Math.random() * 0.01, filter: 'highpass', freq: 5200, q: 0.4, bus: bgmBus });
+      if (Math.random() < 0.3) noise({ t: t + Math.random() * STEP, dur: 0.02, gain: 0.02, filter: 'bandpass', freq: 3000 + Math.random() * 3000, q: 4, bus: bgmBus });
+      return;
     }
+    if (!drums) return;
+    const kick = (g) => tone({ t: tt, f: 110, f2: 42, glide: 0.11, dur: 0.24, gain: g, bus: bgmBus });
+    const snare = (g) => { noise({ t: tt, dur: 0.11, gain: g, filter: 'bandpass', freq: 1700, q: 0.9, bus: bgmBus }); tone({ t: tt, f: 190, dur: 0.06, gain: g * 0.6, type: 'triangle', bus: bgmBus }); };
+    const hat = (g, d) => noise({ t: tt, dur: d, gain: g, filter: 'highpass', freq: 7500, q: 0.7, bus: bgmBus });
+    if (S.drums === 'chip') {
+      if (st % 8 === 0) tone({ t: tt, f: 160, f2: 50, glide: 0.06, dur: 0.1, gain: 0.25, type: 'square', lp: 900, bus: bgmBus });
+      if (st === 4 || st === 12) noise({ t: tt, dur: 0.08, gain: 0.08, filter: 'highpass', freq: 2500, q: 0.5, bus: bgmBus });
+      if (st % 2 === 0) hat(0.018, 0.02);
+      return;
+    }
+    if (S.drums === 'city') {
+      if (st === 0 || st === 8 || st === 11) kick(0.3);
+      if (st === 4 || st === 12) snare(0.08);
+      hat(st % 2 ? 0.012 : 0.025, st % 4 === 2 ? 0.06 : 0.025);
+      return;
+    }
+    if (st === 0 || st === 10 || (st === 7 && bar % 2 === 1)) kick(0.32);
+    if (st === 4 || st === 12) snare(0.07);
+    if (st % 2 === 0) hat(st % 4 === 2 ? 0.035 : 0.02, st % 4 === 2 ? 0.05 : 0.03);
   }
   function scheduler() {
     if (!ready()) return;
@@ -3015,7 +3471,7 @@ ORDER BY created_at;`,
     while (nextT < ctx.currentTime + 0.15) {
       playStep(stepAbs, nextT);
       nextT += STEP;
-      stepAbs = (stepAbs + 1) % (BAR * MELODY.length * 4) || BAR * MELODY.length; // ループ時はイントロを飛ばし、8小節の頭へ
+      stepAbs = (stepAbs + 1) % (BAR * song.melody.length * 4) || BAR * song.melody.length; // ループ時はイントロを飛ばし、8小節の頭へ
     }
   }
   function startLoop() {
@@ -3036,6 +3492,15 @@ ORDER BY created_at;`,
   // ------------------------------------------------------------ 公開API
   function playBgm() { bgmWanted = true; startLoop(); }
   function setBgm(on) { prefs.bgm = !!on; savePrefs(); if (on) { bgmWanted = true; ensure(); startLoop(); } else stopLoop(); notify(); }
+  // 曲を替える（カセットの入れ替え）。鳴っていれば頭から流し直す
+  function setSong(name) {
+    const next = SONGS[name] || SONGS.lofi;
+    if (next === song) return;
+    const playing = !!timer;
+    if (playing) stopLoop();
+    song = next; STEP = 60 / song.bpm / 4;
+    if (playing) startLoop();
+  }
   function setSfx(on) { prefs.sfx = !!on; savePrefs(); notify(); }
   function onChange(fn) { listeners.push(fn); }
   function notify() { listeners.forEach((fn) => { try { fn(Object.assign({}, prefs)); } catch (e) { /* ignore */ } }); }
@@ -3053,7 +3518,7 @@ ORDER BY created_at;`,
     else ctx.resume().then(() => startLoop(), () => {});
   });
 
-  root.Sound = { sfx, playBgm, setBgm, setSfx, onChange, get prefs() { return Object.assign({}, prefs); } };
+  root.Sound = { sfx, playBgm, setBgm, setSfx, setSong, onChange, get prefs() { return Object.assign({}, prefs); } };
 })(window);
 
 </script>
@@ -3093,6 +3558,11 @@ ORDER BY created_at;`,
       name: '影狼', role: 'U-90417',
       pal: { h: '#3a3f5c', k: '#141625', r: '#e43b44', m: '#2a2d40' },
       px: ['..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh', 'hhkkkkkkkkhh', 'hhkrkkkkrkhh', 'hhkkkkkkkkhh', 'hhkkkmmkkkhh', '.hhkkkkkkhh.', '.hhhkkkkhhh.', '..hhhhhhhh..', '.hhhhhhhhhh.', 'hhhhhhhhhhhh'],
+    },
+    shop: {
+      name: 'おばちゃん', role: '購買部',
+      pal: { h: '#b9b4c4', g: '#7a7488', a: '#f6757a', c: '#5b8fd6' },
+      px: ['....hhhh....', '...hhhhhh...', '..hhhhhhhh..', '.hhsssssshh.', '.hsesssseshg', '.hssssssssh.', '.hssmmmmssh.', '..ssssssss..', '...ssssss...', '..caaaaaac..', '.ccawwwwacc.', 'cccawwwwaccc'],
     },
     bucho: {
       name: '部長', role: '運用部',
@@ -3283,7 +3753,8 @@ ORDER BY created_at;`,
     flame: ['...r....', '..rr..r.', '..rrr.r.', '.rroorr.', '.rooyor.', 'rroyyorr', '.royyor.', '..rrrr..'],
     search: ['.kkkk...', 'kcwcck..', 'kwccck..', 'kcccck..', '.kkkko..', '.....oo.', '......oo', '.......o'],
     ticket: ['........', 'kkkkkkkk', 'kwwwwwwk', 'kwkkkkwk', 'kwwwwwwk', 'kwkkwwwk', 'kkkkkkkk', '........'],
-    phone: ['........', '.kkkkkk.', 'kwwwwwwk', 'kwkkkkwk', '.kwwwwk.', 'kwwwwwwk', 'kwkwkwwk', 'kkkkkkkk'],
+    wallet: ['........', '.kkkkkk.', 'kooooook', 'koyyyyok', 'koyykkkk', 'koyykyyk', 'koyykkkk', 'kkkkkkk.'],
+    shop: ['..kkkk..', '.k....k.', 'kkkkkkkk', 'kooooook', 'kowwwwok', 'kowkkwok', 'kooooook', 'kkkkkkkk'],
   };
   // 大きめのスプライト（ハンマー 16×16、丸めた紙 8×8、ゴミ箱 12×12）
   const SPRITES = {
@@ -3876,6 +4347,15 @@ GROUP BY u.public_id, l.ip_address;`,
   const PRAISE = ['いいね、ログどおりだ。', 'ナイス。根拠もばっちり。', 'さすが。CSも助かるって。', 'その調子。次も頼んだ。', '完璧。もう一人で回せるな。'];
   const ARRIVE = ['新しいチケットです！', '次、お願いします！', 'こちらも急ぎでお願いします！', '問い合わせ、もう1件です！'];
 
+  // ---------------------------------------------------------------- 給料と購買部
+  // 点数（称号・評価に使う）とは別に、1日の終わりに給料（G）が出る。購買部（HUD の［購買部］からいつでも）で道具や消耗品を買える。
+  const PAY = { ontime: 50, allSolved: 50, grade: { S: 150, A: 80, B: 30, C: 0 }, shimatsu: -30, enjo: -50, firstPay: 300 };
+  const SALE_RATE = 0.7;
+  const SHOP = () => window.Shop || { ITEMS: [], BY_ID: {}, art: () => '' };
+  const owns = (id) => !!(state && state.owned && state.owned[id]);
+  const yen = (n) => `${Math.round(n).toLocaleString()} G`;
+  const OBACHAN = ['いらっしゃい。今日もおつかれさん。', 'あら、また来たの。好きなの見ていって。', '残業続きなら、コーヒー買っていきな。', 'その道具、評判いいのよ。', '給料日？ 無駄づかいしちゃだめよ。'];
+
   // ---------------------------------------------------------------- 研修（DAY 1 の前のチュートリアル）
   // 3件の固定の問い合わせを、Kさんのレクチャーに沿って1ステップずつ進める。点数も時計も動かない。
   // 各ステップの done(ev) は、SQLを実行したとき（ev.type = 'run'）やタブを開いたとき（'tab'）に呼ばれ、true なら次へ進む。
@@ -3962,7 +4442,10 @@ GROUP BY u.public_id, l.ip_address;`,
     const order = [0, ...[1, 2, 3].flatMap((t) => shuffle(idx.filter((i) => i !== 0 && CASES[i].tier === t)))];
     return {
       started: false, phase: 'work', trainDone: false, workCurrent: null, current: order[0], shimatsu: 0, order, day: 1, dayLog: {}, specDay: 0, combo: 0, maxCombo: 0, minutes: 0,
-      shimatsuIssued: 0, thrown: 0, penalty: 0, enjo: 0, heavyCount: 0, dropUsed: false, unplugged: false,
+      shimatsuIssued: 0, thrown: 0, penalty: 0, enjo: 0, heavyCount: 0, dropUsed: false,
+      // 給料と購買部
+      wallet: 0, earned: 0, spent: 0, spentBy: {}, pay: {}, inv: {}, owned: {}, buffs: { freeHint: 0, shield: 0, energy: 0 },
+      tape: 'lofi', bezelOn: true, snippets: [], shimatsuAtStart: 0, enjoAtStart: 0, trainPaid: false, shopVisits: 0, shopSeenDay: 0,
       cases: CASES.map(freshCase),
       drafts: {},
     };
@@ -3984,10 +4467,14 @@ GROUP BY u.public_id, l.ip_address;`,
   const firstOpen = () => { const ds = shownCases(); const i = ds.find((k) => state.cases[k].status === 'open'); return i == null ? ds[ds.length - 1] : i; };
   const angerOf = (i) => (state.cases[i].status === 'solved' ? 0 : Math.min(5, (CASES[i].temper || 3) + state.cases[i].wrong + (state.cases[i].enjo ? 2 : 0)));
   function clockText(extra) {
-    const m = DAY_START + state.minutes + (extra || 0);
+    const m = Math.floor(DAY_START + state.minutes + (extra || 0));
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   }
-  function advance(kind) { if (inTraining()) return; state.minutes += (CLOCK[kind] || 0) * (state.unplugged ? 2 : 1); } // 電話線を抜いていると時間は倍速
+  function advance(kind) {
+    if (inTraining()) return;
+    if (kind === 'query' && state.buffs.energy > 0) { state.buffs.energy--; return; } // エナジードリンク
+    state.minutes += (CLOCK[kind] || 0) * (owns('chair') ? 0.9 : 1); // ゲーミングチェアは1割遅い
+  }
   const slotLabel = (i) => (isTrain(i) ? `研修${i - WORK + 1}` : `#${posOf(i) + 1}`);
   function starterFor(i) {
     const c = CASES[i];
@@ -4204,6 +4691,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const ta = $('#sql');
     const selected = ta.selectionStart !== ta.selectionEnd ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : '';
     const src = selected || ta.value;
+    if (debugCommand(src)) return; // :debug でデバッグモード（DBには流さない）
     const stmts = splitStatements(src);
     const out = $('#results');
     out.dataset.used = '1';
@@ -4256,28 +4744,46 @@ GROUP BY u.public_id, l.ip_address;`,
         break;
       } finally { if (st) st.free(); }
     }
-    out.innerHTML = blocks.join('');
+    out.innerHTML = owns('submon') && prevResults ? `<div class="rsplit"><div class="rcur">${blocks.join('')}</div><div class="rprev"><p class="rprev-label">サブモニター：ひとつ前の結果</p>${prevResults}</div></div>` : blocks.join('');
+    prevResults = blocks.join('');
     out.scrollTop = 0;
     out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
-    snd('run');
+    snd(owns('keyboard') ? 'runMech' : 'run');
     if (heavy) { cs.heavy = true; heavyQuery(totalRows, false); } else snd(ok ? 'ok' : 'error');
     renderClock();
     save();
     lessonEvent({ type: 'run', sql: src, results });
   }
+  let prevResults = '';
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
   function renderTable(k, n, sql, cols, rows, count, ms, cut) {
-    const head = `<tr><th class="rn">#</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr>`;
-    const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v) => {
+    const sortable = owns('sort');
+    const head = `<tr><th class="rn">#</th>${cols.map((c, k) => `<th${sortable ? ` data-sort="${k + 1}" title="クリックで並べ替え"` : ''}>${esc(c)}</th>`).join('')}</tr>`;
+    // IDたどりルーペ：参照先の分かる列（FROM のテーブル自身を指す列は除く）
+    const fromT = ((stripComments(sql).match(/\bFROM\s+([A-Za-z_]+)/i) || [])[1] || '').toLowerCase();
+    const drills = owns('drill') ? cols.map((c) => { const t = DRILL[String(c).toLowerCase()]; return t && t !== fromT ? t : null; }) : [];
+    // 蛍光ペン：問い合わせユーザーの user_id と、受付日の日時
+    const cs = state && CASES[state.current], selfUid = cs ? uidOf(cs.user) : null, mk = owns('marker') && cs ? { uid: uidOf(cs.user), pub: cs.user, day: String(cs.received).slice(0, 10) } : null;
+    const mkCls = (c, v) => {
+      if (!mk) return '';
+      if (/user_id$/i.test(c) && mk.uid != null && v === mk.uid) return ' mk-user';
+      if (c === 'public_id' && v === mk.pub) return ' mk-user';
+      if (typeof v === 'string' && v.startsWith(mk.day) && /^\d{4}-\d{2}-\d{2} \d{2}:/.test(v)) return ' mk-date';
+      return '';
+    };
+    const body = rows.map((r, i) => `<tr><td class="rn">${i + 1}</td>${r.map((v, k) => {
       if (v === null || v === undefined) return '<td class="null">NULL</td>';
-      if (typeof v === 'number') return `<td class="num">${esc(v)}</td>`;
       if (v instanceof Uint8Array) return '<td class="null">BLOB</td>';
-      return `<td title="${esc(v)}">${esc(v)}</td>`;
+      const t = drills[k] && !(drills[k] === 'usr_users' && v === selfUid) ? drills[k] : null, m = mkCls(cols[k], v); // 本人の user_id はたどらない
+      const dr = t ? `<button type="button" class="drill" data-drill="${t}|${drillKey(t, cols[k])}|${esc(sqlLit(v))}" title="${t} で引く" aria-label="${t} で引く"></button>` : '';
+      if (typeof v === 'number') return `<td class="num${m}${t ? ' has-drill' : ''}">${esc(v)}${dr}</td>`;
+      return `<td class="${m.trim()}${t ? ' has-drill' : ''}" title="${esc(v)}">${esc(v)}${dr}</td>`;
     }).join('')}</tr>`).join('');
     const more = count > rows.length ? `<span>（先頭 ${rows.length.toLocaleString()} 行を表示）</span>` : '';
     const label = n > 1 ? `<b>#${k + 1}</b>` : '';
-    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}${cut ? '+' : ''}</b> 行${cut ? '（数えきれないので打ち切り）' : ''}</span>${more}<span>${ms.toFixed(1)} ms</span><span class="rsql">${esc(oneLine(sql))}</span></div>
-      <div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
+    const legend = mk && rows.length ? '<span class="mk-legend"><i class="mk-user">本人</i><i class="mk-date">受付日</i></span>' : '';
+    return `<div class="rblock"><div class="rmeta">${label}<span><b>${count.toLocaleString()}${cut ? '+' : ''}</b> 行${cut ? '（数えきれないので打ち切り）' : ''}</span>${more}<span>${ms.toFixed(1)} ms</span>${legend}<span class="rsql">${esc(oneLine(sql))}</span></div>
+      ${sortable && rows.length > 1 ? '<input class="rfilter" type="search" placeholder="この結果を絞り込む（文字を含む行だけ）" aria-label="結果を絞り込む">' : ''}<div class="twrap"><table class="grid"><thead>${head}</thead><tbody>${body || ''}</tbody></table></div></div>`;
   }
   function renderResultsEmpty() {
     $('#results').innerHTML = `<div class="results-empty"><b>READY<span class="blink-cursor"></span></b>左の問い合わせ票を読み、SQLでログを調べましょう。右のテーブル定義のテーブル名をクリックすると、SELECT文がエディタに入ります。</div>`;
@@ -4312,6 +4818,28 @@ GROUP BY u.public_id, l.ip_address;`,
     syncScroll();
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => { state.drafts[state.current] = ta.value; save(); }, 300);
+    updateComplete();
+  }
+  // 列名の補完（道具）：カーソル直前の単語に合うテーブル名・列名を出す。Tab かクリックで確定
+  let completeWords = null, completeList = [];
+  function updateComplete() {
+    const box = $('#complete'); if (!box) return;
+    const ta = $('#sql');
+    if (!owns('complete') || document.activeElement !== ta || ta.selectionStart !== ta.selectionEnd) { box.hidden = true; completeList = []; return; }
+    const m = ta.value.slice(0, ta.selectionStart).match(/[A-Za-z_][A-Za-z0-9_]*$/);
+    if (!completeWords) completeWords = [...new Set(TABLE_DOCS.flatMap((t) => [t.name, ...t.cols.map((c) => c[0])]))].sort();
+    const w = m ? m[0] : '';
+    completeList = w.length >= 2 ? completeWords.filter((x) => x.toLowerCase().startsWith(w.toLowerCase()) && x.toLowerCase() !== w.toLowerCase()).slice(0, 6) : [];
+    box.hidden = !completeList.length;
+    box.innerHTML = completeList.map((x, k) => `<button type="button" data-complete="${esc(x)}" class="${k === 0 ? 'is-first' : ''}">${esc(x)}</button>`).join('') + '<small>Tab で確定</small>';
+  }
+  function acceptComplete(word) {
+    const ta = $('#sql'), pos = ta.selectionStart;
+    const before = ta.value.slice(0, pos).replace(/[A-Za-z_][A-Za-z0-9_]*$/, '');
+    ta.value = before + word + ta.value.slice(pos);
+    const at = before.length + word.length;
+    ta.focus(); ta.setSelectionRange(at, at);
+    syncEditor();
   }
   function syncScroll() { const ta = $('#sql'), pre = $('.editor pre'); pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; }
   function setEditor(text, focus) {
@@ -4342,12 +4870,14 @@ GROUP BY u.public_id, l.ip_address;`,
     else if (shownScore !== total) FXo().countUp(scoreEl, shownScore, total, 800);
     shownScore = total;
     $('#shimatsu').textContent = state.shimatsu;
+    $('#wallet').textContent = yen(state.wallet);
+    const shopBtn = $('#btn-shop'); if (shopBtn) { shopBtn.hidden = !window.Shop; $('#shop-new').hidden = !newStock(); }
+    renderItems(); renderDeco(); renderDebug();
     $('#stat-shimatsu').classList.toggle('warn', state.shimatsu > 0);
     const comboEl = $('#stat-combo');
     comboEl.hidden = state.combo < 2;
     $('#combo').textContent = `x${state.combo}`;
     renderClock();
-    const phone = $('#btn-phone'); if (phone) phone.setAttribute('aria-pressed', String(!state.unplugged));
     const q = $('#queue');
     const ids = shownCases(), unlockedPos = ids.indexOf(firstOpen());
     // 上のバーには、その日の5件（研修中は研修の3件）だけを出す
@@ -4384,13 +4914,15 @@ GROUP BY u.public_id, l.ip_address;`,
       ${angerHtml(state.current)}
       <dl class="ticket-grid">
         <dt>受付日時</dt><dd>2026/${esc(jstLabel(c.received + ':00').replace(/:00$/, ''))} JST</dd>
-        <dt>公開ID</dt><dd>${esc(c.user)}</dd>
+        <dt>公開ID</dt><dd>${esc(c.user)}${owns('idcard') && uidOf(c.user) != null ? `<button type="button" class="uid-chip" data-uid="${uidOf(c.user)}" title="CS管理画面で引いた内部ID。クリックでエディタに入る">user_id ${uidOf(c.user)}</button>` : ''}</dd>
         <dt>ワールド</dt><dd>${esc(c.world)}</dd>
         <dt>種別</dt><dd>${esc(c.category)}</dd>
       </dl>
       <p class="ticket-body">${esc(c.body)}</p>
       <p class="ticket-note"><b>CS担当メモ：</b>${esc(c.note)}</p>
+      ${owns('timeline') ? '<button type="button" class="btn btn-timeline" id="btn-timeline">行動タイムラインを出す<small>このユーザーの log_ を時系列に</small></button>' : ''}
       ${st.status === 'solved' ? stampHtml(st.via === 'spec' ? '仕様' : st.via === 'update' ? '裏技' : '解決', st.via ? `is-${st.via}` : '') : st.status === 'gaveup' ? stampHtml('解説', 'is-gaveup') : ''}`;
+    applyRadar();
   }
   function stampHtml(text, cls) {
     return `<div class="stamp ${cls}"><span><span class="s-main">${text}</span><span class="s-sub">2026.11.13</span></span></div>`;
@@ -4415,7 +4947,7 @@ GROUP BY u.public_id, l.ip_address;`,
           <button class="btn btn-primary" type="submit">ユーザーに回答する</button>
         </div>
         <div class="btn-row">
-          <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（${tr ? '研修中は減点なし' : `−${HINT}`}）</button>
+          <button class="btn" type="button" id="btn-hint" ${st.hints >= c.hints.length ? 'disabled' : ''}>ヒントを見る（${tr ? '研修中は減点なし' : state.buffs.freeHint > 0 ? 'おごり済み：減点なし' : `−${HINT}`}）</button>
           <button class="btn btn-ghost" type="button" id="btn-giveup">先輩に聞く</button>
         </div>
         ${tr ? '' : `<button class="btn btn-spec" type="button" id="btn-spec" ${st.specUsed || state.specDay === state.day ? 'disabled' : ''}>${st.specUsed ? '「仕様です」は使用済み（炎上中）' : state.specDay === state.day ? '「仕様です」は1日1回まで（今日は使用済み）' : '調べずに「仕様です」で即答する（1日1回）'}</button>`}
@@ -4553,16 +5085,323 @@ GROUP BY u.public_id, l.ip_address;`,
         <ul class="cols">${t.cols.map(([n, d]) => `<li><button type="button" data-col="${n}">${n}</button><span class="cmt">${d}</span></li>`).join('')}</ul>
         <button class="tbl-insert" type="button" data-table="${t.name}">SELECT文をエディタに入れる</button>
       </details>`).join('');
+    applyRadar();
   }
   function renderNotes() {
-    $('#tab-notes').innerHTML = `<div class="notes">${NOTES}</div>`;
+    const recipes = owns('recipes') ? `<section class="recipes"><p class="recipes-head"><b>調査の定石</b><small>クリックで、いまのチケットのユーザー入りのSQLがエディタに入ります</small></p>
+      <ul>${RECIPES.map(([label, kw], k) => `<li><button type="button" data-recipe="${k}"><b>${esc(label)}</b><code>${esc(kw)}</code></button></li>`).join('')}</ul></section>` : '';
+    $('#tab-notes').innerHTML = `${recipes}<div class="notes">${NOTES}</div>`;
   }
 
   function renderAll() {
-    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderNotes(); renderLesson();
+    renderHud(); renderTicket(); renderAnswer(); renderSchema(); renderNotes(); renderLesson(); renderTools();
+    applyLooks();
     const draft = state.drafts[state.current];
     setEditor(draft != null ? draft : starterFor(state.current));
     if (!$('#results').dataset.used) renderResultsEmpty();
+  }
+
+  // ---------------------------------------------------------------- 給料
+  function paySalary(d) {
+    if (!window.Shop) return null;
+    if (state.pay[d]) return state.pay[d];
+    const ids = dayCases(d), score = dayScore(d), [, grade] = gradeOf(score);
+    const sh = Math.max(0, state.shimatsu - (state.shimatsuAtStart || 0));
+    const en = Math.max(0, (state.enjo || 0) - (state.enjoAtStart || 0));
+    const lines = [
+      ['基本給（本日の得点）', score],
+      ['定時退社手当', DAY_START + state.minutes <= DAY_END ? PAY.ontime : 0],
+      ['皆勤賞（5件すべて解決）', ids.every((i) => state.cases[i].status === 'solved') ? PAY.allSolved : 0],
+      [`評価手当（${grade}）`, PAY.grade[grade]],
+      [`減給（始末書 ${sh}枚）`, sh * PAY.shimatsu],
+      [`減給（炎上 ${en}回）`, en * PAY.enjo],
+    ].filter(([k, v], n) => n === 0 || v !== 0);
+    const total = Math.max(0, lines.reduce((a, [, v]) => a + v, 0));
+    state.pay[d] = { lines, total };
+    state.wallet += total; state.earned += total;
+    save(); renderHud();
+    setTimeout(() => snd('coins'), 900);
+    return state.pay[d];
+  }
+  function payslipHtml(d, pay) {
+    if (!pay) return '';
+    return `<div class="payslip"><p class="payslip-title">給与明細　DAY ${d}</p>
+      <dl>${pay.lines.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="${v < 0 ? 'minus' : ''}">${v < 0 ? '−' : '+'}${Math.abs(v).toLocaleString()} G</dd>`).join('')}</dl>
+      <p class="payslip-total"><span>本日の支給額</span><b>${yen(pay.total)}</b></p>
+      <p class="payslip-wallet">所持金 ${yen(state.wallet)}</p></div>`;
+  }
+  // 最終結果の呼び名（お金の使い方）
+  function spenderName() {
+    const by = state.spentBy || {};
+    if (state.earned > 0 && state.spent === 0) return '倹約家';
+    if ((by.deco || 0) + (by.tape || 0) > (by.tool || 0) + (by.consumable || 0) && state.spent > 0) return 'インテリア担当';
+    if (state.earned > 0 && state.spent >= state.earned * 0.8) return '散財王';
+    return '';
+  }
+
+  // ---------------------------------------------------------------- 購買部
+  // HUD の［購買部］から業務中いつでも、1日の結果画面の「購買部に寄る」からも入れる。どちらも同じ品ぞろえ・同じ値段。
+  const priceOf = (it) => {
+    const sale = saleOf();
+    return sale && sale.id === it.id ? Math.round(it.price * SALE_RATE / 10) * 10 : it.price;
+  };
+  // 本日の特価：日ごとに1品（まだ持っていない品から、日付で決める）
+  function saleOf() {
+    const list = SHOP().ITEMS.filter((it) => it.from <= state.day && (it.kind === 'consumable' || !owns(it.id)));
+    return list.length ? list[(state.day * 7 + 3) % list.length] : null;
+  }
+  // 前に購買部をのぞいたあとに入荷した品があるか（HUD の［購買部］に NEW を出す）
+  const newStock = () => !inTraining() && SHOP().ITEMS.some((it) => it.from > (state.shopSeenDay || 0) && it.from <= state.day);
+  const SHOP_TABS = [['tool', '調査ツール', 'ずっと使える'], ['consumable', '消耗品', '各3個まで'], ['deco', '机の飾り', '見た目だけ'], ['tape', 'カセット', 'BGM']];
+  let shopMode = null, shopLine = '', shopTab = 'tool', fresh = [];
+  function showShop(mode, keepLine) {
+    shopMode = mode; // 'desk'（業務中に HUD から）か 'dayend'（1日の結果画面から）
+    const f = FXo();
+    if (!keepLine) {
+      // 前にのぞいたあとに入荷した品（DAY 1 からある品は除く）。この来店のあいだは「新入荷」の札を出す
+      fresh = SHOP().ITEMS.filter((it) => it.from > Math.max(1, state.shopSeenDay || 0) && it.from <= state.day).map((it) => it.id);
+      state.shopVisits = (state.shopVisits || 0) + 1;
+      const arrived = fresh.length ? SHOP().BY_ID[fresh[0]] : null;
+      shopLine = state.shopVisits === 1 ? 'あら、新人さん？ 購買部へようこそ。お給料で好きなもの買っていきな。調べものが楽になる道具もそろってるわよ。'
+        : arrived ? `今日は『${arrived.name}』が入ったわよ。仕事がはかどるって評判なの。` : OBACHAN[state.day % OBACHAN.length];
+      if (arrived) shopTab = arrived.kind === 'consumable' ? 'consumable' : 'tool';
+      state.shopSeenDay = state.day; save(); renderHud();
+    }
+    const sale = saleOf();
+    const card = (it) => {
+      const price = priceOf(it), have = it.kind === 'consumable' ? (state.inv[it.id] || 0) : owns(it.id) ? 1 : 0;
+      const locked = it.from > state.day && !have, full = it.kind === 'consumable' ? have >= (it.max || 3) : have > 0;
+      const poor = state.wallet < price;
+      let action;
+      if (locked) action = `<span class="shop-lock">DAY ${it.from} から入荷</span>`;
+      else if (it.kind === 'tape' && have) action = `<button class="btn" type="button" data-tape="${it.song}" ${state.tape === it.song ? 'disabled' : ''}>${state.tape === it.song ? '再生中' : '再生する'}</button>`;
+      else if (it.id === 'bezel' && have) action = `<button class="btn" type="button" data-toggle-bezel="1">${state.bezelOn ? '元の色に戻す' : '黒に塗る'}</button>`;
+      else if (full) action = `<span class="shop-owned">${it.kind === 'consumable' ? 'これ以上持てない' : '購入済み'}</span>`;
+      else action = `<button class="btn btn-primary" type="button" data-buy="${it.id}" ${poor ? 'disabled' : ''}>${poor ? 'お金が足りない' : '買う'}</button>`;
+      const isSale = sale && sale.id === it.id, isNew = fresh.includes(it.id);
+      return `<li class="shop-item${locked ? ' is-locked' : ''}${isSale ? ' is-sale' : ''}${have && it.kind !== 'consumable' ? ' is-owned' : ''}">
+        <span class="shop-art">${SHOP().art(it.id, 4)}</span>
+        <div class="shop-info"><b>${esc(it.name)}${isNew ? '<em class="new-tag">新入荷</em>' : ''}${isSale ? '<em class="sale-tag">本日の特価</em>' : ''}</b><small>${esc(it.desc)}</small>
+          ${it.where ? `<span class="shop-where">使う場所：${esc(it.where)}</span>` : ''}
+          <span class="shop-price">${isSale ? `<s>${yen(it.price)}</s>` : ''}${yen(price)}${it.kind === 'consumable' ? `<i>持っている数 ${have}</i>` : ''}</span></div>
+        <div class="shop-act">${action}</div></li>`;
+    };
+    const tapeDefault = `<li class="shop-item"><span class="shop-art">${SHOP().art('tape_rain', 4).replace(/#5b8fd6/g, '#8a7f60')}</span><div class="shop-info"><b>標準のBGM（ローファイ）</b><small>最初から入っているカセット。</small></div><div class="shop-act"><button class="btn" type="button" data-tape="lofi" ${state.tape === 'lofi' ? 'disabled' : ''}>${state.tape === 'lofi' ? '再生中' : '再生する'}</button></div></li>`;
+    const items = (kind) => SHOP().ITEMS.filter((it) => it.kind === kind);
+    const canBuy = (kind) => items(kind).filter((it) => it.from <= state.day && !(it.kind === 'consumable' ? (state.inv[it.id] || 0) >= (it.max || 3) : owns(it.id))).length;
+    const tabs = SHOP_TABS.map(([kind, label, sub]) => `<button type="button" role="tab" class="shop-tab${shopTab === kind ? ' is-on' : ''}" data-shop-tab="${kind}" aria-selected="${shopTab === kind}">${label}<small>${sub}</small>${canBuy(kind) ? `<i>${canBuy(kind)}</i>` : ''}</button>`).join('');
+    const scrollTop = !$('#overlay').hidden && $('#modal .shop') ? $('#overlay').scrollTop : 0;
+    const dayend = mode === 'dayend';
+    openModal(`
+      <div class="shop">
+        <div class="shop-head">
+          ${f ? `<span class="shop-face">${f.avatar('shop')}</span>` : ''}
+          <div><p class="eyebrow">DAY ${state.day}　購買部${dayend ? '' : '（業務中）'}</p><p class="shop-line">おばちゃん「${esc(shopLine)}」</p></div>
+          <p class="shop-wallet">${f ? f.icon('wallet', 3) : ''}<b>${yen(state.wallet)}</b></p>
+        </div>
+        <div class="shop-tabs" role="tablist" aria-label="売り場">${tabs}</div>
+        ${shopTab === 'tool' ? '<p class="shop-note">調査ツールは答えを教えてはくれないけど、ログを調べる手間をぐっと減らしてくれる。買ったその場から使える。</p>' : ''}
+        <ul class="shop-list">${shopTab === 'tape' ? tapeDefault : ''}${items(shopTab).map(card).join('')}</ul>
+        <div class="btn-row">
+          ${dayend ? `<button class="btn btn-primary" type="button" data-act="${state.day >= DAYS() && dayDone() ? 'show-final' : 'next-day'}">${state.day >= DAYS() && dayDone() ? '最終結果を見る' : `翌日へ（DAY ${state.day + 1}）`}</button><button class="btn" type="button" data-act="back-dayend">本日の結果に戻る</button>`
+            : '<button class="btn btn-primary" type="button" data-act="close-shop">仕事に戻る</button>'}
+        </div>
+      </div>`, 'shop');
+    if (scrollTop) $('#overlay').scrollTop = scrollTop;
+  }
+  function buy(id) {
+    const it = SHOP().BY_ID[id]; if (!it) return;
+    const price = priceOf(it);
+    if (state.wallet < price || it.from > state.day) return;
+    if (it.kind === 'consumable') { if ((state.inv[id] || 0) >= (it.max || 3)) return; state.inv[id] = (state.inv[id] || 0) + 1; }
+    else { if (owns(id)) return; state.owned[id] = true; }
+    state.wallet -= price; state.spent += price;
+    state.spentBy[it.kind] = (state.spentBy[it.kind] || 0) + price;
+    if (it.kind === 'tape') { state.tape = it.song; }
+    if (id === 'bezel') state.bezelOn = true;
+    save();
+    snd('register');
+    shopLine = it.kind === 'tool' ? `まいど。『${it.name}』は${it.where ? `「${it.where}」に置いといたから、` : ''}さっそく使ってみな。` : it.kind === 'tape' ? 'いい曲よ。さっそくかけてあげる。' : it.kind === 'deco' ? 'あら、机がにぎやかになるわね。' : `まいど。『${it.name}』、ここぞってときに使いな。モニターの上のアイテム欄に入れといたわよ。`;
+    applyLooks(); renderHud(); renderTools();
+    if (it.kind === 'tool') {
+      completeWords = null;
+      if (id === 'memo') switchTab('memo', true); if (id === 'erd') switchTab('erd', true); if (id === 'recipes') switchTab('notes', true);
+      if (id === 'idcard' || id === 'timeline') renderTicket();
+    }
+    showShop(shopMode, true);
+    const f = FXo(); if (f) { const b = $('#modal .shop-wallet'); if (b) f.floatText(b, `−${price.toLocaleString()} G`, 'minus'); }
+  }
+
+  // ---------------------------------------------------------------- 消耗品を使う
+  function renderItems() {
+    const el = $('#items'); if (!el) return;
+    if (!window.Shop || inTraining()) { el.innerHTML = ''; return; }
+    const b = state.buffs;
+    const buffs = [b.freeHint ? `<span class="buff" title="次のヒントは減点なし">おごり×${b.freeHint}</span>` : '', b.shield ? `<span class="buff" title="次の差し戻しは減点なし">胃薬×${b.shield}</span>` : '', b.energy ? `<span class="buff" title="クエリを実行しても時計が進まない">元気 残り${b.energy}回</span>` : ''].join('');
+    el.innerHTML = SHOP().ITEMS.filter((it) => it.kind === 'consumable' && state.inv[it.id] > 0)
+      .map((it) => `<button class="item-btn" type="button" data-use="${it.id}" title="${esc(it.name)}：${esc(it.desc)}（クリックで使う）">${SHOP().art(it.id, 2)}<b>${state.inv[it.id]}</b></button>`).join('') + buffs;
+  }
+  function useItem(id) {
+    if (!state.inv[id] || inTraining()) return;
+    const f = FXo(), it = SHOP().BY_ID[id];
+    if (id === 'gift' && state.shimatsu <= 0) { snd('error'); say('bucho', '始末書もないのに菓子折りを持ってこられてもな……。気持ちだけもらっておく。', { interrupt: true }); return; }
+    if (id === 'coffee' && state.minutes <= 0) { snd('error'); say('senpai', 'まだ朝の10時だぞ。コーヒーは後にとっておけ。', { interrupt: true }); return; }
+    const c = CASES[state.current], st = state.cases[state.current];
+    if ((id === 'review' || id === 'radar') && st.status !== 'open') { snd('error'); say('senpai', 'そのチケットはもう片付いてるぞ。次のチケットで使おう。', { interrupt: true }); return; }
+    if (id === 'radar' && st.radar) { snd('error'); say('senpai', 'メモならもう渡したぞ。テーブル定義の★のところだ。', { interrupt: true }); switchTab('schema', true); return; }
+    if (id === 'review') {
+      const form = $('#answer-form'), choice = form && (form.querySelector('input[name="choice"]:checked') || {}).value, ev = $('#evidence') ? $('#evidence').value.trim() : '';
+      if (!choice || !ev) { snd('error'); say('cs', 'ダブルチェックするので、先に調査結論を選んで、根拠も書いておいてください！', { interrupt: true }); return; }
+    }
+    state.inv[id]--;
+    if (id === 'coffee') {
+      state.minutes = Math.max(0, state.minutes - 30);
+      snd('can'); setTimeout(() => snd('rewind'), 1100);
+      if (f) f.floatText($('#clock'), '−30分', 'plus');
+      say('senpai', 'コーヒーで一息ついたら、なんだか時間が戻った気がするな。', { interrupt: true });
+    } else if (id === 'treat') {
+      state.buffs.freeHint++; snd('pop');
+      say('senpai', 'お、おにぎり？ ありがとう。次のヒントはタダでいいぞ。', { interrupt: true });
+    } else if (id === 'medicine') {
+      state.buffs.shield++; snd('pop');
+      say('senpai', '胃薬か……。次に差し戻されても、減点なしで済むようにしておく。', { interrupt: true });
+    } else if (id === 'gift') {
+      state.shimatsu--; snd('pop');
+      if (f) f.floatText($('#shimatsu'), '−1枚', 'plus');
+      say('bucho', '……ほう、老舗の羊羹か。今回の始末書は、なかったことにしておこう。', { interrupt: true });
+    } else if (id === 'energy') {
+      state.buffs.energy += 10; snd('can');
+      say('senpai', 'エナジードリンク一気飲みか。しばらくは何本SQLを書いても時間が進まないぞ。', { interrupt: true });
+    } else if (id === 'radar') {
+      st.radar = true; snd('hint');
+      const ts = radarTables(c);
+      switchTab('schema', true); applyRadar();
+      say('senpai', `このチケットなら、見るのは ${ts.map((t) => `<code>${t}</code>`).join('、')} だな。テーブル定義に★を付けておいた。`, { interrupt: true });
+    } else if (id === 'review') {
+      const form = $('#answer-form'), choice = (form.querySelector('input[name="choice"]:checked') || {}).value, ev = $('#evidence').value;
+      st.choice = choice; st.evidence = ev;
+      const okC = choice === c.answer, okE = !!DB && checkEvidence(c, ev);
+      snd(okC && okE ? 'ok' : 'pop');
+      save(); renderHud();
+      const fb = $('#feedback');
+      fb.hidden = false; fb.className = `feedback is-review${okC && okE ? ' is-ok' : ''}`;
+      fb.innerHTML = `<b>ダブルチェックの結果</b>（減点なし）　結論 <span class="${okC ? 'ok' : 'ng'}">${okC ? '○' : '×'}</span>　根拠 <span class="${okE ? 'ok' : 'ng'}">${okE ? '○' : '×'}</span>`;
+      fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      say('cs', okC && okE ? 'ダブルチェックしました。結論も根拠もばっちりです、送っちゃいましょう！' : !okC && !okE ? 'うーん……結論も根拠も、ログと合ってない気がします。' : !okC ? '根拠の値は合ってます。でも結論はそれじゃない気がします。' : '結論は同じ意見です。でも根拠に書いた値が違うかも。', { interrupt: true });
+      toast(`${it.name}を使いました`, '結果は回答用紙の下に出ています。');
+      return;
+    }
+    save(); renderHud(); renderAnswer();
+    toast(`${it.name}を使いました`, it.desc);
+  }
+
+  // ---------------------------------------------------------------- 道具（付箋メモ・関係図）と机の飾り
+  const TABS = ['schema', 'notes', 'memo', 'erd'];
+  function switchTab(name, quiet) {
+    TABS.forEach((t) => { const b = $(`#tab-btn-${t}`), p = $(`#tab-${t}`); if (!b || !p) return; b.setAttribute('aria-selected', String(t === name)); p.hidden = t !== name; });
+    if (!quiet) lessonEvent({ type: 'tab', tab: name });
+  }
+  function renderTools() {
+    const memoBtn = $('#tab-btn-memo'), erdBtn = $('#tab-btn-erd');
+    if (memoBtn) memoBtn.hidden = !owns('memo');
+    if (erdBtn) erdBtn.hidden = !owns('erd');
+    $('#tab-btn-schema').textContent = owns('memo') && owns('erd') ? 'テーブル' : 'テーブル定義'; // タブが4つになると狭いので短くする
+    if (owns('memo')) renderMemo();
+    if (owns('erd')) renderErd();
+    renderNotes();
+    if ((!owns('memo') && memoBtn && memoBtn.getAttribute('aria-selected') === 'true') || (!owns('erd') && erdBtn && erdBtn.getAttribute('aria-selected') === 'true')) switchTab('schema', true);
+  }
+  function renderMemo() {
+    const list = state.snippets || [];
+    $('#tab-memo').innerHTML = `<div class="memo">
+      <p class="memo-desc">よく使うSQLを5本まで貼っておけます。クリックでエディタに入ります。</p>
+      <button class="btn" type="button" id="btn-memo-add" ${list.length >= 5 ? 'disabled' : ''}>${list.length >= 5 ? '付箋はいっぱい（5本まで）' : '今のエディタのSQLを付箋に貼る'}</button>
+      <ul class="memo-list">${list.map((sq, k) => `<li class="memo-note n${k % 3}"><button type="button" class="memo-use" data-memo="${k}" title="エディタに入れる"><pre>${esc(sq)}</pre></button><button type="button" class="memo-del" data-memo-del="${k}" title="はがす" aria-label="はがす">×</button></li>`).join('') || '<li class="memo-empty">まだ何も貼っていません。</li>'}</ul>
+    </div>`;
+  }
+  // 関係図：列名と「→ テーブル」の説明から、どのテーブルがどこを参照しているかをまとめる
+  const KEYMAP = { user_id: 'usr_users', target_user_id: 'usr_users', character_id: 'usr_characters', world_id: 'mst_worlds', to_world: 'mst_worlds', item_id: 'mst_items', equip_id: 'mst_equips', stage_id: 'mst_stages', event_id: 'mst_events', gacha_id: 'mst_gachas', mission_id: 'mst_missions', product_id: 'mst_products' };
+  function renderErd() {
+    const names = new Set(TABLE_DOCS.map((t) => t.name));
+    const hubs = {};
+    TABLE_DOCS.forEach((t) => t.cols.forEach(([col, desc]) => {
+      const m = String(desc).match(/→\s*([a-z_]+)/);
+      const target = m && names.has(m[1]) ? m[1] : KEYMAP[col];
+      if (!target || target === t.name || !names.has(target)) return;
+      (hubs[target] = hubs[target] || []).push(`${t.name}.${col}`);
+    }));
+    const keyOf = (tbl) => (TABLE_DOCS.find((t) => t.name === tbl) || { cols: [['?']] }).cols[0][0];
+    const order = Object.keys(hubs).sort((a, b) => hubs[b].length - hubs[a].length);
+    $('#tab-erd').innerHTML = `<div class="erd"><p class="memo-desc">矢印の先が参照先のテーブル。JOIN の ON / USING に使う列です。</p>${order.map((h) => `<div class="erd-hub"><p class="erd-head"><b>${h}</b><code>${esc(keyOf(h))}</code></p><ul>${hubs[h].map((r) => `<li><span>←</span>${esc(r)}</li>`).join('')}</ul></div>`).join('')}</div>`;
+  }
+  // Kさんの調査メモ（消耗品）：模範SQLに出てくるテーブルに★
+  const radarTables = (c) => TABLE_DOCS.map((t) => t.name).filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(c.model || ''));
+  function applyRadar() {
+    const i = state && state.current, on = i != null && state.cases[i] && state.cases[i].radar && state.cases[i].status === 'open';
+    const ts = on ? radarTables(CASES[i]) : [];
+    document.querySelectorAll('#tab-schema details.tbl').forEach((d) => {
+      const hit = ts.includes(d.querySelector('.tbl-name').textContent);
+      d.classList.toggle('is-radar', hit);
+      if (hit) d.open = true;
+    });
+  }
+  // CS管理画面の権限（道具）：公開ID → user_id
+  const uidCache = {};
+  function uidOf(pub) {
+    if (!DB || !pub) return null;
+    if (uidCache[pub] !== undefined) return uidCache[pub];
+    let v = null;
+    try { const st = DB.prepare('SELECT user_id FROM usr_users WHERE public_id = ?'); st.bind([pub]); if (st.step()) v = st.get()[0]; st.free(); } catch (e) { /* ignore */ }
+    return (uidCache[pub] = v);
+  }
+  // SQLに埋める user_id（分からなければ公開IDからのサブクエリ）
+  const uidExpr = (c) => { const u = uidOf(c.user); return u != null ? String(u) : sub(c.user); };
+  const recvDate = (c, days) => { const d = shiftDt(`${c.received}:00`, (days || 0) * 1440); return d ? d.slice(0, 10) : '2026-11-13'; };
+  // 行動タイムライン（道具）：そのユーザーの log_ テーブルをまとめて時系列に
+  function timelineSql(c) {
+    const u = uidExpr(c);
+    const parts = [
+      ['log_login', 'log_id', 'result', "country || ' ' || ip_address"],
+      ['log_character', 'log_id', 'action', 'detail'],
+      ['log_item', 'log_id', 'action', "(SELECT name FROM mst_items m WHERE m.item_id = l.item_id) || ' x' || quantity"],
+      ['log_equip', 'log_id', 'action', "(SELECT name FROM mst_equips m WHERE m.equip_id = l.equip_id) || ' ' || IFNULL(detail, '')"],
+      ['log_currency', 'log_id', 'reason', "currency || ' ' || amount || '（残高 ' || balance_after || '）'"],
+      ['log_gacha', 'log_id', "'GACHA'", "gacha_id || ' ' || rarity"],
+      ['log_stage', 'log_id', 'result', "(SELECT name FROM mst_stages m WHERE m.stage_id = l.stage_id)"],
+      ['log_payment', 'payment_id', 'status', "(SELECT name FROM mst_products m WHERE m.product_id = l.product_id) || ' ' || price_jpy || '円'"],
+      ['log_error', 'log_id', 'level', 'message'],
+    ].map(([t, id, what, detail], k) => `  ${k ? 'UNION ALL ' : ''}SELECT '${t}' AS tbl, ${id} AS id, created_at, ${what} AS what, ${detail} AS detail FROM ${t} l WHERE user_id = ${u}`);
+    return `-- 行動タイムライン：${c.user} の受付日まで4日ぶん（id は各テーブルの log_id。log_payment だけ payment_id）\nSELECT * FROM (\n${parts.join('\n')}\n)\nWHERE created_at BETWEEN '${recvDate(c, -3)} 00:00:00' AND '${c.received}:59'\nORDER BY created_at DESC;`;
+  }
+  // 調査の定石ノート（道具）：いまのチケットのユーザー入りのひな形
+  const RECIPES = [
+    ['ユーザーを探す', '公開ID → user_id', (c) => `SELECT * FROM usr_users WHERE public_id = '${c.user}';`],
+    ['ログを新しい順に読む', 'ORDER BY ... DESC', (c) => `SELECT * FROM log_item\nWHERE user_id = ${uidExpr(c)}\nORDER BY created_at DESC\nLIMIT 50;`],
+    ['受付日の前後で絞る', 'BETWEEN', (c) => `SELECT * FROM log_login\nWHERE user_id = ${uidExpr(c)}\n  AND created_at BETWEEN '${recvDate(c, -1)} 00:00:00' AND '${c.received}:59'\nORDER BY created_at;`],
+    ['マスターと JOIN して名前を付ける', 'JOIN ... ON', (c) => `SELECT l.log_id, l.created_at, l.action, m.name, l.quantity\nFROM log_item l\nJOIN mst_items m ON m.item_id = l.item_id\nWHERE l.user_id = ${uidExpr(c)}\nORDER BY l.created_at DESC;`],
+    ['種類ごとに数える', 'GROUP BY', (c) => `SELECT action, COUNT(*) AS n, MIN(created_at) AS first, MAX(created_at) AS last\nFROM log_item\nWHERE user_id = ${uidExpr(c)}\nGROUP BY action\nORDER BY n DESC;`],
+    ['トレード相手を調べる', 'LEFT JOIN usr_users', (c) => `SELECT l.log_id, l.action, l.item_id, l.quantity, u.public_id AS partner, l.created_at\nFROM log_item l\nLEFT JOIN usr_users u ON u.user_id = l.target_user_id\nWHERE l.user_id = ${uidExpr(c)} AND l.action LIKE 'TRADE%'\nORDER BY l.created_at DESC;`],
+    ['見慣れないIP・端末を探す', 'GROUP BY 複数列', (c) => `SELECT ip_address, device_id, country, result, COUNT(*) AS n,\n       MIN(created_at) AS first, MAX(created_at) AS last\nFROM log_login\nWHERE user_id = ${uidExpr(c)}\nGROUP BY ip_address, device_id, country, result\nORDER BY last DESC;`],
+    ['JSON の中身を取り出す', 'json_extract', (c) => `SELECT log_id, action,\n       json_extract(detail, '$.from') AS from_v,\n       json_extract(detail, '$.to') AS to_v,\n       created_at\nFROM log_equip\nWHERE user_id = ${uidExpr(c)}\nORDER BY created_at DESC;`],
+  ];
+  // IDたどりルーペ（道具）：列名 → 参照先のテーブルと列
+  const DRILL = Object.assign({}, KEYMAP, { drop_item_id: 'mst_items', currency_log_id: 'log_currency' });
+  const drillKey = (t, col) => (col === 'target_user_id' ? 'user_id' : col === 'to_world' ? 'world_id' : col === 'drop_item_id' ? 'item_id' : col === 'currency_log_id' ? 'log_id' : (TABLE_DOCS.find((x) => x.name === t) || { cols: [[col]] }).cols[0][0]);
+  const sqlLit = (v) => (typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
+  function insertAndRun(text) {
+    insertStatement(text);
+    const ta = $('#sql'), end = ta.value.length;
+    ta.setSelectionRange(end - text.length, end); // 入れたSQLだけを実行する
+    runSql();
+    ta.setSelectionRange(end, end);
+  }
+  function renderDeco() {
+    const el = $('#deco'); if (!el || !window.Shop) return;
+    el.innerHTML = ['poster', 'plant', 'cat', 'lamp', 'keyboard'].filter(owns).map((id) => `<span class="deco-${id}" title="${esc(SHOP().BY_ID[id].name)}">${SHOP().art(id, 3)}</span>`).join('');
+  }
+  function applyLooks() {
+    document.querySelector('.app').classList.toggle('bezel-black', owns('bezel') && state.bezelOn);
+    if (window.Sound && window.Sound.setSong) window.Sound.setSong(state.tape || 'lofi');
   }
 
   // ---------------------------------------------------------------- 研修の進行
@@ -4665,6 +5504,10 @@ GROUP BY u.public_id, l.ip_address;`,
   // 研修を終えて（またはスキップして）本番へ
   function endTraining(completed) {
     if (FXo()) FXo().closeSay();
+    if (completed && !state.trainPaid && window.Shop) {
+      state.trainPaid = true; state.wallet += PAY.firstPay; state.earned += PAY.firstPay;
+      setTimeout(() => { snd('coins'); toast('初任給が出ました', `研修修了の手当として ${yen(PAY.firstPay)}。右上の［購買部］で調査ツールや消耗品が買えます。`); }, 1800);
+    }
     if (completed) state.trainDone = true;
     state.drafts[state.current] = $('#sql').value;
     state.phase = 'work';
@@ -4708,12 +5551,13 @@ GROUP BY u.public_id, l.ip_address;`,
       return;
     }
     if (!DB) { fb.hidden = false; fb.className = 'feedback is-info'; fb.textContent = 'DBの準備中です。少し待ってから送信してください。'; return; }
-    const okC = choice === c.answer, okE = checkEvidence(c, ev), tr = isTrain(i);
+    const forced = debugForce; debugForce = false;
+    const okC = forced || choice === c.answer, okE = forced || checkEvidence(c, ev), tr = isTrain(i);
     if (okC && okE) {
       st.status = 'solved';
       const perfect = st.wrong === 0 && st.hints === 0;
       if (tr) { st.score = 0; st.bonus = 0; } else {
-        st.score = Math.max(FLOOR, BASE - st.wrong * WRONG - st.hints * HINT);
+        st.score = Math.max(FLOOR, BASE - (st.wrong - (st.shielded || 0)) * WRONG - (st.hints - (st.freeHints || 0)) * HINT);
         state.combo = perfect ? state.combo + 1 : 0;
         state.maxCombo = Math.max(state.maxCombo || 0, state.combo);
         st.bonus = perfect && state.combo >= 2 ? comboBonus(state.combo) : 0;
@@ -4742,6 +5586,8 @@ GROUP BY u.public_id, l.ip_address;`,
       return;
     }
     st.wrong++;
+    const shielded = !tr && state.buffs.shield > 0;
+    if (shielded) { state.buffs.shield--; st.shielded = (st.shielded || 0) + 1; }
     if (state.combo && !tr) state.combo = 0;
     advance('wrong');
     save(); renderHud(); renderTicket();
@@ -4750,22 +5596,25 @@ GROUP BY u.public_id, l.ip_address;`,
       : !okC ? '根拠に挙げた値は合ってる。でも、そこから言える結論は別じゃない？'
         : '結論はいい線。でも根拠の値が違う。どのログが決め手？';
     fb.hidden = false; fb.className = 'feedback';
-    fb.textContent = `差し戻されました（${tr ? '研修中なので減点なし' : `−${WRONG}点`}）。先輩「${line}」`;
+    fb.textContent = `差し戻されました（${tr ? '研修中なので減点なし' : shielded ? '胃薬が効いて減点なし' : `−${WRONG}点`}）。先輩「${line}」`;
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const t = $('#ticket');
     t.querySelectorAll('.stamp.is-reject').forEach((x) => x.remove());
     t.insertAdjacentHTML('beforeend', stampHtml('差戻', 'is-reject fade'));
     const f = FXo();
-    if (f) { f.flash('red'); f.shake(t, true); f.cutin('reject', '差し戻し', tr ? '研修中なので減点なし' : `−${WRONG}点　ユーザーの怒りが上がった`); say('senpai', line, { interrupt: true }); }
+    if (f) { f.flash('red'); f.shake(t, true); f.cutin('reject', '差し戻し', tr ? '研修中なので減点なし' : shielded ? '胃薬が効いた　減点なし' : `−${WRONG}点　ユーザーの怒りが上がった`); say('senpai', line, { interrupt: true }); }
     else { t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); }
   }
   function showHint() {
     const i = state.current, c = CASES[i], st = state.cases[i];
     if (st.hints >= c.hints.length) return;
-    st.hints++; advance('hint'); save(); renderHud();
+    st.hints++;
+    if (!isTrain(i) && state.buffs.freeHint > 0) { state.buffs.freeHint--; st.freeHints = (st.freeHints || 0) + 1; }
+    advance('hint'); save(); renderHud();
     snd('hint');
     $('#hints').insertAdjacentHTML('beforeend', `<li><b>${st.hints}</b>${c.hints[st.hints - 1]}</li>`);
     if (st.hints >= c.hints.length) $('#btn-hint').disabled = true;
+    else $('#btn-hint').textContent = `ヒントを見る（${isTrain(i) ? '研修中は減点なし' : state.buffs.freeHint > 0 ? 'おごり済み：減点なし' : `−${HINT}`}）`;
     say('senpai', c.hints[st.hints - 1], { interrupt: true });
   }
   let giveupArmed = false;
@@ -4797,21 +5646,8 @@ GROUP BY u.public_id, l.ip_address;`,
       if (c.backdoor) say('senpai', '補填の管理ツール、今日もめちゃくちゃ重いんだよな……。本番に直接 <code>UPDATE</code> したくなるけど、絶対にやるなよ。絶対だぞ。');
     }
   }
-  // 電話線を抜く：新しいチケットは届かないが、時間は倍速で過ぎる
-  function togglePhone() {
-    state.unplugged = !state.unplugged; save(); renderHud();
-    if (state.unplugged) {
-      snd('unplug');
-      say('senpai', 'おい、電話線抜いたな……。チケットは来なくなるけど、時計は倍速で進むぞ。（※現実ではやめましょう）', { interrupt: true });
-    } else {
-      snd('plug');
-      say('cs', 'やっとつながった！！ 電話、ずっと鳴りっぱなしでしたよ！？', { interrupt: true });
-    }
-  }
-  const blockedByPhone = (i) => !isTrain(i) && state.unplugged && state.cases[i].status === 'open' && !state.cases[i].seen;
   function goto(i, opts) {
     if (i === state.current && !(opts && opts.force)) return;
-    if (blockedByPhone(i)) { snd('error'); say('senpai', '電話線が抜けてるから、次のチケットが届かない。右上の TEL で戻せるぞ。', { interrupt: true }); return; }
     state.drafts[state.current] = $('#sql').value;
     state.current = i; giveupArmed = false; specArmed = false; save();
     snd('page');
@@ -4829,7 +5665,7 @@ GROUP BY u.public_id, l.ip_address;`,
     }
     if (allDone()) showFinal(true);
     else if (dayDone()) showDayEnd(true);
-    else goto(firstOpen()); // 電話線が抜けていれば goto 側で止まる
+    else goto(firstOpen());
   }
 
   // ---------------------------------------------------------------- modals
@@ -4862,6 +5698,7 @@ GROUP BY u.public_id, l.ip_address;`,
             <dt>禁止</dt><dd>更新系のSQL。流すと部長が飛んでくる（始末書 −${SHIMATSU}）</dd>
             <dt>時計</dt><dd>毎朝 10:00 出社。調べるほど時間が進む。定時は 18:00</dd>
             ${hasTrain ? `<dt>研修</dt><dd>はじめての人は、DAY 1 の前に研修（${CASES.length - WORK}件）。Kさんと一緒に調べ方を覚える。点数はつかない。経験者はスキップできる</dd>` : ''}
+            ${window.Shop ? '<dt>給料</dt><dd>1日の終わりに給料が出る。右上の［購買部］で、調べものを楽にする調査ツールや消耗品をいつでも買える</dd>' : ''}
             <dt>音</dt><dd>BGMと効果音あり。右上の BGM / SE で切り替え</dd>
           </dl>
           <div class="btn-row title-actions">
@@ -4918,6 +5755,7 @@ GROUP BY u.public_id, l.ip_address;`,
     if (state.day >= DAYS()) { showFinal(true); return; }
     state.drafts[state.current] = $('#sql').value;
     state.day += 1; state.minutes = 0; state.current = dayCases(state.day)[0];
+    state.shimatsuAtStart = state.shimatsu; state.enjoAtStart = state.enjo || 0;
     save(); closeModal();
     $('#results').dataset.used = ''; renderAll();
     snd('start');
@@ -4931,6 +5769,7 @@ GROUP BY u.public_id, l.ip_address;`,
     if (f) f.closeSay();
     const d = state.day, score = dayScore(d), [, grade, gline] = gradeOf(score);
     if (!state.dayLog[d]) { state.dayLog[d] = { score, minutes: state.minutes }; save(); }
+    const pay = paySalary(d);
     if (animate) snd('final');
     const perfect = dayCases(d).filter((i) => resultLabel(state.cases[i]) === 'PERFECT').length;
     const rows = dayCases(d).map((i, p) => {
@@ -4947,8 +5786,10 @@ GROUP BY u.public_id, l.ip_address;`,
         <div class="rank-stamp"><span>${grade}</span></div>
         <div><p class="final-title">本日の評価 ${grade}</p><p class="final-line">Kさん「${esc(gline)}」</p></div>
       </div>
+      ${payslipHtml(d, pay)}
       <div class="btn-row">
         <button class="btn btn-primary" type="button" data-act="${last ? 'show-final' : 'next-day'}">${last ? '最終結果を見る' : `翌日へ（DAY ${d + 1}）`}</button>
+        ${window.Shop ? `<button class="btn btn-shop" type="button" data-act="shop">${FXo() ? FXo().icon('shop', 2) : ''}購買部に寄る${newStock() ? '<em class="shop-btn-new">NEW</em>' : ''}</button>` : ''}
         <button class="btn" type="button" data-act="review">今日のチケットを見直す</button>
       </div>
       ${(state.shimatsuIssued || 0) >= 3 ? '<div class="btn-row"><button class="btn btn-resign" type="button" data-act="resign">辞表を叩きつけて定時退社する</button></div>' : ''}`, 'final');
@@ -4979,7 +5820,7 @@ GROUP BY u.public_id, l.ip_address;`,
 
   function rankOf(score) { return RANKS.find((r) => score >= r[0] * MAX_SCORE); }
   function overtimeText(minutes) {
-    const end = DAY_START + (minutes == null ? state.minutes : minutes);
+    const end = Math.floor(DAY_START + (minutes == null ? state.minutes : minutes));
     if (end <= DAY_END) return '定時退社';
     const over = end - DAY_END;
     return `残業 ${Math.floor(over / 60)}時間${over % 60}分`;
@@ -4992,6 +5833,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const score = totalScore(); const [, title, line] = rankOf(score);
     const solved = workSt().filter((c) => c.status === 'solved').length;
     if (!state.dayLog[state.day] && dayDone()) { state.dayLog[state.day] = { score: dayScore(state.day), minutes: state.minutes }; save(); }
+    if (dayDone()) paySalary(state.day); // 最終日は1日の結果画面を通らないので、ここで給料を出す
     const ontime = Object.values(state.dayLog).filter((x) => DAY_START + x.minutes <= DAY_END).length;
     // 20日分を1行ずつ
     const rows = Array.from({ length: DAYS() }, (_, k) => {
@@ -5004,7 +5846,7 @@ GROUP BY u.public_id, l.ip_address;`,
     openModal(`
       <p class="eyebrow">全${DAYS()}日の業務終了　${WORK}件</p>
       <div class="final-score"><b id="final-score">${animate ? 0 : score}</b><span>/ ${MAX_SCORE} 点　${solved}件解決</span></div>
-      <div class="badges"><span class="badge ${ontime === DAYS() ? 'is-good' : ''}">定時退社 ${ontime} / ${DAYS()}日</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span>${state.thrown ? `<span class="badge">ゴミ箱に捨てた始末書 ${state.thrown}枚</span>` : ''}${state.enjo ? `<span class="badge is-bad">炎上 ${state.enjo}回</span>` : ''}${state.dropUsed ? '<span class="badge">DROPした（夢）</span>' : ''}${workSt().some((c) => c.banned) ? '<span class="badge is-good">BAN執行</span>' : ''}</div>
+      <div class="badges"><span class="badge ${ontime === DAYS() ? 'is-good' : ''}">定時退社 ${ontime} / ${DAYS()}日</span><span class="badge">最大コンボ ${state.maxCombo || 0}</span><span class="badge ${state.shimatsu ? 'is-bad' : 'is-good'}">始末書 ${state.shimatsu}枚</span>${state.thrown ? `<span class="badge">ゴミ箱に捨てた始末書 ${state.thrown}枚</span>` : ''}${state.enjo ? `<span class="badge is-bad">炎上 ${state.enjo}回</span>` : ''}${state.dropUsed ? '<span class="badge">DROPした（夢）</span>' : ''}${window.Shop ? `<span class="badge is-good">生涯年収 ${yen(state.earned)}</span><span class="badge">使った額 ${yen(state.spent)}</span>${spenderName() ? `<span class="badge">呼び名「${spenderName()}」</span>` : ''}` : ''}${workSt().some((c) => c.banned) ? '<span class="badge is-good">BAN執行</span>' : ''}</div>
       <div class="summary-wrap"><table class="summary"><thead><tr><th>日</th><th>結果</th><th class="r">PERFECT</th><th class="r">退勤</th><th class="r">評価</th><th class="r">点</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">始末書 ${state.shimatsu} 枚（−${state.shimatsu * SHIMATSU}）${state.penalty ? `　炎上（−${state.penalty}）` : ''}</td><td class="r"></td></tr></tfoot></table></div>
       <div class="final-rank" id="final-rank">
@@ -5047,7 +5889,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const score = totalScore(); const [, title] = rankOf(score);
     const perfect = workSt().filter((c) => resultLabel(c) === 'PERFECT').length;
     const grades = Array.from({ length: DAYS() }, (_, k) => gradeOf(dayScore(k + 1))[1]).join('');
-    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${WORK}件中PERFECT ${perfect}件 毎日の評価 ${grades} 称号「${title}」 最大${state.maxCombo || 0}コンボ 始末書${state.shimatsu}枚`;
+    return `『ログは嘘をつかない』 ${score}/${MAX_SCORE}点 ${WORK}件中PERFECT ${perfect}件 毎日の評価 ${grades} 称号「${title}」 最大${state.maxCombo || 0}コンボ 始末書${state.shimatsu}枚${window.Shop ? ` 生涯年収${Math.round(state.earned)}G${spenderName() ? `（${spenderName()}）` : ''}` : ''}`;
   }
 
   // ---------------------------------------------------------------- toast
@@ -5060,13 +5902,107 @@ GROUP BY u.public_id, l.ip_address;`,
   }
 
   // ---------------------------------------------------------------- events
+  // ---------------------------------------------------------------- デバッグモード（動作確認用）
+  // SQLエディタで「:debug」と書いて実行（Ctrl+Enter）すると、画面左下にデバッグパネルが出る。もう一度実行すると消える。
+  // URL に ?debug を付けて開いても入る。オン／オフはセーブデータとは別に localStorage に残る。
+  const DEBUG_KEY = 'logs-dont-lie:debug';
+  let debugOn = false, debugForce = false, debugOpen = true;
+  try { debugOn = localStorage.getItem(DEBUG_KEY) === '1' || /[?&]debug\b/.test(location.search); } catch (e) { /* storage unavailable */ }
+  function debugCommand(src) {
+    const m = stripComments(src).trim().match(/^[:\\]debug(?:\s+(on|off))?\s*;?$/i);
+    if (!m) return false;
+    setDebug(m[1] ? m[1].toLowerCase() === 'on' : !debugOn);
+    return true;
+  }
+  function setDebug(on) {
+    debugOn = on;
+    try { if (on) localStorage.setItem(DEBUG_KEY, '1'); else localStorage.removeItem(DEBUG_KEY); } catch (e) { /* storage unavailable */ }
+    snd('pop');
+    toast(on ? 'DEBUG MODE ON' : 'DEBUG MODE OFF', on ? '左下のパネルから所持金や進行を操作できます。:debug をもう一度実行すると終了。' : 'デバッグパネルを閉じました。');
+    renderDebug();
+  }
+  // いまのチケットの正解の根拠（分かるものだけ）
+  const evidenceOf = (c) => { const e = c.evidence || {}; const v = e.value != null ? e.value : e.id != null ? e.id : e.key ? KEYS[e.key] : null; return v == null ? '' : String(v); };
+  function renderDebug() {
+    const el = $('#debug'); if (!el) return;
+    if (!debugOn || !state) { el.hidden = true; el.innerHTML = ''; return; }
+    const i = state.current, c = CASES[i], st = state.cases[i], open = st.status === 'open';
+    const ans = (c.options.find((o) => o[0] === c.answer) || [])[1] || '';
+    const btn = (act, label, dis) => `<button type="button" data-dbg="${act}" ${dis ? 'disabled' : ''}>${label}</button>`;
+    el.hidden = false;
+    el.innerHTML = `<div class="debug-head"><b>DEBUG</b><span>DAY ${state.day}${inTraining() ? '（研修）' : ''}・${esc(slotLabel(i))}・${clockText()}</span>
+        <button type="button" data-dbg="fold" aria-label="${debugOpen ? 'たたむ' : 'ひらく'}">${debugOpen ? '−' : '+'}</button><button type="button" data-dbg="off" aria-label="デバッグモードを終了">×</button></div>
+      ${debugOpen ? `<div class="debug-body">
+        <p class="debug-label">所持金 ${yen(state.wallet)}</p>
+        <div class="debug-row">${btn('money:1000', '+1,000')}${btn('money:10000', '+10,000')}${btn('money:0', '0 にする')}</div>
+        <p class="debug-label">チケット ${esc(c.label)}（${open ? '未解決' : st.status === 'solved' ? '解決済み' : '先輩に聞いた'}）</p>
+        <div class="debug-row">${btn('solve', '強制成功', !open)}${btn('reject', '強制差し戻し', !open)}${btn('reopen', '未解決に戻す', open)}</div>
+        <p class="debug-answer">正解：${esc(ans)}<br>根拠：<code>${esc(evidenceOf(c) || '（受け付け条件のみ）')}</code></p>
+        <div class="debug-row">${btn('fill', '正解を入力欄に入れる', !open)}${btn('model', '模範SQLを実行')}</div>
+        <p class="debug-label">進行</p>
+        <div class="debug-row">${btn('solve-day', '今日の残りを全部解決', inTraining())}${btn('end-day', '今日を締める', inTraining())}</div>
+        <div class="debug-row"><label>DAY <input type="number" id="dbg-day" min="1" max="${DAYS()}" value="${Math.min(DAYS(), state.day + 1)}"></label>${btn('jump', 'へジャンプ（前の日は全部解決）')}</div>
+        <p class="debug-label">購買部</p>
+        <div class="debug-row">${btn('own-all', '全道具を持つ')}${btn('own-none', '道具・飾りを手放す')}${btn('fill-inv', '消耗品を満タン')}${btn('new-stock', '入荷通知をリセット')}</div>
+        <p class="debug-label">時計・ペナルティ</p>
+        <div class="debug-row">${btn('clock:0', '10:00 に戻す')}${btn('clock:+120', '+2時間')}${btn('clock:end', '18:30 にする')}</div>
+        <div class="debug-row">${btn('shimatsu:+1', '始末書 +1')}${btn('shimatsu:0', '始末書 0')}${btn('combo:+1', 'コンボ +1')}</div>
+      </div>` : ''}`;
+  }
+  // 前の日を飛ばすとき・今日をまとめて片付けるときの「解決扱い」
+  const debugSolve = (k) => { const s = state.cases[k]; if (s.status === 'open') Object.assign(s, { status: 'solved', score: BASE, bonus: 0, seen: true }); };
+  function debugAction(act) {
+    const [cmd, arg] = act.split(':');
+    const i = state.current, c = CASES[i], st = state.cases[i];
+    const refresh = () => { save(); renderAll(); renderDebug(); };
+    if (cmd === 'off') { setDebug(false); return; }
+    if (cmd === 'fold') { debugOpen = !debugOpen; renderDebug(); return; }
+    if (cmd === 'money') { if (arg === '0') state.wallet = 0; else { state.wallet += +arg; state.earned += +arg; } snd('coins'); refresh(); return; }
+    if (cmd === 'fill' || cmd === 'solve') {
+      if (st.status !== 'open') return;
+      const r = document.querySelector(`#answer-form input[name="choice"][value="${c.answer}"]`); if (r) r.checked = true;
+      const ev = evidenceOf(c); if ($('#evidence')) $('#evidence').value = ev || 'DEBUG';
+      if (cmd === 'solve') { debugForce = true; $('#answer-form').requestSubmit(); }
+      renderDebug(); return;
+    }
+    if (cmd === 'reject') {
+      if (st.status !== 'open') return;
+      const r = document.querySelector(`#answer-form input[name="choice"]:not([value="${c.answer}"])`); if (r) r.checked = true;
+      $('#evidence').value = '0'; $('#answer-form').requestSubmit(); renderDebug(); return;
+    }
+    if (cmd === 'reopen') { Object.assign(st, { status: 'open', score: 0, bonus: 0, via: null, wrong: 0, hints: 0 }); refresh(); return; }
+    if (cmd === 'model') { setEditor(c.model, false); runSql(); return; }
+    if (cmd === 'solve-day') { dayCases(state.day).forEach(debugSolve); refresh(); return; }
+    if (cmd === 'end-day') { dayCases(state.day).forEach(debugSolve); refresh(); if (allDone()) showFinal(true); else showDayEnd(true); return; }
+    if (cmd === 'jump') {
+      const d = Math.max(1, Math.min(DAYS(), parseInt($('#dbg-day').value, 10) || 1));
+      if (inTraining()) state.phase = 'work';
+      for (let k = 1; k < d; k++) dayCases(k).forEach(debugSolve);
+      state.drafts[state.current] = $('#sql').value;
+      state.day = d; state.minutes = 0; state.current = firstOpen();
+      state.shimatsuAtStart = state.shimatsu; state.enjoAtStart = state.enjo || 0;
+      $('#results').dataset.used = ''; refresh(); closeModal(); startDay(); return;
+    }
+    if (cmd === 'own-all') { SHOP().ITEMS.filter((it) => it.kind === 'tool').forEach((it) => { state.owned[it.id] = true; }); completeWords = null; }
+    else if (cmd === 'own-none') { state.owned = {}; state.tape = 'lofi'; completeWords = null; }
+    else if (cmd === 'fill-inv') SHOP().ITEMS.filter((it) => it.kind === 'consumable').forEach((it) => { state.inv[it.id] = it.max || 3; });
+    else if (cmd === 'new-stock') state.shopSeenDay = 0;
+    else if (cmd === 'clock') state.minutes = arg === 'end' ? DAY_END + 30 - DAY_START : arg.startsWith('+') ? state.minutes + +arg.slice(1) : +arg;
+    else if (cmd === 'shimatsu') state.shimatsu = arg === '0' ? 0 : state.shimatsu + 1;
+    else if (cmd === 'combo') { state.combo = (state.combo || 0) + 1; state.maxCombo = Math.max(state.maxCombo || 0, state.combo); }
+    snd('pop'); refresh();
+  }
+
   function bind() {
     const ta = $('#sql');
     ta.addEventListener('input', syncEditor);
     ta.addEventListener('scroll', syncScroll);
+    ta.addEventListener('click', updateComplete);
+    ta.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ta) { const c = $('#complete'); if (c) c.hidden = true; } }, 150));
     ta.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runSql(); return; }
-      if (e.key === 'Tab' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); insertAtCursor('  '); }
+      if (e.key === 'Tab' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); if (completeList.length && !$('#complete').hidden) acceptComplete(completeList[0]); else insertAtCursor('  '); return; }
+      if (e.key === 'Escape' && !$('#complete').hidden) { $('#complete').hidden = true; completeList = []; }
     });
     $('#run').addEventListener('click', runSql);
     $('#btn-clear').addEventListener('click', () => setEditor('', true));
@@ -5087,19 +6023,31 @@ GROUP BY u.public_id, l.ip_address;`,
       else if (b.dataset.dayend) showDayEnd(true);
       else if (b.id === 'btn-bgm' && window.Sound) window.Sound.setBgm(!window.Sound.prefs.bgm);
       else if (b.id === 'btn-sfx' && window.Sound) { const on = !window.Sound.prefs.sfx; window.Sound.setSfx(on); if (on) snd('pop'); }
-      else if (b.id === 'btn-phone') togglePhone();
       else if (b.id === 'btn-spec') specAnswer(b);
       else if (b.id === 'btn-honest') honestReply();
       else if (b.id === 'btn-ban') banHammer();
       else if (b.dataset.table) insertStatement(`SELECT * FROM ${b.dataset.table} LIMIT 20;`);
       else if (b.dataset.col) insertAtCursor(b.dataset.col);
-      else if (b.id === 'tab-btn-schema' || b.id === 'tab-btn-notes') {
-        const notes = b.id === 'tab-btn-notes';
-        $('#tab-btn-schema').setAttribute('aria-selected', String(!notes));
-        $('#tab-btn-notes').setAttribute('aria-selected', String(notes));
-        $('#tab-schema').hidden = notes; $('#tab-notes').hidden = !notes;
-        lessonEvent({ type: 'tab', tab: notes ? 'notes' : 'schema' });
-      } else if (b.id === 'btn-lesson-sql') {
+      else if (b.id && b.id.startsWith('tab-btn-')) switchTab(b.id.slice(8));
+      else if (b.dataset.complete) acceptComplete(b.dataset.complete);
+      else if (b.dataset.buy) buy(b.dataset.buy);
+      else if (b.dataset.use) useItem(b.dataset.use);
+      else if (b.dataset.tape) { state.tape = b.dataset.tape; save(); applyLooks(); if (window.Sound) window.Sound.playBgm(); snd('pop'); showShop(shopMode, true); }
+      else if (b.dataset.toggleBezel) { state.bezelOn = !state.bezelOn; save(); applyLooks(); snd('pop'); showShop(shopMode, true); }
+      else if (b.dataset.dbg) { if (state && debugOn) debugAction(b.dataset.dbg); }
+      else if (b.id === 'btn-shop') { if (state && DB) { snd('pop'); showShop('desk'); } }
+      else if (b.dataset.shopTab) { shopTab = b.dataset.shopTab; snd('page'); showShop(shopMode, true); $('#overlay').scrollTop = 0; }
+      else if (b.dataset.drill) {
+        const [t, key, ...lit] = b.dataset.drill.split('|');
+        insertAndRun(`SELECT * FROM ${t} WHERE ${key} = ${lit.join('|')};`);
+      } else if (b.dataset.uid) { insertAtCursor(b.dataset.uid); snd('pop'); }
+      else if (b.dataset.recipe != null) { const r = RECIPES[+b.dataset.recipe]; if (r) { insertStatement(`-- 定石：${r[0]}\n${r[2](CASES[state.current])}`); snd('pop'); } }
+      else if (b.id === 'btn-timeline') insertAndRun(timelineSql(CASES[state.current]));
+      else if (b.id === 'btn-memo-add') { const v = $('#sql').value.trim(); if (v && state.snippets.length < 5) { state.snippets.push(v); save(); renderMemo(); snd('pop'); } }
+      else if (b.dataset.memo != null) { insertStatement(state.snippets[+b.dataset.memo]); snd('pop'); }
+      else if (b.dataset.memoDel != null) { state.snippets.splice(+b.dataset.memoDel, 1); save(); renderMemo(); snd('crumple'); }
+      else if (b.dataset.sort) sortResult(b, +b.dataset.sort);
+      else if (b.id === 'btn-lesson-sql') {
         const step = lessonOf(state.current).steps[state.cases[state.current].step || 0];
         if (step && step.sql) { insertStatement(step.sql); snd('pop'); }
       } else if (b.id === 'btn-skip-training') {
@@ -5111,6 +6059,9 @@ GROUP BY u.public_id, l.ip_address;`,
         else if (a === 'start-training') { state.started = true; state.phase = 'training'; state.current = WORK; save(); renderAll(); beginTraining(false); }
         else if (a === 'resume') { if (inTraining()) beginTraining(true); else beginDay(true); }
         else if (a === 'skip-training') endTraining(false);
+        else if (a === 'shop') showShop('dayend');
+        else if (a === 'back-dayend') showDayEnd(false);
+        else if (a === 'close-shop') closeModal();
         else if (a === 'end-training') endTraining(true);
         else if (a === 'replay-training') replayTraining();
         else if (a === 'reset') {
@@ -5134,8 +6085,15 @@ GROUP BY u.public_id, l.ip_address;`,
       if (b.id !== 'btn-giveup' && giveupArmed) { giveupArmed = false; const g = $('#btn-giveup'); if (g) { g.textContent = '先輩に聞く'; g.classList.remove('btn-danger'); } }
       if (b.id !== 'btn-spec' && specArmed) { specArmed = false; const g = $('#btn-spec'); if (g) { g.textContent = '調べずに「仕様です」で即答する（1日1回）'; g.classList.remove('is-armed'); } }
     });
+    // 結果の並べ替え（道具）：見出しのクリックと、絞り込み欄
+    document.addEventListener('click', (e) => { const th = e.target.closest('.grid th[data-sort]'); if (th) sortResult(th, +th.dataset.sort); });
+    document.addEventListener('input', (e) => {
+      if (!e.target.classList || !e.target.classList.contains('rfilter')) return;
+      const q = e.target.value.trim().toLowerCase(), tb = e.target.closest('.rblock').querySelector('tbody');
+      tb.querySelectorAll('tr').forEach((tr) => { tr.hidden = !!q && !tr.textContent.toLowerCase().includes(q); });
+    });
     document.addEventListener('dblclick', (e) => {
-      const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn')) return;
+      const td = e.target.closest('.grid td'); if (!td || td.classList.contains('rn') || e.target.closest('.drill')) return;
       const inp = $('#evidence'); if (!inp) return;
       inp.value = td.textContent; state.cases[state.current].evidence = inp.value; save();
       document.querySelectorAll('.grid td.picked').forEach((x) => x.classList.remove('picked'));
@@ -5144,6 +6102,17 @@ GROUP BY u.public_id, l.ip_address;`,
       toast('根拠欄に入力しました', td.textContent);
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#overlay').hidden && state && state.started) closeModal(); });
+  }
+
+  function sortResult(th, col) {
+    const table = th.closest('table'), tb = table.querySelector('tbody');
+    const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+    table.querySelectorAll('th[data-sort]').forEach((x) => { delete x.dataset.dir; });
+    th.dataset.dir = dir;
+    const val = (tr) => { const td = tr.children[col]; const t = td ? td.textContent : ''; const n = Number(t); return td && td.classList.contains('num') && Number.isFinite(n) ? n : t; };
+    const rows = [...tb.querySelectorAll('tr')].sort((a, b) => { const x = val(a), y = val(b); const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'ja'); return dir === 'asc' ? c : -c; });
+    rows.forEach((r) => tb.appendChild(r));
+    snd('pop');
   }
 
   // ---------------------------------------------------------------- sound toggles
@@ -5170,6 +6139,7 @@ GROUP BY u.public_id, l.ip_address;`,
       if (!state.day) state.day = 1;
       if (!state.dayLog) state.dayLog = {};
       delete state.history; // 実行履歴の機能は削除済み
+      delete state.unplugged; // 電話線（TEL）の機能は削除済み
       // 命名規則の変更前に保存された下書きのテーブル名を、新しい名前に置き換える
       const RENAMED = [['character_logs', 'log_character'], ['item_logs', 'log_item'], ['login_logs', 'log_login'], ['currency_logs', 'log_currency'],
         ['payment_logs', 'log_payment'], ['error_logs', 'log_error'], ['m_items', 'mst_items'], ['m_products', 'mst_products'],
