@@ -761,7 +761,7 @@ GROUP BY u.public_id, l.ip_address;`,
     const cs = state.cases[state.current];
     cs.queries++;
     if (cs.status === 'open') advance('query');
-    const blocks = [], results = [];
+    const blocks = [], results = [], tabs = [];
     let ok = true, totalRows = 0, heavy = false;
     for (let k = 0; k < stmts.length; k++) {
       const s = stmts[k];
@@ -776,18 +776,21 @@ GROUP BY u.public_id, l.ip_address;`,
         const ms = performance.now() - t0;
         totalRows += count; if (count >= 2000) heavy = true;
         blocks.push(renderTable(k, stmts.length, s, cols, rows, count, ms, cut));
+        tabs.push({ sql: s, count, cut });
         results.push({ cols, rows });
       } catch (e) {
         ok = false;
         const tip = /\bINTERVAL\b/i.test(s) ? "SQLite に INTERVAL はありません。datetime(created_at, '+1 day') のように書きます。"
           : (MYSQL_TIPS.find(([re]) => re.test(e.message)) || [])[1];
         if (/readonly|read-only/i.test(e.message)) issueShimatsu('');
+        tabs.push({ sql: s, err: true });
         blocks.push(`<div class="rblock"><div class="rmeta"><b>#${k + 1}</b><span class="rsql">${esc(oneLine(s))}</span></div><div class="rerr">${esc(e.message)}${tip ? `<small>${esc(tip)}</small>` : ''}</div></div>`);
         break;
       } finally { if (st) st.free(); }
     }
-    out.innerHTML = owns('submon') && prevResults ? `<div class="rsplit"><div class="rcur">${blocks.join('')}</div><div class="rprev"><p class="rprev-label">サブモニター：ひとつ前の結果</p>${prevResults}</div></div>` : blocks.join('');
-    prevResults = blocks.join('');
+    const cur = resultSet(blocks, tabs);
+    out.innerHTML = owns('submon') && prevResults ? `<div class="rsplit"><div class="rcur">${cur}</div><div class="rprev"><p class="rprev-label">サブモニター：ひとつ前の結果</p>${prevResults}</div></div>` : cur;
+    prevResults = cur;
     out.scrollTop = 0;
     out.classList.remove('is-fresh'); void out.offsetWidth; out.classList.add('is-fresh');
     snd(owns('keyboard') ? 'runMech' : 'run');
@@ -797,6 +800,25 @@ GROUP BY u.public_id, l.ip_address;`,
     lessonEvent({ type: 'run', sql: src, results });
   }
   let prevResults = '';
+  // 複数の結果はタブで1つずつ全高表示（並べると枠が潰れて読めないため）。エラーがあればそのタブを開く
+  function resultSet(blocks, tabs) {
+    if (blocks.length < 2) return blocks.join('');
+    const on = Math.max(0, tabs.findIndex((t) => t.err));
+    const btns = tabs.map((t, i) => {
+      const from = (stripComments(t.sql).match(/\bFROM\s+([A-Za-z_]+)/i) || [])[1] || '';
+      const n = t.err ? 'ERR' : `${t.count.toLocaleString()}${t.cut ? '+' : ''}行`;
+      const cls = t.err ? ' is-err' : t.count === 0 ? ' is-zero' : '';
+      return `<button type="button" class="rtab${cls}${i === on ? ' is-on' : ''}" role="tab" aria-selected="${i === on}" data-rtab="${i}" title="${esc(oneLine(t.sql))}"><b>#${i + 1}</b>${from ? `<span class="rtab-t">${esc(from)}</span>` : ''}<span class="rtab-n">${n}</span></button>`;
+    }).join('');
+    const panes = blocks.map((b, i) => (i === on ? b : b.replace('<div class="rblock">', '<div class="rblock" hidden>'))).join('');
+    return `<div class="rset"><div class="rtabs" role="tablist" aria-label="実行結果">${btns}</div>${panes}</div>`;
+  }
+  function showResultTab(tab) {
+    const set = tab.closest('.rset'), i = +tab.dataset.rtab;
+    set.querySelectorAll(':scope > .rtabs .rtab').forEach((t, k) => { t.classList.toggle('is-on', k === i); t.setAttribute('aria-selected', k === i); });
+    set.querySelectorAll(':scope > .rblock').forEach((b, k) => { b.hidden = k !== i; });
+    snd('page');
+  }
   const oneLine = (s) => stripComments(s).replace(/\s+/g, ' ').trim();
   function renderTable(k, n, sql, cols, rows, count, ms, cut) {
     const sortable = owns('sort');
@@ -2129,6 +2151,13 @@ GROUP BY u.public_id, l.ip_address;`,
     });
     // 結果の並べ替え（道具）：見出しのクリックと、絞り込み欄
     document.addEventListener('click', (e) => { const th = e.target.closest('.grid th[data-sort]'); if (th) sortResult(th, +th.dataset.sort); });
+    // 複数結果のタブ（←→でも切り替え）
+    document.addEventListener('click', (e) => { const t = e.target.closest('.rtab'); if (t && !t.classList.contains('is-on')) showResultTab(t); });
+    document.addEventListener('keydown', (e) => {
+      const t = e.target.closest && e.target.closest('.rtab'); if (!t || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      const all = [...t.parentNode.children], n = all[(all.indexOf(t) + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
+      e.preventDefault(); n.focus(); showResultTab(n);
+    });
     document.addEventListener('input', (e) => {
       if (!e.target.classList || !e.target.classList.contains('rfilter')) return;
       const q = e.target.value.trim().toLowerCase(), tb = e.target.closest('.rblock').querySelector('tbody');
